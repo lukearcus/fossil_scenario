@@ -59,7 +59,6 @@ def test_lnn():
         SCENAPP_MAX_ITERS=5,
     )
     result = fossil.synthesise(opts)
-
     axes = plotting.benchmark(
         system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 2.5], yrange=[-2, 1]
     )

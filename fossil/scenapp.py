@@ -93,7 +93,8 @@ class SingleScenApp:
                     self.certificate.get_supports,
                     self.config.BETA,
                     self.config.N_DATA,
-                    self.config.SUPPORT_TOL+self.config.MARGIN,
+                    self.config.SUPPORT_TOL,
+                    self.config.MARGIN,
                     self.config.VERBOSE,
                             )
         return verifier_instance
@@ -211,7 +212,7 @@ class SingleScenApp:
                 iters += 1
                 scenapp_log.info("Iteration: {}".format(iters))
 
-                state = self.process_timers(state)
+        state = self.process_timers(state)
 
         #N_data = sum([S_i.shape[0] for S_i in state[ScenAppStateKeys.S].values()])
         stats = Stats(
@@ -285,14 +286,14 @@ class SingleScenApp:
                 if self.config.SCENAPP_MAX_ITERS == iters:
                     stop = True
         else:
-            if isinstance(self.f, control.GeneralClosedLoopModel):
-                raise NotImplementedError("Can't do controlled models")
-                ctrl = " and controller"
-            else:
-                ctrl = ""
-                print(f"Found a valid {self.config.CERTIFICATE.name} certificate" + ctrl)
-                stop = True
-                return stop
+            #if isinstance(self.f, control.GeneralClosedLoopModel):
+            #    raise NotImplementedError("Can't do controlled models")
+            #    ctrl = " and controller"
+            #else:
+            ctrl = ""
+            print(f"Found a valid {self.config.CERTIFICATE.name} certificate" + ctrl)
+            stop = True
+            return stop
 
     @property
     def result(self):

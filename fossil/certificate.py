@@ -311,14 +311,18 @@ class Lyapunov(Certificate):
         for cs in ({XD: lyap_condition},):
             yield cs
 
-    def get_supports(self, V, Vdot, S, Sdot, tol):
+    def get_supports(self, V, Vdot, S, Sdot, margin, tol):
         supports = 0
         for traj, traj_deriv in zip(S, Sdot):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+            circle = torch.pow(traj, 2).sum(dim=1)
             pred_V = V(traj)
             pred_0 = V(torch.zeros_like(traj))
             pred_V_dot = Vdot(traj,traj_deriv)
-            if any(pred_V <= pred_0 + tol) or any(pred_V_dot >= -tol):
+            if any(pred_V <= pred_0 + margin*circle + tol) or any(pred_V_dot >= -margin*circle-tol):
                 supports += 1
         return supports
 

@@ -559,7 +559,7 @@ class VerifierScenApp(Component):
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
     
-    def __init__(self, n_vars, support_finder, beta, num_data, tol, verbose):
+    def __init__(self, n_vars, support_finder, beta, num_data, tol, margin, verbose):
         super().__init__()
         self.iter = -1
         self.n = n_vars
@@ -569,6 +569,7 @@ class VerifierScenApp(Component):
         self.support_finder = support_finder
         self.verbose = verbose
         self.optional_configs = VerifierConfig()
+        self.margin = margin
         self.tol = tol
         self._vars_bounds = [self.optional_configs.VARS_BOUNDS for _ in range(n_vars)]
 
@@ -641,7 +642,7 @@ class VerifierScenApp(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = self.support_finder(C, dC, S, dS, self.tol) 
+        supps = self.support_finder(C, dC, S, dS, self.margin, self.tol) 
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
     

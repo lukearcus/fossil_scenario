@@ -8,18 +8,31 @@
 
 import fossil
 from fossil import plotting
-
+import scipy
+import torch
 
 class Barr3(fossil.control.DynamicalModel):
     n_vars = 2
+    time_horizon = 2 
 
-    def f_torch(self, v):
-        x, y = v[:, 0], v[:, 1]
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y = v[0], v[1]
+        else:
+            x, y = v[:, 0], v[:, 1]
         return [y, -x - y + 1 / 3 * x**3]
 
-    def f_smt(self, v):
+    def f_smt(self, t, v):
         x, y = v
         return [y, -x - y + 1 / 3 * x**3]
+
+    def init_state_dist(self, N_points):
+        init_mean = torch.zeros(2)
+        init_cov = torch.eye(2)
+        init_dist = scipy.stats.multivariate_normal(init_mean, init_cov).rvs
+        data=  init_dist(N_points)
+        data = torch.tensor(data)
+        return data
 
 
 def test_lnn():
@@ -46,28 +59,28 @@ def test_lnn():
         fossil.XI: XI,
         fossil.XU: XU,
     }
-    data = {
-        fossil.XD: XD._generate_data(1000),
-        fossil.XI: XI._generate_data(400),
-        fossil.XU: XU._generate_data(400),
-    }
-
+    #Edit this
+    data_points = 1000
+    init_data = XI._generate_data(data_points)
+    all_data = system().generate_trajs(init_data)
+    data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
     # define NN parameters
     activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [10] * len(activations)
 
-    opts = fossil.CegisConfig(
+    opts = fossil.ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,
         DOMAINS=sets,
         DATA=data,
         CERTIFICATE=fossil.CertificateType.BARRIER,
         TIME_DOMAIN=fossil.TimeDomain.CONTINUOUS,
-        VERIFIER=fossil.VerifierType.DREAL,
+        N_DATA=data_points,
+        #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         SYMMETRIC_BELT=False,
-        CEGIS_MAX_ITERS=25,
+        SCENAPP_MAX_ITERS=25,
         VERBOSE=0,
         SEED=167,
     )

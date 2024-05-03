@@ -52,7 +52,7 @@ def benchmark(
     return (ax1, "plane"), (ax2, "surface")  # , (ax3, "Cdot")
 
 
-def save_plot_with_tags(ax, config: consts.ScenAppConfig, plot_type: str):
+def save_plot_with_tags(ax, config: consts.CegisConfig, plot_type: str):
     prop = config.CERTIFICATE.name
     model = config.SYSTEM
     seed = torch.initial_seed()
@@ -227,7 +227,7 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
     )[1]
     Z = ZT.detach().numpy()
     dx, dy = (
-        model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
+        model._f_torch(torch.stack([XT.ravel(), YT.ravel()]).T.float())
         .detach()
         .numpy()
         .T

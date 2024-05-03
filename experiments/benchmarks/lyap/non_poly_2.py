@@ -10,6 +10,7 @@ from fossil import certificate
 from fossil import domains
 from fossil import main
 from fossil.consts import *
+from fossil import plotting
 
 
 def test_lnn(args):
@@ -25,26 +26,27 @@ def test_lnn(args):
         certificate.XD: XD,
     }
 
-    data = {
-        certificate.XD: XD._generate_data(1000),
-    }
+    init_data = XD._generate_data(1000)()
 
+    all_data = system().generate_trajs(init_data)
+    data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
+    
     # define NN parameters
     activations = [ActivationType.SQUARE]
     n_hidden_neurons = [10] * len(activations)
 
-    opts = CegisConfig(
+    opts = ScenAppConfig(
         SYSTEM=system,
         DOMAINS=sets,
         DATA=data,
+        N_DATA=1000,
         N_VARS=system.n_vars,
         CERTIFICATE=CertificateType.LYAPUNOV,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
-        VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         LLO=True,
-        CEGIS_MAX_ITERS=25,
+        SCENAPP_MAX_ITERS=25,
     )
 
     main.run_benchmark(

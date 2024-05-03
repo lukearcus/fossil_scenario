@@ -303,12 +303,15 @@ def inf_bounds_n(n):
 
 
 class Set:
+    dreal_functions = verifier.VerifierDReal.solver_fncts()
+    z3_functions = verifier.VerifierZ3.solver_fncts()
+    cvc5_functions = verifier.VerifierCVC5.solver_fncts()
     sp_functions = SP_FNCS
 
     def __init__(self) -> None:
         pass
 
-    def generate_domain(self, x):
+    def generate_domain(self, x) -> verifier.SYMBOL:
         raise NotImplementedError
 
     def generate_data(self, batch_size) -> torch.Tensor:
@@ -320,7 +323,7 @@ class Set:
         except TypeError:
             return self.__class__.__name__
 
-    def generate_complement(self, x):
+    def generate_complement(self, x) -> verifier.SYMBOL:
         """Generates complement of the set as a symbolic formulas
 
         Args:
@@ -361,7 +364,14 @@ class Set:
 
     @staticmethod
     def set_functions(x):
-        return Set.sp_functions
+        if verifier.VerifierDReal.check_type(x):
+            return Set.dreal_functions
+        elif verifier.VerifierZ3.check_type(x):
+            return Set.z3_functions
+        elif verifier.VerifierCVC5.check_type(x):
+            return Set.cvc5_functions
+        else:
+            return Set.sp_functions
 
 
 class Union(Set):
@@ -397,9 +407,6 @@ class Union(Set):
     def plot(self, *args, **kwargs):
         self.S1.plot(*args, **kwargs)
         self.S2.plot(*args, **kwargs)
-    
-    def check_containment(self, x):
-        return self.S1.check_containment(x) or self.S2.check_containment(x)
 
 
 class Intersection(Set):
@@ -425,9 +432,6 @@ class Intersection(Set):
         s2 = self.S2.generate_data(batch_size)
         s2 = s2[self.S1.check_containment(s2)]
         return torch.cat([s1, s2])
-    
-    def check_containment(self, x):
-        return self.S1.check_containment(x) & self.S2.check_containment(x)
 
 
 class SetMinus(Set):

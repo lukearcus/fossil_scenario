@@ -13,18 +13,18 @@ import warnings
 
 import torch
 
-from fossil.scenapp import ScenApp, Result
+from fossil.cegis import Cegis, Result
 import fossil.plotting as plotting
 from fossil import cli
 from fossil import analysis
 from fossil import consts
-from fossil.scenapp_supervisor import ScenAppSupervisorQ
+from fossil.cegis_supervisor import CegisSupervisorQ
 
 """Top-level module for running benchmarks, and (eventually) using a CLI"""
 
 
-N_PROCS = 1
-BASE_SEED = 0
+N_PROCS = 4
+BASE_SEED = 167
 
 
 def parse_benchmark_args():
@@ -48,7 +48,7 @@ def parse_benchmark_args():
 
 
 def run_benchmark(
-    scenapp_options: consts.ScenAppConfig,
+    cegis_options: consts.CegisConfig,
     repeat=1,
     record=False,
     plot=False,
@@ -60,49 +60,47 @@ def run_benchmark(
     Allows for running benchmarks with different configurations regarding recording, plotting, and concurrency.
 
     Args:
-        scenapp_options (ScenAppConfig): Scenario Approach Loop configuration
+        cegis_options (CegisConfig): Cegis configuration
         repeat (int, optional): How many times to repeat over consecutive seeds. Defaults to 1.
         record (bool, optional): record to csv. Defaults to False.
         plot (bool, optional): plot benchmark. Defaults to False.
         concurrent (bool, optional): For each attempt, run multiple seeds in parallel and take first successful result. Defaults to False.
     """
-    print("Repeatability not working")
-    print("Note: only lyapunov works ATM, need to creater support finder funcs & change loss for others")
     torch.set_num_threads(1)
 
     for i in range(repeat):
         torch.manual_seed(BASE_SEED + i * N_PROCS)
         start = timeit.default_timer()
         if concurrent:
-            PAC = ScenAppSupervisorQ(max_P=N_PROCS)
-            result = PAC.solve(scenapp_options)
+            c = CegisSupervisorQ(max_P=N_PROCS)
+            result = c.solve(cegis_options)
         else:
-            PAC = ScenApp(scenapp_options)
-            result = PAC.solve()
+            c = Cegis(cegis_options)
+            result = c.solve()
         stop = timeit.default_timer()
         T = stop - start
         print("Elapsed Time: {}".format(T))
 
         if plot:
-            if scenapp_options.N_VARS != 2:
+            if cegis_options.N_VARS != 2:
                 warnings.warn("Plotting is only supported for 2-dimensional problems")
             else:
                 axes = plotting.benchmark(
                     result.f, result.cert, domains=cegis_options.DOMAINS, **kwargs
                 )
-                for ax, name in axes:
-                    plotting.save_plot_with_tags(ax, scenapp_options, name)
+                # for ax, name in axes:
+                #     plotting.save_plot_with_tags(ax, cegis_options, name)
 
         if record:
             rec = analysis.Recorder()
-            rec.record(scenapp_options, result, T)
+            rec.record(cegis_options, result, T)
 
 
-def synthesise(opts: consts.ScenAppConfig) -> Result:
+def synthesise(opts: consts.CegisConfig) -> Result:
     """Main entry point for synthesising a certificate and controller.
 
     Args:
-        opts (consts.ScenAppConfig): ScenApp configuration
+        opts (consts.CegisConfig): Cegis configuration
 
     Returns:
         Result: Result of synthesis (success flag, certificate, final model and stats)
@@ -112,16 +110,16 @@ def synthesise(opts: consts.ScenAppConfig) -> Result:
     torch.set_num_threads(1)
     if opts.SEED is not None:
         torch.manual_seed(opts.SEED)
-    PAC = ScenApp(opts)
-    result = PAC.solve()
+    c = Cegis(opts)
+    result = c.solve()
     return result
 
 
-def learn(opts: consts.ScenAppConfig) -> Result:
+def learn(opts: consts.CegisConfig) -> Result:
     """Learns a certificate and controller without verification step.
 
     Args:
-        opts (consts.ScenAppConfig): ScenApp configuration
+        opts (consts.CegisConfig): Cegis configuration
     Returns:
         Result: Result of synthesis (success flag, certificate, final model and stats)
 
@@ -129,7 +127,7 @@ def learn(opts: consts.ScenAppConfig) -> Result:
     raise NotImplementedError
 
 
-def verify(opts: consts.ScenAppConfig) -> Result:
+def verify(opts: consts.CegisConfig) -> Result:
     """Verifies a given certificate and controller.
 
     Args:

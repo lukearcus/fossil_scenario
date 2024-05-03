@@ -10,11 +10,13 @@ import functools
 
 import numpy as np
 import sympy as sp
+from z3 import *
+import dreal
 import torch
 
 from fossil.activations import activation, activation_der
 from fossil.activations_symbolic import activation_sym, activation_der_sym
-from fossil.consts import ScenAppStateKeys, LearningFactors
+from fossil.consts import CegisStateKeys, LearningFactors
 
 
 def check_sympy_expression(state, system):
@@ -209,6 +211,41 @@ def weights_projection(net, equilibrium, rounding, z):
     new_last_layer = sp.Matrix(last_layer @ projection_mat)
 
     return new_last_layer
+
+
+def z3_replacements(expr, z3_vars, ctx):
+    """
+    :param expr: z3 expr
+    :param z3_vars: z3 vars, matrix
+    :param ctx: matrix of numerical values
+    :return: value of V, Vdot in ctx
+    """
+    replacements = []
+    for i in range(len(z3_vars)):
+        try:
+            replacements += [(z3_vars[i, 0], z3.RealVal(ctx[i, 0]))]
+        except TypeError:
+            replacements += [(z3_vars[i], z3.RealVal(ctx[i, 0]))]
+
+    replaced = z3.substitute(expr, replacements)
+
+    return z3.simplify(replaced)
+
+
+def dreal_replacements(expr, dr_vars, ctx):
+    """
+    :param expr: dreal expr
+    :param dr_vars: dreal vars, matrix
+    :param ctx: matrix of numerical values
+    :return: value of V, Vdot in ctx
+    """
+    try:
+        replacements = {dr_vars[i, 0]: float(ctx[i, 0]) for i in range(len(dr_vars))}
+    except TypeError:
+        replacements = {dr_vars[i]: float(ctx[i, 0]) for i in range(len(dr_vars))}
+
+    return expr.Substitute(replacements)
+
 
 def z3_to_string(f):
     if len(f.children()) == 0:

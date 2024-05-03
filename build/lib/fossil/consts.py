@@ -10,6 +10,9 @@ from enum import Enum, auto
 from typing import Any, Literal
 
 import torch
+import z3
+import dreal
+from cvc5 import pythonic as cvpy
 import numpy as np
 import sympy as sp
 
@@ -50,7 +53,7 @@ class VerifierType(Enum):
     DREAL = auto()
     CVC5 = auto()
     MARABOU = auto()
-    SCENAPP = auto()
+
 
 class ConsolidatorType(Enum):
     NONE = auto()
@@ -160,24 +163,21 @@ class CertificateType(Enum):
 
 
 @dataclass
-class ScenAppConfig:
+class CegisConfig:
     SYSTEM: Any = None
     CERTIFICATE: CertificateType = CertificateType.LYAPUNOV
     DOMAINS: dict[str, Any] = None
     DATA: dict[str : torch.Tensor] = None
     SYMMETRIC_BELT: bool = False
-    SCENAPP_MAX_ITERS: int = 10
-    SCENAPP_MAX_TIME_S: float = math.inf  # in sec
+    CEGIS_MAX_ITERS: int = 10
+    CEGIS_MAX_TIME_S: float = math.inf  # in sec
     TIME_DOMAIN: TimeDomain = TimeDomain.CONTINUOUS
     LEARNER: LearnerType = LearnerType.CONTINUOUS
-    VERIFIER: VerifierType = VerifierType.SCENAPP
-    #CONSOLIDATOR: ConsolidatorType = ConsolidatorType.DEFAULT
-    #TRANSLATOR: TranslatorType = TranslatorType.CONTINUOUS
+    VERIFIER: VerifierType = VerifierType.Z3
+    CONSOLIDATOR: ConsolidatorType = ConsolidatorType.DEFAULT
+    TRANSLATOR: TranslatorType = TranslatorType.CONTINUOUS
     N_DATA: int = 500
-    BETA: float = 1e-5,
-    EPS: float = 0.1
     LEARNING_RATE: float = 0.1
-    SUPPORT_TOL: float = 1e-3
     FACTORS: Literal = LearningFactors.NONE
     LLO: bool = False  # last layer of ones
     ROUNDING: int = 3
@@ -192,44 +192,38 @@ class ScenAppConfig:
     ACTIVATION_ALT: tuple[ActivationType, ...] = (
         ActivationType.SQUARE,
     )  # For DoubleCegis
-    SEED: int = 0
+    SEED: int = None
     CUSTOM_CERTIFICATE: Any = None
-    MARGIN: float = 0.1
 
     def __getitem__(self, item):
         return getattr(self, item)
 
 
-class ScenAppStateKeys:
+class CegisStateKeys:
     x_v = "x_v"
     x_v_dot = "x_v_dot"
     x_v_map = "x_v_map"
     S = "S"
     S_dot = "S_dot"
-    S_traj = "S_traj"
-    S_traj_dot = "S_traj_dot"
     B = "B"
     B_dot = "B_dot"
     optimizer = "optimizer"
     V = "V"
     V_dot = "V_dot"
+    cex = "cex"  # counterexamples
     net = "net"
-    net_dot = "net_dot"
     trajectory = "trajectory"
     factors = "factors"
     found = "found"
-    bounds = "bounds"
-    loss = "loss"
     verification_timed_out = "verification_timed_out"
     verifier_fun = "verifier_fun"
     components_times = "components_times"
     ENet = "ENet"
     xdot = "xdot"
     xdot_func = "xdot_func"
-    margin = "margin"
 
 
-class ScenAppComponentsState:
+class CegisComponentsState:
     name = "name"
     instance = "instance"
     to_next_component = "to_next_component"
@@ -273,6 +267,21 @@ PROPERTIES = {
     CertificateType.STABLESAFE: "SWA",
 }
 
+
+Z3_FNCS = {
+    "And": z3.And,
+    "Or": z3.Or,
+    "If": z3.If,
+}
+DREAL_FNCS = {
+    "sin": dreal.sin,
+    "cos": dreal.cos,
+    "exp": dreal.exp,
+    "And": dreal.And,
+    "Or": dreal.Or,
+    "If": dreal.if_then_else,
+    "Not": dreal.Not,
+}
 MATH_FNCS = {
     "sin": np.sin,
     "cos": np.cos,
@@ -283,4 +292,13 @@ SP_FNCS = {
     "sin": sp.sin,
     "cos": sp.cos,
     "exp": sp.exp,
+}
+
+CVC5_FNCS = {
+    "And": cvpy.And,
+    "Or": cvpy.Or,
+    "If": cvpy.If,
+    "sin": cvpy.Sine,
+    "cos": cvpy.Cosine,
+    "exp": cvpy.Exponential,
 }

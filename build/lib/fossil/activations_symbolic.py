@@ -9,6 +9,12 @@ import logging
 # pylint: disable=no-member
 # definition of various activation fcns
 import numpy as np
+import z3
+
+try:
+    import dreal as dr
+except Exception as e:
+    logging.exception("Exception while importing dReal")
 from fossil import consts
 
 

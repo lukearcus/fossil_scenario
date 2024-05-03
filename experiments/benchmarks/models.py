@@ -39,6 +39,7 @@ class Eulerised:
 
 class Linear0(control.DynamicalModel):
     n_vars = 2
+    time_horizon = 2
 
     def f_torch(self, v):
         x, y = v[:, 0], v[:, 1]
@@ -47,40 +48,47 @@ class Linear0(control.DynamicalModel):
     def f_smt(self, v):
         x, y = v
         return [-x - y, x]
+    
 
 
 class NonPoly0(control.DynamicalModel):
     n_vars = 2
+    time_horizon = 2
 
-    def f_torch(self, v):
+    def f_torch(self, t, v):
         x, y = v[:, 0], v[:, 1]
         return [-x + x * y, -y]
 
-    def f_smt(self, v):
+    def f_smt(self, t, v):
         x, y = v
         return [-x + x * y, -y]
 
 
 class NonPoly1(control.DynamicalModel):
     n_vars = 2
+    time_horizon = 2
 
-    def f_torch(self, v):
+    def f_torch(self, t, v):
         x, y = v[:, 0], v[:, 1]
         return [-x + 2 * x**2 * y, -y]
 
-    def f_smt(self, v):
+    def f_smt(self, t, v):
         x, y = v
         return [-x + 2 * x**2 * y, -y]
 
 
 class NonPoly2(control.DynamicalModel):
     n_vars = 3
+    time_horizon = 2
 
-    def f_torch(self, v):
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y, z = v[0], v[1], v[2]
+            return [-x, -2 * y + 0.1 * x * y**2 + z, -z - 1.5 * y]
         x, y, z = v[:, 0], v[:, 1], v[:, 2]
         return [-x, -2 * y + 0.1 * x * y**2 + z, -z - 1.5 * y]
 
-    def f_smt(self, v):
+    def f_smt(self, t, v):
         x, y, z = v
         return [-x, -2 * y + 0.1 * x * y**2 + z, -z - 1.5 * y]
 

@@ -13,7 +13,7 @@ from collections import namedtuple
 import pandas as pd
 
 
-from fossil.consts import ScenAppConfig, CertificateType, ACTIVATION_NAMES, PROPERTIES
+from fossil.consts import CegisConfig, CertificateType, ACTIVATION_NAMES, PROPERTIES
 from fossil import certificate
 
 """Post processing of results module."""
@@ -152,7 +152,7 @@ class Recorder:
         """
         self.filename = config.results_file
 
-    def record(self, config: ScenAppConfig, result, T: float):
+    def record(self, config: CegisConfig, result, T: float):
         """records results of abstraction to csv file.
 
         Args:
@@ -325,11 +325,11 @@ class Analyser:
             table.to_markdown(self.output_file + ".md")
 
 
-def benchmark_to_latex(config: ScenAppConfig):
+def benchmark_to_latex(config: CegisConfig):
     """Convert a benchmark to latex format.
 
     Args:
-        config (ScenAppConfig): scenapp config
+        config (CegisConfig): cegis config
 
     Returns:
         str: latex string
@@ -389,7 +389,7 @@ def benchmark_to_latex(config: ScenAppConfig):
     return s
 
 
-def domains_to_string(config: ScenAppConfig):
+def domains_to_string(config: CegisConfig):
     """Convert a list of domains to a string.
 
     Args:

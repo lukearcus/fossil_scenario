@@ -9,12 +9,16 @@ import timeit
 from copy import deepcopy
 from itertools import product
 from typing import Any, Callable, Dict, Literal, Union
-from scipy.stats import beta as betaF
 
 import numpy as np
 import torch
+import z3
 from cvc5 import pythonic as cvpy
 
+try:
+    import dreal as dr
+except ModuleNotFoundError:
+    logging.exception("No dreal")
 
 import fossil.logger as logger
 from fossil.component import Component
@@ -22,10 +26,13 @@ from fossil.consts import *
 from fossil.utils import (
     Timer,
     contains_object,
+    dreal_replacements,
     timer,
+    z3_replacements,
 )
 
 T = Timer()
+SYMBOL = Union[z3.ArithRef, dr.Variable, dr.Expression]
 ver_log = logger.Logger.setup_logger(__name__)
 
 
@@ -295,6 +302,21 @@ class VerifierDReal(Verifier):
         """
         return contains_object(x, dr.Variable)
 
+    @staticmethod
+    def solver_fncts() -> Dict[str, Callable]:
+        return {
+            "sin": dr.sin,
+            "cos": dr.cos,
+            "exp": dr.exp,
+            "And": dr.And,
+            "Or": dr.Or,
+            "If": dr.if_then_else,
+            "Check": VerifierDReal.check_type,
+            "Not": dr.Not,
+            "False": dr.Formula.FALSE(),
+            "True": dr.Formula.TRUE(),
+        }
+
     def is_sat(self, res) -> bool:
         return isinstance(res, dr.Box)
 
@@ -554,105 +576,6 @@ class VerifierMarabou(Verifier):
         for cs in ({"lyap": (*V_tuple, *Vdot_tuple)},):
             yield cs
 
-class VerifierScenApp(Component):
-    @staticmethod
-    def new_vars(n, base="x"):
-        return [sp.symbols(base+str(i)) for i in range(n)]
-    
-    def __init__(self, n_vars, support_finder, beta, num_data, tol, verbose):
-        super().__init__()
-        self.iter = -1
-        self.n = n_vars
-        self.beta = beta[0]
-        self.num_data = num_data
-        self._solver_timeout = 300
-        self.support_finder = support_finder
-        self.verbose = verbose
-        self.optional_configs = VerifierConfig()
-        self.tol = tol
-        self._vars_bounds = [self.optional_configs.VARS_BOUNDS for _ in range(n_vars)]
-
-    def calc_eps_risk_complexity(self, k):
-        beta = self.beta
-        N = self.num_data
-        if k != 0:
-            alphaL = betaF.ppf(beta, k, N-k+1)
-            alphaU = 1-betaF.ppf(beta, N-k+1, k)
-        else:
-            alphaL = 0
-            alphaU = 0
-    
-        m1 = np.expand_dims(np.arange(k, N+1),0)
-        #m1[0,0] = k+1
-        aux1 = np.sum(np.triu(np.log(np.ones([N-k+1,1])@m1),1),1)
-        aux2 = np.sum(np.triu(np.log(np.ones([N-k+1,1])@(m1-k)),1),1)
-        coeffs1 = np.expand_dims(aux2-aux1, 1)
-    
-        m2 = np.expand_dims(np.arange(N+1, 4*N+1),0)
-        aux3 = np.sum(np.tril(np.log(np.ones([3*N,1])@m2)),1)
-        aux4 = np.sum(np.tril(np.log(np.ones([3*N,1])@(m2-k))),1)
-        coeffs2 = np.expand_dims(aux3-aux4, 1)
-    
-        def poly(t):
-            val = 1
-            val += beta/(2*N) 
-            val -= (beta/(2*N))*np.sum(np.exp(coeffs1 - (N-m1.T)*np.log(t)))
-            val -=(beta/(6*N))*np.sum(np.exp(coeffs2 + (m2.T-N)*np.log(t)))
-    
-            
-            return val
-        t1 = 1-alphaL
-        t2 = 1
-        poly1 = poly(t1)
-        poly2 = poly(t2)
-    
-        if ((poly1*poly2)) > 0:
-            epsL = 0
-        else:
-            while t2-t1 > 10**-10:
-                t = (t1+t2)/2
-                polyt  = poly(t)
-                if polyt > 0:
-                    t1 = t
-                else:
-                    t2 = t
-            epsL = 1-t2
-    
-        t1 = 0
-        t2 = 1-alphaU
-    
-        while t2-t1 > 10**-10:
-            t = (t1+t2)/2
-            polyt  = poly(t)
-            if polyt > 0:
-                t2 = t
-            else:
-                t1 = t
-        epsU = 1-t1
-        return epsU
-    
-    def verify(self, C, dC, S, dS):
-        """
-        :param C: function
-        :param dC: function
-        :param S: data bunched into trajectories
-        :param dS: derivative data bunched into trajectories
-
-        :return:
-                bounds: upper and lower PAC bounds
-        """
-        supps = self.support_finder(C, dC, S, dS, self.tol) 
-        bounds = self.calc_eps_risk_complexity(supps)
-        return {ScenAppStateKeys.bounds: bounds}
-    
-    def get(self, **kw):
-        # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot])
-    
-    @staticmethod
-    def get_timer():
-        return T
-
 
 def get_verifier_type(verifier: Literal) -> Verifier:
     if verifier == VerifierType.DREAL:
@@ -663,8 +586,6 @@ def get_verifier_type(verifier: Literal) -> Verifier:
         return VerifierCVC5
     elif verifier == VerifierType.MARABOU:
         return VerifierMarabou
-    elif verifier == VerifierType.SCENAPP:
-        return VerifierScenApp
     else:
         raise ValueError("No verifier of type {}".format(verifier))
 
@@ -675,7 +596,6 @@ def get_verifier(verifier, n_vars, constraints_method, solver_vars, verbose):
         or verifier == VerifierZ3
         or verifier == VerifierCVC5
         or verifier == VerifierMarabou
-        or verifier == VerifierScenApp
     ):
         return verifier(n_vars, constraints_method, solver_vars, verbose)
     else:

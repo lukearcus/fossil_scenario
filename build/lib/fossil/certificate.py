@@ -14,13 +14,12 @@ that the domains and data are as expected for a given certificate.
 from typing import Generator, Type, Any
 
 import torch
-import numpy as np
 from torch.optim import Optimizer
 
 import fossil.control as control
 import fossil.logger as logger
 import fossil.learner as learner
-from fossil.consts import ScenAppConfig, CertificateType, DomainNames, ScenAppStateKeys
+from fossil.consts import CegisConfig, CertificateType, DomainNames
 
 
 XD = DomainNames.XD.value
@@ -161,7 +160,7 @@ class Lyapunov(Certificate):
 
     bias = False
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.domain = domains[XD]
         self.llo = config.LLO
         self.control = config.CTRLAYER is not None
@@ -195,7 +194,7 @@ class Lyapunov(Certificate):
         return loss, accuracy
 
     def compute_loss(
-            self, V: torch.Tensor, Vdot: torch.Tensor, circle: torch.Tensor, margin: float
+        self, V: torch.Tensor, Vdot: torch.Tensor, circle: torch.Tensor
     ) -> tuple[torch.Tensor, dict]:
         """_summary_
 
@@ -207,25 +206,23 @@ class Lyapunov(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        #margin = 0.1 # Need to change this and carry it around for later
+        margin = 0
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
-        #relu = torch.nn.LeakyReLU(1 / slope.item())
-        relu = torch.nn.ReLU()
+        relu = torch.nn.LeakyReLU(1 / slope.item())
         # relu = torch.nn.Softplus()
         # compute loss function. if last layer of ones (llo), can drop parts with V
         if self.llo:
             learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            loss = (relu(Vdot + margin * circle)).max()
+            loss = (relu(Vdot + margin * circle)).mean()
         else:
             learn_accuracy = 0.5 * (
                 (Vdot <= -margin).count_nonzero().item()
                 + (V >= margin).count_nonzero().item()
             )
-            loss = torch.max((relu(Vdot + margin * circle)).max() , (
+            loss = (relu(Vdot + margin * circle)).mean() + (
                 relu(-V + margin * circle)
-            ).max()) # Why times circle?
+            ).mean()
         accuracy = {"acc": learn_accuracy * 100 / Vdot.shape[0]}
-        
 
         return loss, accuracy
 
@@ -236,7 +233,6 @@ class Lyapunov(Certificate):
         S: list,
         Sdot: list,
         f_torch=None,
-        margin=0.1
     ) -> dict:
         """
         :param learner: learner object
@@ -264,7 +260,7 @@ class Lyapunov(Certificate):
 
             V, Vdot, circle = learner.get_all(samples, samples_dot)
 
-            loss, learn_accuracy = self.compute_loss(V, Vdot, circle, margin)
+            loss, learn_accuracy = self.compute_loss(V, Vdot, circle)
 
             if self.control:
                 loss = loss + control.cosine_reg(samples, samples_dot)
@@ -281,12 +277,8 @@ class Lyapunov(Certificate):
 
             if learner._take_abs:
                 learner.make_final_layer_positive()
-        loss, learn_accuracy = self.compute_loss(V, Vdot, circle, margin)
 
-        if self.control:
-            loss = loss + control.cosine_reg(samples, samples_dot)
-
-        return {ScenAppStateKeys.loss: loss}
+        return {}
 
     def get_constraints(self, verifier, V, Vdot) -> Generator:
         """
@@ -310,18 +302,6 @@ class Lyapunov(Certificate):
         lyap_condition = _And(self.domain, lyap_negated)
         for cs in ({XD: lyap_condition},):
             yield cs
-
-    def get_supports(self, V, Vdot, S, Sdot, tol):
-        supports = 0
-        for traj, traj_deriv in zip(S, Sdot):
-            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
-            pred_V = V(traj)
-            pred_0 = V(torch.zeros_like(traj))
-            pred_V_dot = Vdot(traj,traj_deriv)
-            if any(pred_V <= pred_0 + tol) or any(pred_V_dot >= -tol):
-                supports += 1
-        return supports
-
 
     def estimate_beta(self, net):
         # This function is unused I think
@@ -350,7 +330,7 @@ class ROA(Certificate):
 
     bias = False
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.XI = domains[XI]
         self.llo = config.LLO
         self.control = config.CTRLAYER is not None
@@ -502,11 +482,6 @@ class ROA(Certificate):
 
         for cs in ({XD: roa_condition},):
             yield cs
-    
-    def get_supports(self, V, Vdot, S, Sdot, tol):
-        supports = 0
-        raise NotImplementedError
-        return supports
 
     @staticmethod
     def _assert_state(domains, data):
@@ -528,7 +503,7 @@ class Barrier(Certificate):
 
     """
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.domain = domains[XD]
         self.initial_s = domains[XI]
         self.unsafe_s = domains[XU]
@@ -701,7 +676,7 @@ class Barrier(Certificate):
             yield cs
 
     @classmethod
-    def _for_goal_final(cls, domains, config: ScenAppConfig) -> "Barrier":
+    def _for_goal_final(cls, domains, config: CegisConfig) -> "Barrier":
         """Initialises a Barrier certificate for a goal and final set."""
         new_domains = {**domains}  # Don't modify the original
         new_domains[XI] = domains[XG]
@@ -711,7 +686,7 @@ class Barrier(Certificate):
         return cert
 
     @classmethod
-    def _for_safe_roa(cls, domains, config: ScenAppConfig) -> "Barrier":
+    def _for_safe_roa(cls, domains, config: CegisConfig) -> "Barrier":
         """Initialises a Barrier certificate for a safe set and roa."""
         cert = cls(domains, config)
         cert.relu = torch.nn.Softplus()
@@ -737,7 +712,7 @@ class BarrierAlt(Certificate):
 
     """
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.domain = domains[XD]
         self.initial_s = domains[XI]
         self.unsafe_s = domains[XU]
@@ -915,7 +890,7 @@ class RWS(Certificate):
 
     """
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         """initialise the RWS certificate
         Domains should contain:
             XI: compact initial set
@@ -1126,7 +1101,7 @@ class RSWS(RWS):
     requires an unsafe set to be passed in, and assumes its border is the same of the border of the safe set.
     """
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         """initialise the RSWS certificate
         Domains should contain:
             XI: compact initial set
@@ -1353,7 +1328,7 @@ class RSWS(RWS):
 class SafeROA(Certificate):
     """Certificate to prove stable while safe"""
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.ROA = ROA(domains, config)
         self.barrier = Barrier._for_safe_roa(domains, config)
         self.bias = self.ROA.bias, self.barrier.bias
@@ -1473,7 +1448,7 @@ class SafeROA(Certificate):
 
 
 class ReachAvoidRemain(Certificate):
-    def __init__(self, domains, config: ScenAppConfig) -> None:
+    def __init__(self, domains, config: CegisConfig) -> None:
         self.domains = domains
         self.RWS = RWS(domains, config)
         self.barrier = Barrier._for_goal_final(domains, config)
@@ -1620,7 +1595,7 @@ class ReachAvoidRemain(Certificate):
 class DoubleCertificate(Certificate):
     """In Devel class for synthesising any two certificates together"""
 
-    def __init__(self, domains, config: ScenAppConfig):
+    def __init__(self, domains, config: CegisConfig):
         self.certificate1 = None
         self.certificate2 = None
 
@@ -1702,7 +1677,7 @@ def get_certificate(
     elif certificate == CertificateType.CUSTOM:
         if custom_cert is None:
             raise ValueError(
-                "Custom certificate not provided (use ScenAppConfig CUSTOM_CERTIFICATE)))"
+                "Custom certificate not provided (use CegisConfig CUSTOM_CERTIFICATE)))"
             )
         return custom_cert
     else:

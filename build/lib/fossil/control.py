@@ -12,15 +12,17 @@ from functools import partial
 import torch
 import numpy as np
 import sympy as sp
+import z3
+import dreal
+from cvc5 import pythonic as cvpy
 from scipy import linalg
-import scipy
 from matplotlib import pyplot as plt
 
 from fossil import parser
 from fossil import logger
 from fossil.activations import activation
 from fossil.activations_symbolic import activation_sym
-from fossil.consts import SP_FNCS, VerifierType
+from fossil.consts import Z3_FNCS, DREAL_FNCS, SP_FNCS, VerifierType, CVC5_FNCS
 from fossil.utils import vprint, contains_object
 
 ctrl_log = logger.Logger.setup_logger(__name__)
@@ -50,7 +52,7 @@ class DynamicalModel:
     def __call__(self, *args: Any, **kwds: Any) -> Any:
         return self.f(*args, **kwds)
 
-    def f_torch(self, t, v: torch.Tensor) -> list:
+    def f_torch(self, v: torch.Tensor) -> list:
         """Returns the output of the model as a list of torch tensors
 
         Args:
@@ -59,12 +61,11 @@ class DynamicalModel:
         Returns:
             list: length n_vars, each element is a torch tensor of shape (N_data, 1)
         """
-        #NOTE: Added timestep t, all existing models will be time-invariant so this will not be used ATM
         raise NotImplementedError
 
-    def _f_torch(self, t, v: torch.Tensor) -> torch.Tensor:
+    def _f_torch(self, v: torch.Tensor) -> torch.Tensor:
         """Internal function to stack the output of f_torch, so that users do not have to import torch"""
-        return torch.stack(self.f_torch(t, v)).T
+        return torch.stack(self.f_torch(v)).T
 
     def f_smt(self, v):
         raise NotImplementedError
@@ -72,19 +73,6 @@ class DynamicalModel:
     def parameters(self):
         """Get learnable parameters of the model"""
         return ()
-
-    def generate_trajs(self, x_0):
-        #if x_0.ndim > 1:
-        #    x_0 = x_0.flatten()
-        trajs = []
-        for elem in x_0:
-            trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
-        state_trajs = [traj["y"] for traj in trajs]
-        times = [traj["t"] for traj in trajs]
-        # Following will NOT return true derivatives for trajectory when stochasticity is included
-        derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
-        #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
-        return times, state_trajs, derivs
 
     def check_similarity(self):
         """
@@ -104,7 +92,6 @@ class DynamicalModel:
         XX, YY = np.meshgrid(xx, yy)
         dx, dy = (
             self._f_torch(
-                0, # t
                 torch.stack(
                     [torch.tensor(XX).ravel(), torch.tensor(YY).ravel()]
                 ).T.float()

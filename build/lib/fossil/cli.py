@@ -193,7 +193,7 @@ class CegisConfigParser:
         return data, domains
 
 
-def parse_yaml_to_scenapp_config(file_path: str) -> consts.ScenAppConfig:
+def parse_yaml_to_cegis_config(file_path: str) -> consts.CegisConfig:
     with open(file_path, "r") as file:
         config_data = yaml.safe_load(file)
 
@@ -205,7 +205,7 @@ def parse_yaml_to_scenapp_config(file_path: str) -> consts.ScenAppConfig:
             )
 
     # Populate the CegisConfig object
-    config = consts.ScenAppConfig()
+    config = consts.CegisConfig()
     CFP = CegisConfigParser
 
     for field, value in config_data.items():

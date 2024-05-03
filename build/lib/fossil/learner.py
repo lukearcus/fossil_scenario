@@ -44,7 +44,7 @@ class LearnerNN(nn.Module, Learner):
         learn_method,
         *args,
         activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
-        config: ScenAppConfig = ScenAppConfig(),
+        config: CegisConfig = CegisConfig(),
         bias=True,
     ):
         super(LearnerNN, self).__init__()
@@ -96,18 +96,16 @@ class LearnerNN(nn.Module, Learner):
         S: torch.Tensor,
         Sdot: torch.Tensor,
         xdot_func: Callable,
-        margin: float
     ) -> dict:
-        return self.learn_method(net, optimizer, S, Sdot, xdot_func, margin)
+        return self.learn_method(net, optimizer, S, Sdot, xdot_func)
 
     def get(self, **kw):
         return self.learn(
-            kw[ScenAppStateKeys.net],
-            kw[ScenAppStateKeys.optimizer],
-            kw[ScenAppStateKeys.S],
-            kw[ScenAppStateKeys.S_dot],
+            kw[CegisStateKeys.net],
+            kw[CegisStateKeys.optimizer],
+            kw[CegisStateKeys.S],
+            kw[CegisStateKeys.S_dot],
             None,
-            kw[ScenAppStateKeys.margin]
             # I think this could actually still pass xdot_func, since there's no pytorch parameters to learn
         )
 
@@ -120,9 +118,6 @@ class LearnerNN(nn.Module, Learner):
         self, S: torch.Tensor, Sdot: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Computes the value of the learner, its lie derivative and the circle."""
-        raise NotImplementedError
-
-    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -321,7 +316,6 @@ class LearnerNN(nn.Module, Learner):
     def compute_dV(self, gradV, Sdot):
         raise NotImplementedError("compute_dV not implemented for this learner")
 
-    
 
 class LearnerCT(LearnerNN):
     """Leaner class for continuous time dynamical models.
@@ -358,9 +352,6 @@ class LearnerCT(LearnerNN):
         Vdot = self.compute_dV(gradV, Sdot)
 
         return V, Vdot, circle
-    
-    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
-        return self.get_all(S, Sdot)[1]
 
     def compute_dV(self, gradV: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
         """Computes the  lie derivative of the function.
@@ -420,7 +411,7 @@ class CtrlLearnerCT(LearnerCT):
         *args,
         activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
         bias=True,
-        config: ScenAppConfig = ScenAppConfig(),
+        config: CegisConfig = CegisConfig(),
     ):
         LearnerNN.__init__(
             self,
@@ -440,11 +431,11 @@ class CtrlLearnerCT(LearnerCT):
 
     def get(self, **kw):
         return self.learn(
-            kw[ScenAppStateKeys.net],
-            kw[ScenAppStateKeys.optimizer],
-            kw[ScenAppStateKeys.S],
-            kw[ScenAppStateKeys.S_dot],
-            kw[ScenAppStateKeys.xdot_func],
+            kw[CegisStateKeys.net],
+            kw[CegisStateKeys.optimizer],
+            kw[CegisStateKeys.S],
+            kw[CegisStateKeys.S_dot],
+            kw[CegisStateKeys.xdot_func],
         )
 
     # backprop algo
@@ -461,7 +452,7 @@ class CtrlLearnerDT(LearnerDT):
         *args,
         activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
         bias=True,
-        config: ScenAppConfig = ScenAppConfig(),
+        config: CegisConfig = CegisConfig(),
     ):
         LearnerNN.__init__(
             self,

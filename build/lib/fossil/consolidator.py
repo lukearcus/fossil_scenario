@@ -7,7 +7,7 @@
 # pylint: disable=not-callable
 import torch
 
-from fossil.consts import ScenAppStateKeys
+from fossil.consts import CegisStateKeys
 from fossil.component import Component
 from fossil.activations import activation, activation_der
 from fossil.utils import Timer, timer
@@ -21,12 +21,12 @@ class Consolidator(Component):
         self.f = f
 
     def get(self, **kw):
-        for label, cex in kw[ScenAppStateKeys.cex].items():
+        for label, cex in kw[CegisStateKeys.cex].items():
             if (
                 "lie" in label and cex != []
             ):  # Trying to 'generalise' when we use the trajectoriser
-                return self.compute_trajectory(kw[ScenAppStateKeys.net], cex[-1])
-        return {ScenAppStateKeys.trajectory: []}
+                return self.compute_trajectory(kw[CegisStateKeys.net], cex[-1])
+        return {CegisStateKeys.trajectory: []}
 
     # computes the gradient of V, Vdot in point
     # computes a 20-step trajectory (20 is arbitrary) starting from point
@@ -66,7 +66,7 @@ class Consolidator(Component):
             trajectory.append(point)
         # just checking if gradient is numerically unstable
         assert not torch.isnan(torch.stack(trajectory)).any()
-        return {ScenAppStateKeys.trajectory: torch.stack(trajectory)}
+        return {CegisStateKeys.trajectory: torch.stack(trajectory)}
 
     def compute_V_grad(self, net, point):
         """

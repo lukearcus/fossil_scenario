@@ -335,6 +335,7 @@ class Lyapunov(Certificate):
 
     def estimate_beta(self, net):
         # This function is unused I think
+        print("Estimating beta!")
         try:
             border_D = self.D[XD].sample_border(300)
             beta, _ = net.compute_minimum(border_D)
@@ -405,7 +406,8 @@ class ROA(Certificate):
         """
         margin = 0 * 0.01
 
-        relu = torch.nn.Softplus()
+        #relu = torch.nn.Softplus()
+        relu = torch.nn.ReLU()
         # compute loss function. if last layer of ones (llo), can drop parts with V
         if self.llo:
             learn_accuracy = (Vdot <= -margin).count_nonzero().item()
@@ -416,9 +418,10 @@ class ROA(Certificate):
                 (Vdot <= -margin).count_nonzero().item()
                 + (V >= margin).count_nonzero().item()
             )
-            loss = (relu(Vdot + margin * circle)).mean() + (
-                relu(-V + margin * circle)
-            ).mean()
+            loss = torch.max(relu(Vdot+margin).max(),relu(-V + margin).max())
+            #loss = (relu(Vdot + margin * circle)).mean() + (
+            #    relu(-V + margin * circle)
+            #).mean()
 
         accuracy = {"acc": learn_accuracy * 100 / Vdot.shape[0]}
 
@@ -516,7 +519,7 @@ class ROA(Certificate):
     
     def get_supports(self, V, Vdot, S, Sdot, tol):
         supports = 0
-        raise NotImplementedError
+        raise NotImplementedError("ROA is the same as lyapunov for us I think...")
         return supports
 
     @staticmethod
@@ -546,6 +549,7 @@ class Barrier(Certificate):
         self.SYMMETRIC_BELT = config.SYMMETRIC_BELT
         self.bias = True
         self.relu = torch.relu
+        self.D = config.DOMAINS
 
     def compute_loss(
         self,
@@ -553,6 +557,7 @@ class Barrier(Certificate):
         B_u: torch.Tensor,
         B_d: torch.Tensor,
         Bdot_d: torch.Tensor,
+        margin: float
     ) -> tuple[torch.Tensor, dict]:
         """Computes loss function for Barrier certificate.
 
@@ -567,7 +572,6 @@ class Barrier(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        margin = 0
 
         ### We spend A LOT of time computing the accuracies and belt percent.
         ### Changing from builtins sum to torch.sum() makes the whole code 4x faster.
@@ -580,9 +584,10 @@ class Barrier(Certificate):
 
         # relu = torch.nn.Softplus()
         relu = self.relu
-        init_loss = (relu(B_i + margin)).mean()
-        unsafe_loss = (relu(-B_u + margin)).mean()
-        loss = init_loss + unsafe_loss
+        loss = (relu(B_i + margin)).max()
+        if len(B_u) != 0:
+            unsafe_loss = (relu(-B_u + margin)).max()
+            loss = torch.max(loss, unsafe_loss)
 
         # set two belts
         percent_belt = 0
@@ -600,8 +605,8 @@ class Barrier(Certificate):
                 100 * ((dB_belt <= -margin).count_nonzero()).item() / dB_belt.shape[0]
             )
 
-            lie_loss = (relu(dB_belt + 0 * margin)).mean()
-            loss = loss + lie_loss
+            lie_loss = (relu(dB_belt + margin)).max()
+            loss = torch.max(loss, lie_loss)
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,
@@ -618,6 +623,7 @@ class Barrier(Certificate):
         S: dict,
         Sdot: dict,
         f_torch=None,
+        margin=0.1,
     ) -> dict:
         """
         :param learner: learner object
@@ -634,13 +640,13 @@ class Barrier(Certificate):
         i2 = S[XI].shape[0]
         # samples = torch.cat([s for s in S.values()])
         label_order = [XD, XI, XU]
-        samples = torch.cat([S[label] for label in label_order])
+        samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
 
         if f_torch:
             samples_dot = f_torch(samples)
         else:
             # samples_dot = torch.cat([s for s in Sdot.values()])
-            samples_dot = torch.cat([Sdot[label] for label in label_order])
+            samples_dot = torch.cat([Sdot[label] for label in label_order if type(S[label]) is not list])
 
         for t in range(learn_loops):
             optimizer.zero_grad()
@@ -660,7 +666,7 @@ class Barrier(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            (loss, accuracy) = self.compute_loss(B_i, B_u, B_d, Bdot_d)
+            (loss, accuracy) = self.compute_loss(B_i, B_u, B_d, Bdot_d, margin)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
                 log_loss_acc(t, loss, accuracy, learner.verbose)
@@ -677,7 +683,7 @@ class Barrier(Certificate):
             loss.backward()
             optimizer.step()
 
-        return {}
+        return {ScenAppStateKeys.loss: loss}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:
         """
@@ -710,6 +716,42 @@ class Barrier(Certificate):
             {XD: lie_constr},
         ):
             yield cs
+    
+    def get_supports(self, B, Bdot, S, Sdot, margin, tol):
+        supports = 0
+        for traj, traj_deriv in zip(S, Sdot):
+            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+        
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+        
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+
+            initial_inds = torch.where(self.D[XI].check_containment(traj))
+            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
+            
+            pred_B_i = B(traj[initial_inds])
+            pred_B_u = B(traj[unsafe_inds])
+            if (any(pred_B_i >= - margin - tol) or
+                    any(pred_B_u <= margin + tol)):
+                supports += 1
+                continue
+
+            percent_belt = 0
+            if self.SYMMETRIC_BELT:
+                belt_index = torch.nonzero(torch.abs(traj) <= 0.5)
+            else:
+                belt_index = torch.nonzero(traj >= -margin)
+
+            if belt_index.nelement() != 0:
+                dB_belt_S = torch.index_select(traj, dim=0, index=belt_index[:, 0])
+                dB_belt_Sdot = torch.index_select(traj_deriv, dim=0, index=belt_index[:, 0])
+                pred_B_dots = Bdot(dB_belt_S, dB_belt_Sdot)
+
+                
+                if any(pred_B_dots >= -margin-tol):
+                    supports += 1
+        return supports
 
     @classmethod
     def _for_goal_final(cls, domains, config: ScenAppConfig) -> "Barrier":

@@ -6,6 +6,7 @@
 
 import timeit
 
+from fossil import plotting
 from fossil import domains
 from fossil import certificate
 from fossil import main
@@ -28,40 +29,49 @@ class UnsafeDomain(domains.Set):
             idx = torch.nonzero(dom[:, 0] + dom[:, 1] ** 2 <= 0)
             points += dom[idx][:, 0, :]
         return torch.stack(points[:batch_size])
-
+    
+    def check_containment(self, x):
+        return x[:,0] + x[:,1]**2 <= 0
 
 def test_lnn(args):
     XD = domains.Rectangle([-2, -2], [2, 2])
     XI = domains.Rectangle([0, 1], [1, 2])
     XU = UnsafeDomain()
 
+    n_data = 1000
+    
     sets = {
         certificate.XD: XD,
         certificate.XI: XI,
         certificate.XU: XU,
     }
-    data = {
-        certificate.XD: XD._generate_data(500),
-        certificate.XI: XI._generate_data(500),
-        certificate.XU: XU._generate_data(500),
-    }
+    #data = {
+    #    certificate.XD: XD._generate_data(500),
+    #    certificate.XI: XI._generate_data(500),
+    #    certificate.XU: XU._generate_data(500),
+    #}
+    init_data = XI._generate_data(n_data)()
 
     system = models.Barr1
+    all_data = system().generate_trajs(init_data)
+    data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
+
     activations = [ActivationType.SIGMOID]
     hidden_neurons = [5] * len(activations)
-    opts = CegisConfig(
+    opts = ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,
         DOMAINS=sets,
         DATA=data,
+        N_DATA=n_data,
         CERTIFICATE=CertificateType.BARRIER,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
-        VERIFIER=VerifierType.DREAL,
+        #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        CEGIS_MAX_ITERS=25,
+        SCENAPP_MAX_ITERS=2500,
     )
     main.run_benchmark(
         opts,

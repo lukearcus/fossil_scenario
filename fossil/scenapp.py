@@ -125,9 +125,10 @@ class SingleScenApp:
                     domained_data["times"][key].append(lumped_data["times"][ind])
                     
                 #domained_data[key] = [elem for elem in lumped_data["states"] if domain.check_containment(elem)]
-            domained_data["states"][key] = torch.stack(domained_data["states"][key])
-            domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
-            domained_data["times"][key] = torch.stack(domained_data["times"][key])
+            if len(domained_data["states"][key]) > 0:
+                domained_data["states"][key] = torch.stack(domained_data["states"][key])
+                domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
+                domained_data["times"][key] = torch.stack(domained_data["times"][key])
         scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 

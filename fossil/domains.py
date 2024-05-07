@@ -362,7 +362,12 @@ class Set:
     @staticmethod
     def set_functions(x):
         return Set.sp_functions
-
+    
+    def check_containment(self, x):
+        """
+        Checks if x is contained in set
+        """
+        return NotImplementedError
 
 class Union(Set):
     """

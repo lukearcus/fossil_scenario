@@ -66,8 +66,6 @@ def run_benchmark(
         plot (bool, optional): plot benchmark. Defaults to False.
         concurrent (bool, optional): For each attempt, run multiple seeds in parallel and take first successful result. Defaults to False.
     """
-    print("Repeatability not working")
-    print("Note: only lyapunov works ATM, need to creater support finder funcs & change loss for others")
     torch.set_num_threads(1)
 
     for i in range(repeat):
@@ -88,7 +86,7 @@ def run_benchmark(
                 warnings.warn("Plotting is only supported for 2-dimensional problems")
             else:
                 axes = plotting.benchmark(
-                    result.f, result.cert, domains=cegis_options.DOMAINS, **kwargs
+                    scenapp_options.SYSTEM(), result.cert, domains=cegis_options.DOMAINS, **kwargs
                 )
                 for ax, name in axes:
                     plotting.save_plot_with_tags(ax, scenapp_options, name)

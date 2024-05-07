@@ -643,6 +643,7 @@ class VerifierScenApp(Component):
                 bounds: upper and lower PAC bounds
         """
         supps = self.support_finder(C, dC, S, dS, self.margin, self.tol) 
+        print(supps)
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
     

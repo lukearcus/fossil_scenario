@@ -215,14 +215,18 @@ class Lyapunov(Certificate):
         # compute loss function. if last layer of ones (llo), can drop parts with V
         if self.llo:
             learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            loss = (relu(Vdot + margin * circle)).max()
+            #loss = (relu(Vdot + margin * circle)).max()
+            loss = (relu(Vdot + margin)).max()
         else:
             learn_accuracy = 0.5 * (
                 (Vdot <= -margin).count_nonzero().item()
                 + (V >= margin).count_nonzero().item()
             )
-            loss = torch.max((relu(Vdot + margin * circle)).max() , (
-                relu(-V + margin * circle)
+            #loss = torch.max((relu(Vdot + margin * circle)).max() , (
+            #    relu(-V + margin * circle)
+            #).max()) # Why times circle?
+            loss = torch.max((relu(Vdot + margin )).max() , (
+                relu(-V + margin)
             ).max()) # Why times circle?
         accuracy = {"acc": learn_accuracy * 100 / Vdot.shape[0]}
         
@@ -318,7 +322,9 @@ class Lyapunov(Certificate):
             valid_inds = torch.where(self.D[XD].check_containment(traj))
             traj = traj[valid_inds]
             traj_deriv = traj_deriv[valid_inds]
+            
             circle = torch.pow(traj, 2).sum(dim=1)
+            
             pred_V = V(traj)
             pred_0 = V(torch.zeros_like(traj))
             pred_V_dot = Vdot(traj,traj_deriv)
@@ -403,7 +409,8 @@ class ROA(Certificate):
         # compute loss function. if last layer of ones (llo), can drop parts with V
         if self.llo:
             learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            loss = (relu(Vdot + margin * circle)).mean()
+            #loss = (relu(Vdot + margin * circle)).mean()
+            loss = (relu(Vdot + margin)).max()
         else:
             learn_accuracy = 0.5 * (
                 (Vdot <= -margin).count_nonzero().item()

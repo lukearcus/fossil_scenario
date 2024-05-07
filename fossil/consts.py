@@ -176,8 +176,8 @@ class ScenAppConfig:
     N_DATA: int = 500
     BETA: float = 1e-5,
     EPS: float = 0.1
-    LEARNING_RATE: float = 0.1
-    SUPPORT_TOL: float = 1e-3
+    LEARNING_RATE: float = 0.01
+    SUPPORT_TOL: float = 1e-1
     FACTORS: Literal = LearningFactors.NONE
     LLO: bool = False  # last layer of ones
     ROUNDING: int = 3

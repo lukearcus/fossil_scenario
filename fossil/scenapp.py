@@ -7,6 +7,8 @@ import fossil.consolidator as consolidator
 import fossil.logger as logger
 import fossil.certificate as certificate
 
+import numpy as np
+
 import sympy as sp
 
 scenapp_log = logger.Logger.setup_logger(__name__)
@@ -99,12 +101,6 @@ class SingleScenApp:
                             )
         return verifier_instance
 
-    def _scenapp_verifier(self):
-        for traj in self.S_traj:
-            import pdb; pdb.set_trace()
-            self.cerificate.check_support(self.S_traj,self.S)
-            #Find states/derivs within TOL of being tight...
-
 
     def _initialise_data(self):
         traj_data = self.config.DATA["full_data"]
@@ -149,6 +145,7 @@ class SingleScenApp:
         return state 
 
     def solve(self) -> Result:
+        converge_tol = 1e-5
         Sdot = self.S["derivs"]
         S = self.S["states"]
         S_traj = self.S_traj
@@ -166,7 +163,7 @@ class SingleScenApp:
         iters = 0
         stop = False
         N_data = self.config.N_DATA
-
+        old_loss = np.Inf 
 
         while not stop:
             # Legtner component
@@ -196,9 +193,11 @@ class SingleScenApp:
             print(state[ScenAppStateKeys.bounds])
             print(state["loss"]) # Finding loss = 0, not certain why... Maybe just learning a flat lyapunov?
 
-            if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
+            #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
+            #    stop = self.process_certificate(S, state, iters)
+            if np.abs(state["loss"]-old_loss) < converge_tol:
                 stop = self.process_certificate(S, state, iters)
-
+    
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
                 stop = True
@@ -216,6 +215,7 @@ class SingleScenApp:
                 #state = self.process_cex(S, state)
 
                 iters += 1
+                old_loss = np.copy(state["loss"])
                 scenapp_log.info("Iteration: {}".format(iters))
 
         state = self.process_timers(state)

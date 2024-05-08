@@ -344,6 +344,21 @@ class Barr1(control.DynamicalModel):
         x, y = v
         return [y + 2 * x * y, -x - y**2 + 2 * x**2]
 
+class Barr1_stoch(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 2
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y = v[0], v[1]
+        else:
+            x, y = v[:, 0], v[:, 1]
+        return [y + 2 * x * y + np.random.normal(), -x - y**2 + 2 * x**2+np.random.normal()]
+
+    def f_smt(self, v):
+        x, y = v
+        return [y + 2 * x * y, -x - y**2 + 2 * x**2]
+
 
 class Barr2(control.DynamicalModel):
     n_vars = 2

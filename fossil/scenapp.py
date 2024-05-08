@@ -7,7 +7,7 @@ import fossil.consolidator as consolidator
 import fossil.logger as logger
 import fossil.certificate as certificate
 
-import numpy as np
+import torch
 
 import sympy as sp
 
@@ -163,7 +163,7 @@ class SingleScenApp:
         iters = 0
         stop = False
         N_data = self.config.N_DATA
-        old_loss = np.Inf 
+        old_loss = float("Inf") 
 
         while not stop:
             # Legtner component
@@ -195,7 +195,7 @@ class SingleScenApp:
 
             #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
             #    stop = self.process_certificate(S, state, iters)
-            if np.abs(state["loss"]-old_loss) < converge_tol:
+            if torch.abs(state["loss"]-old_loss) < converge_tol:
                 stop = self.process_certificate(S, state, iters)
     
             elif state[ScenAppStateKeys.verification_timed_out]:
@@ -215,7 +215,7 @@ class SingleScenApp:
                 #state = self.process_cex(S, state)
 
                 iters += 1
-                old_loss = np.copy(state["loss"])
+                old_loss = state["loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
 
         state = self.process_timers(state)

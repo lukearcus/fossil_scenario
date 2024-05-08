@@ -348,15 +348,14 @@ class LearnerCT(LearnerNN):
                 Vdot (torch.Tensor): Lie derivative of the function.
                 circle (torch.Tensor): Circle of the function.
         """
-        assert len(S) == len(Sdot)
+        #assert len(S) == len(Sdot)
 
         nn, grad_nn = self.compute_net_gradnet(S)
         # circle = x0*x0 + ... + xN*xN
         circle = torch.pow(S, 2).sum(dim=1)
 
         V, gradV = self.compute_V_gradV(nn, grad_nn, S)
-        Vdot = self.compute_dV(gradV, Sdot)
-
+        Vdot = self.compute_dV(gradV[:len(Sdot)], Sdot)
         return V, Vdot, circle
     
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:

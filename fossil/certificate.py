@@ -446,10 +446,7 @@ class ROA(Certificate):
         learn_loops = 1000
         samples = S[XD]
 
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            samples_dot = Sdot[XD]
+        samples_dot = Sdot[XD]
 
         assert len(samples) == len(samples_dot)
 
@@ -642,17 +639,12 @@ class Barrier(Certificate):
         label_order = [XD, XI, XU]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
 
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            # samples_dot = torch.cat([s for s in Sdot.values()])
-            samples_dot = torch.cat([Sdot[label] for label in label_order if type(S[label]) is not list])
+        # samples_dot = torch.cat([s for s in Sdot.values()])
+        samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
 
         for t in range(learn_loops):
             optimizer.zero_grad()
 
-            if f_torch:
-                samples_dot = f_torch(samples)
 
             # This seems slightly faster
             B, Bdot, _ = learner.get_all(samples, samples_dot)
@@ -795,6 +787,7 @@ class BarrierAlt(Certificate):
         self.initial_s = domains[XI]
         self.unsafe_s = domains[XU]
         self.bias = True
+        self.D = config.DOMAINS
 
     def compute_loss(
         self,
@@ -802,6 +795,7 @@ class BarrierAlt(Certificate):
         B_u: torch.Tensor,
         B_d: torch.Tensor,
         Bdot_d: torch.Tensor,
+        margin: float
     ) -> tuple[torch.Tensor, dict]:
         """Computes loss function for Barrier certificate.
 
@@ -816,27 +810,26 @@ class BarrierAlt(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        margin = 0.05
-
         learn_accuracy = (B_i <= -margin).count_nonzero().item() + (
             B_u >= margin
         ).count_nonzero().item()
         percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(B_u) + len(B_i))
         slope = 1e-2  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
-        relu6 = torch.nn.ReLU6()
-        splu = torch.nn.Softplus(beta=0.5)
+        #relu6 = torch.nn.ReLU6()
+        #splu = torch.nn.Softplus(beta=0.5)
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
-        init_loss = splu(B_i + margin).mean()
+        relu = torch.nn.ReLU()
+        init_loss = relu(B_i + margin).max()
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
-        unsafe_loss = splu(-B_u + margin).mean()
+        unsafe_loss = relu(-B_u + margin).max()
 
-        lie_loss = (splu(Bdot_d + margin)).mean()
+        lie_loss = (relu(Bdot_d + margin)).mean()
 
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
 
-        loss = init_loss + unsafe_loss + lie_loss
+        loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,
@@ -844,6 +837,33 @@ class BarrierAlt(Certificate):
         }
 
         return loss, accuracy
+    
+    def get_supports(self, B, Bdot, S, Sdot, margin, tol):
+        supports = 0
+        for traj, traj_deriv in zip(S, Sdot):
+            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+        
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+        
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+
+            initial_inds = torch.where(self.D[XI].check_containment(traj))
+            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
+            
+            pred_B_i = B(traj[initial_inds])
+            
+            pred_B_u = B(traj[unsafe_inds])
+
+            pred_B_dots = Bdot(traj, traj_deriv)
+
+            if (any(pred_B_i >= - margin - tol) or
+                    any(pred_B_u <= margin + tol) or
+                    any(pred_B_dots >= -margin-tol)):
+                supports += 1
+                continue
+
+        return supports
 
     def learn(
         self,
@@ -852,6 +872,7 @@ class BarrierAlt(Certificate):
         S: list,
         Sdot: list,
         f_torch=None,
+        margin=0.1
     ) -> dict:
         """
         :param learner: learner object
@@ -865,22 +886,19 @@ class BarrierAlt(Certificate):
         learn_loops = 1000
         condition_old = False
         i1 = S[XD].shape[0]
+        idot1 = Sdot[XD].shape[0]
         i2 = S[XI].shape[0]
+        idot2 = Sdot[XI].shape[0]
         # samples = torch.cat([s for s in S.values()])
         label_order = [XD, XI, XU]
-        samples = torch.cat([S[label] for label in label_order])
+        samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
 
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            # samples_dot = torch.cat([s for s in Sdot.values()])
-            samples_dot = torch.cat([Sdot[label] for label in label_order])
+        # samples_dot = torch.cat([s for s in Sdot.values()])
+        samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
 
         for t in range(learn_loops):
             optimizer.zero_grad()
 
-            if f_torch:
-                samples_dot = f_torch(samples)
 
             # permutation_index = torch.randperm(S[0].size()[0])
             # permuted_S, permuted_Sdot = S[0][permutation_index], S_dot[0][permutation_index]
@@ -890,12 +908,12 @@ class BarrierAlt(Certificate):
                 Bdot_d,
             ) = (
                 B[:i1],
-                Bdot[:i1],
+                Bdot[:idot1],
             )
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d)
+            loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, margin)
 
             # loss = loss + (100-percent_accuracy)
 
@@ -919,7 +937,7 @@ class BarrierAlt(Certificate):
             loss.backward()
             optimizer.step()
 
-        return {}
+        return {ScenAppStateKeys.loss: loss}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:
         """
@@ -1055,6 +1073,7 @@ class RWS(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
+        
         assert len(S) == len(Sdot)
 
         learn_loops = 1000
@@ -1065,15 +1084,10 @@ class RWS(Certificate):
         samples = torch.cat([S[label] for label in label_order])
         # samples = torch.cat((S[XD], S[XI], S[XU]))
 
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            samples_dot = torch.cat([Sdot[label] for label in label_order])
+        samples_dot = torch.cat([Sdot[label] for label in label_order])
 
         for t in range(learn_loops):
             optimizer.zero_grad()
-            if f_torch:
-                samples_dot = f_torch(samples)
 
             nn, grad_nn = learner.compute_net_gradnet(samples)
 

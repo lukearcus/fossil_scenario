@@ -1,3 +1,4 @@
+
 # Copyright (c) 2021, Alessandro Abate, Daniele Ahmed, Alec Edwards, Mirco Giacobbe, Andrea Peruffo
 # All rights reserved.
 #
@@ -64,7 +65,7 @@ def test_lnn(args):
         DOMAINS=sets,
         DATA=data,
         N_DATA=n_data,
-        CERTIFICATE=CertificateType.BARRIER,
+        CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,

@@ -107,9 +107,10 @@ class SingleScenApp:
 
 
     def _initialise_data(self):
-        traj_data = self.config.DATA
+        traj_data = self.config.DATA["full_data"]
+        state_data = self.config.DATA["states_only"]
         #traj_data = {key: [torch.tensor(elem.T, dtype=torch.float32 ) for elem in self.config.DATA[key]] for key in self.config.DATA} 
-        lumped_data = {key: torch.tensor(np.hstack(self.config.DATA[key]), dtype=torch.float32 ) for key in self.config.DATA} 
+        lumped_data = {key: torch.tensor(np.hstack(self.config.DATA["full_data"][key]), dtype=torch.float32 ) for key in self.config.DATA["full_data"]} 
         
         #domained_data = {key: [] for key in self.config.DOMAINS}
         domained_data = {"states":{},"times":{},"derivs":{}}
@@ -126,9 +127,13 @@ class SingleScenApp:
                     
                 #domained_data[key] = [elem for elem in lumped_data["states"] if domain.check_containment(elem)]
             if len(domained_data["states"][key]) > 0:
-                domained_data["states"][key] = torch.stack(domained_data["states"][key])
+                domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
                 domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
+            else:
+                domained_data["states"][key] = state_data[key]
+
+
         scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 

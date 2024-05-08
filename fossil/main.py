@@ -86,7 +86,7 @@ def run_benchmark(
                 warnings.warn("Plotting is only supported for 2-dimensional problems")
             else:
                 axes = plotting.benchmark(
-                    scenapp_options.SYSTEM(), result.cert, domains=cegis_options.DOMAINS, **kwargs
+                    scenapp_options.SYSTEM(), result.cert, domains=scenapp_options.DOMAINS, **kwargs
                 )
                 for ax, name in axes:
                     plotting.save_plot_with_tags(ax, scenapp_options, name)

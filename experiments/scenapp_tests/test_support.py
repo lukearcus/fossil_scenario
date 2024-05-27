@@ -37,6 +37,11 @@ def test_lnn():
     all_data = system().generate_trajs(init_data)
     data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
     
+    state_data = {
+        certificate.XD: X._generate_data(500)(),
+        }
+    data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
+    
     #n_data = 1000
 
 

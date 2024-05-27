@@ -145,7 +145,7 @@ class SingleScenApp:
         return state 
 
     def solve(self) -> Result:
-        converge_tol = 1e-5
+        converge_tol = 1e-10
         Sdot = self.S["derivs"]
         S = self.S["states"]
         S_traj = self.S_traj

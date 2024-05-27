@@ -101,6 +101,8 @@ def test_lnn(args):
     axes = plotting.benchmark(
         system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 2.5], yrange=[-2, 1]
     )
+    for ax, name in axes:
+        plotting.save_plot_with_tags(ax, opts, name)
 
 if __name__ == "__main__":
     args = main.parse_benchmark_args()

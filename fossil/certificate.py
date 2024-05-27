@@ -418,7 +418,7 @@ class ROA(Certificate):
                 (Vdot <= -margin).count_nonzero().item()
                 + (V >= margin).count_nonzero().item()
             )
-            loss = torch.max(relu(Vdot+margin).max(),relu(-V + margin).max())
+            loss = torch.max(relu(Vdot+margin),relu(-V + margin)).sum() # test this
             #loss = (relu(Vdot + margin * circle)).mean() + (
             #    relu(-V + margin * circle)
             #).mean()
@@ -581,9 +581,9 @@ class Barrier(Certificate):
 
         # relu = torch.nn.Softplus()
         relu = self.relu
-        loss = (relu(B_i + margin)).max()
+        loss = relu(B_i + margin)
         if len(B_u) != 0:
-            unsafe_loss = (relu(-B_u + margin)).max()
+            unsafe_loss = relu(-B_u + margin)
             loss = torch.max(loss, unsafe_loss)
 
         # set two belts
@@ -657,7 +657,7 @@ class Barrier(Certificate):
             )
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
-
+            import pdb; pdb.set_trace()
             (loss, accuracy) = self.compute_loss(B_i, B_u, B_d, Bdot_d, margin)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -795,6 +795,7 @@ class BarrierAlt(Certificate):
         B_u: torch.Tensor,
         B_d: torch.Tensor,
         Bdot_d: torch.Tensor,
+        indices: list,
         margin: float
     ) -> tuple[torch.Tensor, dict]:
         """Computes loss function for Barrier certificate.
@@ -819,17 +820,50 @@ class BarrierAlt(Certificate):
         #splu = torch.nn.Softplus(beta=0.5)
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
-        init_loss = relu(B_i + margin).max()
+        init_loss = relu(B_i + margin)
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
-        unsafe_loss = relu(-B_u + margin).max()
+        unsafe_loss = relu(-B_u + margin)
 
-        lie_loss = (relu(Bdot_d + margin)).mean()
-
+        lie_loss = relu(Bdot_d + margin) # MAX OVER TRAJECTORY DATA, BUT SUM BETWEEN TRAJECTORIES
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
 
-        loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
+        loss = 0
+        for inds_init, inds_unsafe, inds_lie in zip(indices["init"], indices["unsafe"], indices["lie"]):
+            curr_max = torch.tensor(-torch.inf)
+            elems_init = init_loss[inds_init]
+            elems_unsafe = unsafe_loss[inds_unsafe]
+            elems_lie = lie_loss[inds_lie]
+            if len(elems_init) > 0:
+                curr_max = torch.max(curr_max, elems_init.max())
+            if len(elems_unsafe) > 0 :
+                curr_max = torch.max(curr_max, elems_unsafe.max())
+            if len(elems_lie) > 0 :
+                curr_max = torch.max(curr_max, elems_lie.max())
+            if curr_max > -torch.inf:
+                loss += curr_max
+        
+        try:
+            final_ind = indices["init"][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(init_loss)-1:
+            loss += init_loss[final_ind+1:].sum()
+        try:
+            final_ind = indices["unsafe"][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(unsafe_loss)-1:
+            loss += unsafe_loss[final_ind+1:].sum()
+        try:
+            final_ind = indices["lie"][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(lie_loss)-1:
+            loss += lie_loss[final_ind+1:].sum()
+
+        #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,
@@ -871,6 +905,7 @@ class BarrierAlt(Certificate):
         optimizer: Optimizer,
         S: list,
         Sdot: list,
+        Sind: list,
         f_torch=None,
         margin=0.1
     ) -> dict:
@@ -913,7 +948,7 @@ class BarrierAlt(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, margin)
+            loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin)
 
             # loss = loss + (100-percent_accuracy)
 

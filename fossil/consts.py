@@ -206,6 +206,7 @@ class ScenAppStateKeys:
     x_v_map = "x_v_map"
     S = "S"
     S_dot = "S_dot"
+    S_inds= "S_ind"
     S_traj = "S_traj"
     S_traj_dot = "S_traj_dot"
     B = "B"

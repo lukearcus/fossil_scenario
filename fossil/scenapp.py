@@ -108,15 +108,29 @@ class SingleScenApp:
         #traj_data = {key: [torch.tensor(elem.T, dtype=torch.float32 ) for elem in self.config.DATA[key]] for key in self.config.DATA} 
         lumped_data = {key: torch.tensor(np.hstack(self.config.DATA["full_data"][key]), dtype=torch.float32 ) for key in self.config.DATA["full_data"]} 
         
+        traj_inds = [] 
+        curr_ind = 0
+        for elem in self.config.DATA["full_data"]["times"]:
+            traj_inds.append((curr_ind, curr_ind+len(elem)))
+            curr_ind += len(elem)
+
         #domained_data = {key: [] for key in self.config.DOMAINS}
-        domained_data = {"states":{},"times":{},"derivs":{}}
+        domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}}
         for key in self.config.DOMAINS:
             domain = self.config.DOMAINS[key]
             domained_data["states"][key] = []
             domained_data["derivs"][key] = []
             domained_data["times"][key] = []
+            domained_data["indices"][key] = [[] for elem in traj_inds]
+            curr_ind = 0
             for ind, elem in enumerate(lumped_data["states"].T):
                 if domain.check_containment(elem.expand([1,elem.size(dim=0)])):
+                    for i, index in enumerate(traj_inds):
+                        if ind in range(*index):
+                            sample_ind = i
+                            break
+                    domained_data["indices"][key][sample_ind].append(curr_ind)
+                    curr_ind += 1
                     domained_data["states"][key].append(lumped_data["states"][:,ind])
                     domained_data["derivs"][key].append(lumped_data["derivs"][:,ind])
                     domained_data["times"][key].append(lumped_data["times"][ind])
@@ -128,7 +142,6 @@ class SingleScenApp:
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
             else:
                 domained_data["states"][key] = state_data[key]
-
 
         scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
@@ -148,10 +161,10 @@ class SingleScenApp:
         converge_tol = 1e-10
         Sdot = self.S["derivs"]
         S = self.S["states"]
+        S_inds = self.S["indices"]
         S_traj = self.S_traj
-
         # Initialize CEGIS state
-        state = self.init_state(Sdot, S, S_traj)
+        state = self.init_state(Sdot, S, S_traj, S_inds)
 
         # Reset timers for components
         self.learner.get_timer().reset()
@@ -227,7 +240,7 @@ class SingleScenApp:
         self._result = Result(state[ScenAppStateKeys.bounds], state["net"], stats)
         return self._result
 
-    def init_state(self, Sdot, S, S_traj):
+    def init_state(self, Sdot, S, S_traj, S_inds):
         state = {
                 ScenAppStateKeys.net: self.learner,
                 ScenAppStateKeys.optimizer: self.optimizer,
@@ -235,6 +248,7 @@ class SingleScenApp:
                 ScenAppStateKeys.S_dot: Sdot,
                 ScenAppStateKeys.S_traj: S_traj["states"],
                 ScenAppStateKeys.S_traj_dot: S_traj["derivs"],
+                ScenAppStateKeys.S_inds: S_inds,
                 ScenAppStateKeys.V: None,
                 ScenAppStateKeys.V_dot: None,
                 ScenAppStateKeys.x_v_map: self.x_map,

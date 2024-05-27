@@ -98,6 +98,9 @@ def test_lnn(args):
     d = 1
     eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
     print(eps)
+    axes = plotting.benchmark(
+        system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 2.5], yrange=[-2, 1]
+    )
 
 if __name__ == "__main__":
     args = main.parse_benchmark_args()

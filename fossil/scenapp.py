@@ -142,7 +142,6 @@ class SingleScenApp:
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
             else:
                 domained_data["states"][key] = state_data[key]
-
         scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 
@@ -177,8 +176,11 @@ class SingleScenApp:
         stop = False
         N_data = self.config.N_DATA
         old_loss = float("Inf") 
-
         while not stop:
+            
+            opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
+            opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
+            state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
             # Legtner component
             scenapp_log.debug("\033[1m Learner \033[0m")
             outputs = self.learner.get(**state)

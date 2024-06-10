@@ -41,7 +41,7 @@ def test_lnn(args):
     XI = domains.Rectangle([0, 1], [1, 2])
     XU = UnsafeDomain()
 
-    n_data = 1000
+    n_data = 10
     
     sets = {
         certificate.XD: XD,
@@ -55,14 +55,31 @@ def test_lnn(args):
     }
     init_data = XI._generate_data(n_data)()
 
-    system = models.Barr1
+    #system = models.Barr1
+    system = models.Barr1_stoch
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
     activations = [ActivationType.SIGMOID]
     hidden_neurons = [5] * len(activations)
     
-    results = []
+    opts = ScenAppConfig(
+        N_VARS=2,
+        SYSTEM=system,
+        DOMAINS=sets,
+        DATA=data,
+        N_DATA=n_data,
+        CERTIFICATE=CertificateType.BARRIERALT,
+        TIME_DOMAIN=TimeDomain.CONTINUOUS,
+        #VERIFIER=VerifierType.DREAL,
+        ACTIVATION=activations,
+        N_HIDDEN_NEURONS=hidden_neurons,
+        SYMMETRIC_BELT=True,
+        VERBOSE=1,
+        SCENAPP_MAX_ITERS=250,
+    )
+    result = fossil.synthesise(opts)
+    results = [result]
     for i in tqdm(range(n_data)):
         popped_data = {key: data["full_data"][key].pop(i) for key in data["full_data"]}
         opts = ScenAppConfig(
@@ -77,8 +94,8 @@ def test_lnn(args):
             ACTIVATION=activations,
             N_HIDDEN_NEURONS=hidden_neurons,
             SYMMETRIC_BELT=True,
-            VERBOSE=2,
-            SCENAPP_MAX_ITERS=2500,
+            VERBOSE=1,
+            SCENAPP_MAX_ITERS=250,
         )
         result = fossil.synthesise(opts)
         results.append(result)

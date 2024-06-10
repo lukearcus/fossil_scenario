@@ -831,7 +831,7 @@ class BarrierAlt(Certificate):
 
         loss = 0
         for inds_init, inds_unsafe, inds_lie in zip(indices["init"], indices["unsafe"], indices["lie"]):
-            curr_max = torch.tensor(-torch.inf)
+            curr_max = torch.tensor(0.0)
             elems_init = init_loss[inds_init]
             elems_unsafe = unsafe_loss[inds_unsafe]
             elems_lie = lie_loss[inds_lie]
@@ -841,8 +841,8 @@ class BarrierAlt(Certificate):
                 curr_max = torch.max(curr_max, elems_unsafe.max())
             if len(elems_lie) > 0 :
                 curr_max = torch.max(curr_max, elems_lie.max())
-            if curr_max > -torch.inf:
-                loss += curr_max
+            loss += curr_max
+
         
         try:
             final_ind = indices["init"][-1][-1]

@@ -872,8 +872,8 @@ class BarrierAlt(Certificate):
 
         return loss, accuracy
     
-    def get_supports(self, B, Bdot, S, Sdot, margin, tol):
-        supports = 0
+    def get_supports(self, B, Bdot, S, Sdot, margin, num_vars):
+        violated = 0
         for traj, traj_deriv in zip(S, Sdot):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
         
@@ -890,14 +890,15 @@ class BarrierAlt(Certificate):
             pred_B_u = B(traj[unsafe_inds])
 
             pred_B_dots = Bdot(traj, traj_deriv)
-
-            if (any(pred_B_i >= - margin - tol) or
-                    any(pred_B_u <= margin + tol) or
-                    any(pred_B_dots >= -margin-tol)):
-                supports += 1
+            
+            # find number of violations (ignore those that are active) and take UB on number of active as number of optimisation variables
+            if (any(pred_B_i > - margin) or
+                    any(pred_B_u < margin) or
+                    any(pred_B_dots > -margin)):
+                violated += 1
                 continue
 
-        return supports
+        return violated+num_vars
 
     def learn(
         self,

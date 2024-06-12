@@ -41,7 +41,7 @@ def test_lnn(args):
     XI = domains.Rectangle([0, 1], [1, 2])
     XU = UnsafeDomain()
 
-    n_data = 10
+    n_data = 50
     
     sets = {
         certificate.XD: XD,

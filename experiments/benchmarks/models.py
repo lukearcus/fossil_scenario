@@ -353,7 +353,7 @@ class Barr1_stoch(control.DynamicalModel):
             x, y = v[0], v[1]
         else:
             x, y = v[:, 0], v[:, 1]
-        return [y + 2 * x * y + np.random.normal(loc=-0.5), -x - y**2 + 2 * x**2+np.random.normal(loc=-1)]
+        return [y + 2 * x * y + np.random.normal(loc=-0.25), -x - y**2 + 2 * x**2+np.random.normal(loc=-1)]
 
     def f_smt(self, v):
         x, y = v

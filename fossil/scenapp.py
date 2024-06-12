@@ -29,7 +29,6 @@ class SingleScenApp:
     def __init__(self, config: ScenAppConfig):
         self.config = config
         
-        
         self.x, self.x_map, self.domains = self._initialise_domains()
         self.S, self.S_traj = self._initialise_data() # Needs editing
         self.certificate = self._initialise_certificate()
@@ -89,14 +88,16 @@ class SingleScenApp:
         return learner_instance
 
     def _initialise_verifier(self):
+        num_params = sum(p.numel() for p in self.learner.parameters() if p.requires_grad)
+
         verifier_type = verifier.get_verifier_type(VerifierType.SCENAPP)
         verifier_instance = verifier.VerifierScenApp(
                     self.config.N_VARS,
                     self.certificate.get_supports,
                     self.config.BETA,
                     self.config.N_DATA,
-                    self.config.SUPPORT_TOL,
                     self.config.MARGIN,
+                    num_params,
                     self.config.VERBOSE,
                             )
         return verifier_instance
@@ -147,6 +148,7 @@ class SingleScenApp:
 
 
     def _initialise_optimizer(self):
+        #return torch.optim.SGD(
         return torch.optim.AdamW(
                 [{"params": self.learner.parameters()}], # Might need to change this to consider controller parameters
                 lr=self.config.LEARNING_RATE,
@@ -170,7 +172,6 @@ class SingleScenApp:
         #self.translator.get_timer().reset()
         #self.verifier.get_timer().reset()
         #self.consolidator.get_timer().reset()
-
         state["net_dot"] = self.learner.nn_dot
         iters = 0
         stop = False

@@ -28,6 +28,7 @@ def test_lnn(args):
     XD = domains.Rectangle([-0.3,-0.6],[0.3,0.6])
     XI = domains.Rectangle([-0.1,-0.1],[0.1,0.1])
 
+    print(args.plot)
     n_data = 1000
     
     sets = {

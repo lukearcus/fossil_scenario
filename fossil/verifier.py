@@ -632,7 +632,7 @@ class VerifierScenApp(Component):
         epsU = 1-t1
         return epsU
     
-    def verify(self, C, dC, S, dS):
+    def verify(self, C, dC, S, dS, supp_lb):
         """
         :param C: function
         :param dC: function
@@ -642,14 +642,14 @@ class VerifierScenApp(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, self.n_opt)) 
+        supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb)) 
         print(supps)
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
     
     def get(self, **kw):
         # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot])
+        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supps])
     
     @staticmethod
     def get_timer():

@@ -228,7 +228,7 @@ class ScenAppStateKeys:
     xdot = "xdot"
     xdot_func = "xdot_func"
     margin = "margin"
-
+    supps = "supps"
 
 class ScenAppComponentsState:
     name = "name"

@@ -902,7 +902,7 @@ class BarrierAlt(Certificate):
 
         return loss, accuracy, sub_samples
     
-    def get_supports(self, B, Bdot, S, Sdot, margin, num_vars):
+    def get_supports(self, B, Bdot, S, Sdot, margin, sub_samples):
         violated = 0
         for traj, traj_deriv in zip(S, Sdot):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
@@ -928,7 +928,7 @@ class BarrierAlt(Certificate):
                 violated += 1
                 continue
 
-        return violated+num_vars
+        return violated+len(sub_samples)
 
     def learn(
         self,

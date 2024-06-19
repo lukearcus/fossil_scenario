@@ -26,9 +26,8 @@ def test_lnn(args):
     XU = domains.SetMinus(domains.Rectangle([-3,-6],[3,6]), domains.Rectangle([-0.3,-0.6],[0.3,0.6]))
     #XU = domains.Complement(domains.Rectangle([-0.3,0.3],[-0.6,0.6]))
     XD = domains.Rectangle([-0.3,-0.6],[0.3,0.6])
-    XI = domains.Rectangle([-0.1,-0.1],[0.1,0.1])
+    XI = domains.Rectangle([-0.2,-0.4],[0.2,0.4])
 
-    print(args.plot)
     n_data = 1000
     
     sets = {

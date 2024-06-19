@@ -177,6 +177,7 @@ class SingleScenApp:
         stop = False
         N_data = self.config.N_DATA
         old_loss = float("Inf") 
+        state["supps"] = set()
         while not stop:
             
             opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
@@ -186,7 +187,8 @@ class SingleScenApp:
             scenapp_log.debug("\033[1m Learner \033[0m")
             outputs = self.learner.get(**state)
             state = {**state, **outputs}
-
+            state["supps"] = state["supps"].union(outputs["new_supps"])
+            print("len supps: {}".format(len(state["supps"])-1))
             # Update xdot with new controller if necessary
             state = self.update_controller(state)
 

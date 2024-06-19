@@ -828,20 +828,50 @@ class BarrierAlt(Certificate):
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
-
-        loss = 0
-        for inds_init, inds_unsafe, inds_lie in zip(indices["init"], indices["unsafe"], indices["lie"]):
-            curr_max = torch.tensor(0.0)
-            elems_init = init_loss[inds_init]
-            elems_unsafe = unsafe_loss[inds_unsafe]
-            elems_lie = lie_loss[inds_lie]
-            if len(elems_init) > 0:
-                curr_max = torch.max(curr_max, elems_init.max())
-            if len(elems_unsafe) > 0 :
-                curr_max = torch.max(curr_max, elems_unsafe.max())
-            if len(elems_lie) > 0 :
-                curr_max = torch.max(curr_max, elems_lie.max())
-            loss += curr_max
+        subgrad = True
+        # subgradient descent
+        if subgrad:
+            init_max = init_loss.max()
+            ind_init_max = init_loss.argmax()
+            unsafe_max = unsafe_loss.max()
+            ind_unsafe_max = unsafe_loss.argmax()
+            lie_max = lie_loss.max()
+            ind_lie_max = lie_loss.argmax()
+            loss = torch.max(torch.max(init_max, unsafe_max), lie_max)
+            sub_sample = -1
+            if init_loss[ind_init_max] == loss:
+                for i, elem in enumerate(indices["init"]):
+                    if ind_init_max in elem:
+                        sub_sample = i
+            elif unsafe_loss[ind_unsafe_max] == loss:
+                for i, elem in enumerate(indices["unsafe"]):
+                    if ind_unsafe_max in elem:
+                        sub_sample = i
+            else:
+                for i, elem in enumerate(indices["lie"]):
+                    if ind_lie_max in elem:
+                        sub_sample = i
+            sub_samples = set([sub_sample])
+        else:    
+            # relaxed constraints below
+            loss = 0
+            sub_samples = set()
+            i = 0
+            for inds_init, inds_unsafe, inds_lie in zip(indices["init"], indices["unsafe"], indices["lie"]):
+                curr_max = torch.tensor(0.0)
+                elems_init = init_loss[inds_init]
+                elems_unsafe = unsafe_loss[inds_unsafe]
+                elems_lie = lie_loss[inds_lie]
+                if len(elems_init) > 0:
+                    curr_max = torch.max(curr_max, elems_init.max())
+                if len(elems_unsafe) > 0 :
+                    curr_max = torch.max(curr_max, elems_unsafe.max())
+                if len(elems_lie) > 0 :
+                    curr_max = torch.max(curr_max, elems_lie.max())
+                if curr_max > 0:
+                    loss += curr_max
+                    sub_samples.add(i)
+                i += 1
 
         
         try:
@@ -870,7 +900,7 @@ class BarrierAlt(Certificate):
             "acc lie": lie_accuracy,
         }
 
-        return loss, accuracy
+        return loss, accuracy, sub_samples
     
     def get_supports(self, B, Bdot, S, Sdot, margin, num_vars):
         violated = 0
@@ -931,7 +961,7 @@ class BarrierAlt(Certificate):
 
         # samples_dot = torch.cat([s for s in Sdot.values()])
         samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
-
+        supp_samples = set()
         for t in range(learn_loops):
             optimizer.zero_grad()
 
@@ -949,8 +979,8 @@ class BarrierAlt(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin)
-
+            loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin)
+            supp_samples = supp_samples.union(sub_sample)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -973,7 +1003,7 @@ class BarrierAlt(Certificate):
             loss.backward()
             optimizer.step()
 
-        return {ScenAppStateKeys.loss: loss}
+        return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:
         """
@@ -1068,9 +1098,9 @@ class RWS(Certificate):
         lie_index = torch.nonzero(V_d < -margin)
 
         if lie_index.nelement() != 0:
-            init_loss = relu(V_i + margin).mean()
-            unsafe_loss = relu(-V_u + margin).mean()
-            loss = init_loss + unsafe_loss
+            init_loss = relu(V_i + margin).max()
+            unsafe_loss = relu(-V_u + margin).max()
+            loss = torch.max(init_loss, unsafe_loss)
             # get Vdot_d at lie_index
             # Penalise pos lie derivative for all points not in unsafe set or goal set where V <= 0
             # This assumes V_d has no points in the unsafe set or goal set - is this reasonable?
@@ -1080,12 +1110,12 @@ class RWS(Certificate):
                 ((A_lie <= -margin).count_nonzero()).item() * 100 / A_lie.shape[0]
             )
 
-            lie_loss = (relu(A_lie + margin_lie)).mean()
-            loss = loss + lie_loss
+            lie_loss = (relu(A_lie + margin_lie)).max()
+            loss = torch.max(loss,lie_loss)
         else:
             # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
             lie_accuracy = 0.0
-            loss = relu(V_i + margin).mean()
+            loss = relu(V_i + margin).max()
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,

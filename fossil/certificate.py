@@ -796,7 +796,8 @@ class BarrierAlt(Certificate):
         B_d: torch.Tensor,
         Bdot_d: torch.Tensor,
         indices: list,
-        margin: float
+        margin: float,
+        supp_samples: set,
     ) -> tuple[torch.Tensor, dict]:
         """Computes loss function for Barrier certificate.
 
@@ -831,6 +832,7 @@ class BarrierAlt(Certificate):
         subgrad = True
         # subgradient descent
         if subgrad:
+            supp_max = torch.tensor([-1.0])
             init_max = init_loss.max()
             ind_init_max = init_loss.argmax()
             unsafe_max = unsafe_loss.max()
@@ -851,7 +853,19 @@ class BarrierAlt(Certificate):
                 for i, elem in enumerate(indices["lie"]):
                     if ind_lie_max in elem:
                         sub_sample = i
-            sub_samples = set([sub_sample])
+            for ind in supp_samples:
+                init_inds = indices["init"][ind]
+                unsafe_inds = indices["unsafe"][ind]
+                lie_inds = indices["lie"][ind]
+                if len(init_inds) > 0:
+                    supp_max = torch.max(supp_max, init_loss[init_inds].max())
+                if len(unsafe_inds) > 0:
+                    supp_max = torch.max(supp_max, unsafe_loss[unsafe_inds].max())
+                if len(lie_inds) > 0:
+                    supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
+                #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
+            supp_loss = supp_max
+            new_sub_samples = set([sub_sample])
         else:    
             # relaxed constraints below
             loss = 0
@@ -874,24 +888,33 @@ class BarrierAlt(Certificate):
                 i += 1
 
         
+        # this bit adds on the additional samples of just states
+
+        # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
         try:
             final_ind = indices["init"][-1][-1]
         except IndexError:
             final_ind = -1
         if final_ind < len(init_loss)-1:
             loss += init_loss[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += init_loss[final_ind+1:].sum()
         try:
             final_ind = indices["unsafe"][-1][-1]
         except IndexError:
             final_ind = -1
         if final_ind < len(unsafe_loss)-1:
             loss += unsafe_loss[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += unsafe_loss[final_ind+1:].sum()
         try:
             final_ind = indices["lie"][-1][-1]
         except IndexError:
             final_ind = -1
         if final_ind < len(lie_loss)-1:
             loss += lie_loss[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += lie_loss[final_ind+1:].sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
@@ -900,7 +923,7 @@ class BarrierAlt(Certificate):
             "acc lie": lie_accuracy,
         }
 
-        return loss, accuracy, sub_samples
+        return loss, supp_loss, accuracy, new_sub_samples
     
     def get_supports(self, B, Bdot, S, Sdot, margin, sub_samples):
         violated = 0
@@ -979,8 +1002,7 @@ class BarrierAlt(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin)
-            supp_samples = supp_samples.union(sub_sample)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -991,16 +1013,20 @@ class BarrierAlt(Certificate):
             #         if Vdot[k] > -margin:
             #             print("Vdot" + str(S[k].tolist()) + " = " + str(Vdot[k].tolist()))
 
-            if accuracy["acc init unsafe"] == 100 and accuracy["acc lie"] >= 99.9:
-                condition = True
+            loss.backward(retain_graph=True)
+            grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+            if supp_loss != -1:
+                optimizer.zero_grad()
+                supp_loss.backward(retain_graph=True)
+                supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                inner = torch.inner(grads, supp_grads)
+                print(inner)
+                if inner <= 0:
+                    supp_samples = supp_samples.union(sub_sample)
+                    optimizer.zero_grad()
+                    loss.backward()
             else:
-                condition = False
-
-            if condition and condition_old:
-                break
-            condition_old = condition
-
-            loss.backward()
+                supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
 
         return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}

@@ -57,7 +57,8 @@ def test_lnn(args):
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
-    activations = [ActivationType.SIGMOID]
+    #activations = [ActivationType.SIGMOID]
+    activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)
     opts = ScenAppConfig(
         N_VARS=2,
@@ -73,6 +74,7 @@ def test_lnn(args):
         SYMMETRIC_BELT=True,
         VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
+        #CONVEX_NET=True,
     )
     main.run_benchmark(
         opts,

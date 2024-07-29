@@ -798,6 +798,7 @@ class BarrierAlt(Certificate):
         indices: list,
         margin: float,
         supp_samples: set,
+        convex: bool,
     ) -> tuple[torch.Tensor, dict]:
         """Computes loss function for Barrier certificate.
 
@@ -829,7 +830,7 @@ class BarrierAlt(Certificate):
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
-        subgrad = True
+        subgrad = not convex
         # subgradient descent
         if subgrad:
             supp_max = torch.tensor([-1.0])
@@ -925,7 +926,7 @@ class BarrierAlt(Certificate):
 
         return loss, supp_loss, accuracy, new_sub_samples
     
-    def get_supports(self, B, Bdot, S, Sdot, margin, sub_samples):
+    def get_supports(self, B, Bdot, S, Sdot, margin, supports):
         violated = 0
         for traj, traj_deriv in zip(S, Sdot):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
@@ -951,7 +952,7 @@ class BarrierAlt(Certificate):
                 violated += 1
                 continue
 
-        return violated+len(sub_samples)
+        return violated+supports
 
     def learn(
         self,
@@ -961,7 +962,8 @@ class BarrierAlt(Certificate):
         Sdot: list,
         Sind: list,
         f_torch=None,
-        margin=0.1
+        margin=0.1,
+        convex=False
     ) -> dict:
         """
         :param learner: learner object
@@ -1002,7 +1004,7 @@ class BarrierAlt(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
 
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -1012,21 +1014,24 @@ class BarrierAlt(Certificate):
             #     for k in range(batch_size):
             #         if Vdot[k] > -margin:
             #             print("Vdot" + str(S[k].tolist()) + " = " + str(Vdot[k].tolist()))
-
-            loss.backward(retain_graph=True)
-            grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-            if supp_loss != -1:
-                optimizer.zero_grad()
-                supp_loss.backward(retain_graph=True)
-                supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                inner = torch.inner(grads, supp_grads)
-                print(inner)
-                if inner <= 0:
-                    supp_samples = supp_samples.union(sub_sample)
-                    optimizer.zero_grad()
-                    loss.backward()
+            if convex:
+                loss.backward()
             else:
-                supp_samples = supp_samples.union(sub_sample)
+                loss.backward(retain_graph=True)
+                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                # Code below is for non-convex
+                if supp_loss != -1:
+                    optimizer.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    inner = torch.inner(grads, supp_grads)
+                    #print(inner)
+                    if inner <= 0:
+                        supp_samples = supp_samples.union(sub_sample)
+                        optimizer.zero_grad()
+                        loss.backward()
+                else:
+                    supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
 
         return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}

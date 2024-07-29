@@ -10,6 +10,7 @@ from copy import deepcopy
 from itertools import product
 from typing import Any, Callable, Dict, Literal, Union
 from scipy.stats import beta as betaF
+from scipy.special import betainc
 
 import numpy as np
 import torch
@@ -554,7 +555,7 @@ class VerifierMarabou(Verifier):
         for cs in ({"lyap": (*V_tuple, *Vdot_tuple)},):
             yield cs
 
-class VerifierScenApp(Component):
+class VerifierScenAppConvex(Component):
     @staticmethod
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
@@ -649,7 +650,69 @@ class VerifierScenApp(Component):
     
     def get(self, **kw):
         # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supps])
+        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supp_len])
+    
+    @staticmethod
+    def get_timer():
+        return T
+
+class VerifierScenAppNonConvex(Component):
+    @staticmethod
+    def new_vars(n, base="x"):
+        return [sp.symbols(base+str(i)) for i in range(n)]
+    
+    def __init__(self, n_vars, support_finder, beta, num_data, margin, num_opt_vars, verbose):
+        super().__init__()
+        self.iter = -1
+        self.n = n_vars
+        self.n_opt = num_opt_vars
+        self.beta = beta[0]
+        self.num_data = num_data
+        self._solver_timeout = 300
+        self.support_finder = support_finder
+        self.verbose = verbose
+        self.optional_configs = VerifierConfig()
+        self.margin = margin
+        self._vars_bounds = [self.optional_configs.VARS_BOUNDS for _ in range(n_vars)]
+
+    def calc_eps_P2L(self, k):
+        N = self.num_data
+        beta = self.beta
+        if k == N:
+            return 1.0
+
+        t1 = k/N
+        t2 = 1
+        while t2-t1 > 1e-10:
+            t = (t1+t2)/2
+            left = (beta/2-beta/6)*betainc(k+1,N-k,t)+beta/6*betainc(k+1,4*N+1-k,t)
+            right = (1+beta/6/N)*t*N*(betainc(k,N-k+1,t)-betainc(k+1,N-k,t))
+            if left>right:
+                t2=t
+            else:
+                t1=t
+        import pdb; pdb.set_trace()
+        return t2
+            
+
+    def verify(self, C, dC, S, dS, supp_lb):
+        """
+        :param C: function
+        :param dC: function
+        :param S: data bunched into trajectories
+        :param dS: derivative data bunched into trajectories
+
+        :return:
+                bounds: upper and lower PAC bounds
+        """
+        supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb)) 
+        print(supps)
+        bounds = self.calc_eps_P2L(supps)
+        return {ScenAppStateKeys.bounds: bounds}
+    
+    def get(self, **kw):
+        # translator default returns V and Vdot
+        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supp_len])
     
     @staticmethod
     def get_timer():
@@ -665,8 +728,10 @@ def get_verifier_type(verifier: Literal) -> Verifier:
         return VerifierCVC5
     elif verifier == VerifierType.MARABOU:
         return VerifierMarabou
-    elif verifier == VerifierType.SCENAPP:
-        return VerifierScenApp
+    elif verifier == VerifierType.SCENAPPCONVEX:
+        return VerifierScenAppConvex
+    elif verifier == VerifierType.SCENAPPNONCONVEX:
+        return VerifierScenAppNonConvex
     else:
         raise ValueError("No verifier of type {}".format(verifier))
 

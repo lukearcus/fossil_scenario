@@ -50,7 +50,8 @@ class VerifierType(Enum):
     DREAL = auto()
     CVC5 = auto()
     MARABOU = auto()
-    SCENAPP = auto()
+    SCENAPPNONCONVEX = auto()
+    SCENAPPCONVEX = auto()
 
 class ConsolidatorType(Enum):
     NONE = auto()
@@ -170,7 +171,8 @@ class ScenAppConfig:
     SCENAPP_MAX_TIME_S: float = math.inf  # in sec
     TIME_DOMAIN: TimeDomain = TimeDomain.CONTINUOUS
     LEARNER: LearnerType = LearnerType.CONTINUOUS
-    VERIFIER: VerifierType = VerifierType.SCENAPP
+    VERIFIER: VerifierType = VerifierType.SCENAPPNONCONVEX
+    CONVEX_NET: bool = False
     #CONSOLIDATOR: ConsolidatorType = ConsolidatorType.DEFAULT
     #TRANSLATOR: TranslatorType = TranslatorType.CONTINUOUS
     N_DATA: int = 500
@@ -229,6 +231,7 @@ class ScenAppStateKeys:
     xdot_func = "xdot_func"
     margin = "margin"
     supps = "supps"
+    supp_len = "supp_len"
 
 class ScenAppComponentsState:
     name = "name"

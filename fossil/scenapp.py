@@ -33,7 +33,10 @@ class SingleScenApp:
         self.S, self.S_traj = self._initialise_data() # Needs editing
         self.certificate = self._initialise_certificate()
         self.learner = self._initialise_learner()
-        
+        if config.CONVEX_NET:
+            self.a_priori_supps = sum([param.numel() for param in self.learner.parameters()]) # Take this and add any violations for convex
+        else:
+            self.a_priori_supps = None
         self.verifier = self._initialise_verifier() # Need to write my own verifier
         #self.verifier = self._scenapp_verifier
         self.optimizer = self._initialise_optimizer() # Currently not working
@@ -90,8 +93,8 @@ class SingleScenApp:
     def _initialise_verifier(self):
         num_params = sum(p.numel() for p in self.learner.parameters() if p.requires_grad)
 
-        verifier_type = verifier.get_verifier_type(VerifierType.SCENAPP)
-        verifier_instance = verifier.VerifierScenApp(
+        verifier_type = verifier.get_verifier_type(self.config.VERIFIER)
+        verifier_instance = verifier_type(
                     self.config.N_VARS,
                     self.certificate.get_supports,
                     self.config.BETA,
@@ -178,6 +181,7 @@ class SingleScenApp:
         N_data = self.config.N_DATA
         old_loss = float("Inf") 
         state["supps"] = set()
+        state["supp_len"] = self.a_priori_supps
         while not stop:
             
             opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
@@ -187,8 +191,11 @@ class SingleScenApp:
             scenapp_log.debug("\033[1m Learner \033[0m")
             outputs = self.learner.get(**state)
             state = {**state, **outputs}
-            state["supps"] = state["supps"].union(outputs["new_supps"])
-            print("len supps: {}".format(len(state["supps"])-1))
+            
+            if not self.config.CONVEX_NET:
+                state["supps"] = state["supps"].union(outputs["new_supps"])
+                state["supp_len"] = len(state["supps"])
+            print("len supps: {}".format(state["supp_len"]))
             # Update xdot with new controller if necessary
             state = self.update_controller(state)
 

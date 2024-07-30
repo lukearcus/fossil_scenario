@@ -691,7 +691,6 @@ class VerifierScenAppNonConvex(Component):
                 t2=t
             else:
                 t1=t
-        import pdb; pdb.set_trace()
         return t2
             
 
@@ -742,7 +741,8 @@ def get_verifier(verifier, n_vars, constraints_method, solver_vars, verbose):
         or verifier == VerifierZ3
         or verifier == VerifierCVC5
         or verifier == VerifierMarabou
-        or verifier == VerifierScenApp
+        or verifier == VerifierScenAppConvex
+        or verifier == VerifierScenAppNonConvex
     ):
         return verifier(n_vars, constraints_method, solver_vars, verbose)
     else:

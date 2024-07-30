@@ -74,7 +74,8 @@ def test_lnn(args):
         SYMMETRIC_BELT=True,
         VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
-        #CONVEX_NET=True,
+        VERIFIER=VerifierType.SCENAPPCONVEX,
+        CONVEX_NET=True,
     )
     main.run_benchmark(
         opts,

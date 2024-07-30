@@ -952,7 +952,7 @@ class BarrierAlt(Certificate):
                 violated += 1
                 continue
 
-        return violated+supports
+        return violated+supports+1 # plus one for sample that supports solution after discarding violated samples?
 
     def learn(
         self,

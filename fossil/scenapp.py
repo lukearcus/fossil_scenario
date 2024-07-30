@@ -220,7 +220,7 @@ class SingleScenApp:
                 #scenapp_log.debug("\033[1m Consolidator \033[0m")
                 #outputs = self.consolidator.get(**state)
                 #state = {**state, **outputs}
-                print("Epsilon: {:.3f}".format(state[ScenAppStateKeys.bounds]))
+                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
     
             elif state[ScenAppStateKeys.verification_timed_out]:

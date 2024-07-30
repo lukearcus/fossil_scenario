@@ -644,7 +644,6 @@ class VerifierScenAppConvex(Component):
                 bounds: upper and lower PAC bounds
         """
         supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb)) 
-        print(supps)
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
     

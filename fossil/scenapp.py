@@ -205,22 +205,22 @@ class SingleScenApp:
             #state = {**state, **outputs}
 
             # Verifier component
-            scenapp_log.debug("\033[1m Verifier \033[0m")
-            
-
-            outputs = self.verifier.get(**state)
-            state = {**state, **outputs}
-
-            # Consolidator component # Don't think this is needed/possible for us
-            #scenapp_log.debug("\033[1m Consolidator \033[0m")
-            #outputs = self.consolidator.get(**state)
-            #state = {**state, **outputs}
-            print(state[ScenAppStateKeys.bounds])
-            print(state["loss"]) # Finding loss = 0, not certain why... Maybe just learning a flat lyapunov?
+            #print(state["loss"]) # Finding loss = 0, not certain why... Maybe just learning a flat lyapunov?
 
             #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
             #    stop = self.process_certificate(S, state, iters)
             if torch.abs(state["loss"]-old_loss) < converge_tol:
+                scenapp_log.debug("\033[1m Verifier \033[0m")
+                
+
+                outputs = self.verifier.get(**state)
+                state = {**state, **outputs}
+
+                # Consolidator component # Don't think this is needed/possible for us
+                #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                #outputs = self.consolidator.get(**state)
+                #state = {**state, **outputs}
+                print("Epsilon: {:.3f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
     
             elif state[ScenAppStateKeys.verification_timed_out]:

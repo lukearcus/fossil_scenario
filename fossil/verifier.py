@@ -710,7 +710,7 @@ class VerifierScenAppNonConvex(Component):
     
     def get(self, **kw):
         # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supp_len])
+        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supps])
     
     @staticmethod
     def get_timer():

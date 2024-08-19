@@ -194,8 +194,8 @@ class SingleScenApp:
             
             if not self.config.CONVEX_NET:
                 state["supps"] = state["supps"].union(outputs["new_supps"])
-                state["supp_len"] = len(state["supps"])
-            print("len supps: {}".format(state["supp_len"]))
+                #state["supp_len"] = len(state["supps"])
+            #print("len supps: {}".format(state["supp_len"]))
             # Update xdot with new controller if necessary
             state = self.update_controller(state)
 

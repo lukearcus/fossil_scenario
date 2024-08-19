@@ -540,6 +540,7 @@ class Barrier(Certificate):
     """
 
     def __init__(self, domains, config: ScenAppConfig) -> None:
+        print("WARNING: USE BARRIER ALT INSTEAD")
         self.domain = domains[XD]
         self.initial_s = domains[XI]
         self.unsafe_s = domains[XU]
@@ -927,8 +928,14 @@ class BarrierAlt(Certificate):
         return loss, supp_loss, accuracy, new_sub_samples
     
     def get_supports(self, B, Bdot, S, Sdot, margin, supports):
-        violated = 0
-        for traj, traj_deriv in zip(S, Sdot):
+        if type(supports) == set:
+            violated = len(supports)+1
+        else:
+            violated = supports+1
+        for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
+            if type(supports) == list:
+                if i in supports:
+                    continue
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
         
             valid_inds = torch.where(self.D[XD].check_containment(traj))
@@ -952,7 +959,7 @@ class BarrierAlt(Certificate):
                 violated += 1
                 continue
 
-        return violated+supports+1 # plus one for sample that supports solution after discarding violated samples?
+        return violated # plus one for sample that supports solution after discarding violated samples?
 
     def learn(
         self,

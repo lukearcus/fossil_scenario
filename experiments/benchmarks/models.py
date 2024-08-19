@@ -340,9 +340,9 @@ class Barr1(control.DynamicalModel):
             x, y = v[:, 0], v[:, 1]
         return [y + 2 * x * y, -x - y**2 + 2 * x**2]
 
-    def f_smt(self, v):
-        x, y = v
-        return [y + 2 * x * y, -x - y**2 + 2 * x**2]
+    #def f_smt(self, v):
+    #    x, y = v
+    #    return [y + 2 * x * y, -x - y**2 + 2 * x**2]
 
 class Barr1_stoch(control.DynamicalModel):
     n_vars = 2

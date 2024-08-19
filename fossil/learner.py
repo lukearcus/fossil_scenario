@@ -93,13 +93,12 @@ class LearnerNN(nn.Module, Learner):
         self,
         net: "LearnerNN",
         optimizer: torch.optim.Optimizer,
-        S: torch.Tensor,
-        Sdot: torch.Tensor,
-        Sind: list,
-        xdot_func: Callable,
+        S: dict,
+        Sdot: dict,
+        Sind: dict,
         margin: float
     ) -> dict:
-        return self.learn_method(net, optimizer, S, Sdot, Sind, xdot_func, margin)
+        return self.learn_method(net, optimizer, S, Sdot, Sind, None, margin)
 
     def get(self, **kw):
         return self.learn(
@@ -108,7 +107,6 @@ class LearnerNN(nn.Module, Learner):
             kw[ScenAppStateKeys.S],
             kw[ScenAppStateKeys.S_dot],
             kw[ScenAppStateKeys.S_inds],
-            None,
             kw[ScenAppStateKeys.margin]
             # I think this could actually still pass xdot_func, since there's no pytorch parameters to learn
         )

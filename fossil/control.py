@@ -27,6 +27,7 @@ ctrl_log = logger.Logger.setup_logger(__name__)
 
 
 class DynamicalModel:
+    time = "continuous"
     def __init__(self) -> None:
         self.fncs = None
 
@@ -77,13 +78,30 @@ class DynamicalModel:
         #if x_0.ndim > 1:
         #    x_0 = x_0.flatten()
         trajs = []
-        for elem in x_0:
-            trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
-        state_trajs = [traj["y"] for traj in trajs]
-        times = [traj["t"] for traj in trajs]
-        # Following will NOT return true derivatives for trajectory when stochasticity is included
-        derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
-        #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
+        if self.time == "continuous":
+            for elem in x_0:
+                trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
+            state_trajs = [traj["y"] for traj in trajs]
+            times = [traj["t"] for traj in trajs]
+            # Following will NOT return true derivatives for trajectory when stochasticity is included
+            derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
+            #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
+        else:
+            state_trajs = []
+            derivs = []
+            for elem in x_0:
+                traj = [elem]
+                deriv = []
+                for k in range(self.time_horizon):
+                    traj.append(np.hstack(self.f_torch(k, traj[-1])))
+                    deriv.append(traj[-1])
+                deriv.append(traj.pop(-1))
+                state_trajs.append(np.vstack(traj).T)
+                derivs.append(np.vstack(deriv).T)
+            times = [list(range(self.time_horizon)) for traj in state_trajs]
+            # Following will NOT return true derivatives for trajectory when stochasticity is included
+            #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
+            #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
         return times, state_trajs, derivs
 
     def check_similarity(self):

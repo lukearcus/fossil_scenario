@@ -85,7 +85,8 @@ class TwoRoomTemp(control.DynamicalModel):
     # systems using multiscale symbolic models.
     n_vars = 2
     time_horizon = 10
-
+    time = "discrete" 
+    
     tau = 5  # discretise param
     alpha = 5 * 1e-2  # heat exchange
     alpha_e1 = 5 * 1e-3  # heat exchange 1

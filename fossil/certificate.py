@@ -839,7 +839,7 @@ class BarrierAlt(Certificate):
             ind_init_max = init_loss.argmax()
             unsafe_max = unsafe_loss.max()
             ind_unsafe_max = unsafe_loss.argmax()
-            lie_max = lie_loss.max()
+            lie_max = 1000*lie_loss.max() # This helps the DT converge for some reason...
             ind_lie_max = lie_loss.argmax()
             loss = torch.max(torch.max(init_max, unsafe_max), lie_max)
             sub_sample = -1
@@ -864,7 +864,7 @@ class BarrierAlt(Certificate):
                 if len(unsafe_inds) > 0:
                     supp_max = torch.max(supp_max, unsafe_loss[unsafe_inds].max())
                 if len(lie_inds) > 0:
-                    supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
+                    supp_max = torch.max(supp_max, 1000*lie_loss[lie_inds].max())
                 #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
             supp_loss = supp_max
             new_sub_samples = set([sub_sample])
@@ -912,13 +912,13 @@ class BarrierAlt(Certificate):
             if supp_loss != -1:
                 supp_loss += gamma*unsafe_loss[final_ind+1:].sum()
         try:
-            final_ind = indices["lie"][-1][-1]
+            final_ind = indices["lie"][-1][-1] # Where do these come from?
         except IndexError:
             final_ind = -1
-        #if final_ind < len(lie_loss)-1:
-        #    loss += lie_loss[final_ind+1:].sum()
-        #    if supp_loss != -1:
-        #        supp_loss += lie_loss[final_ind+1:].sum()
+        if final_ind < len(lie_loss)-1:
+            loss += lie_loss[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += lie_loss[final_ind+1:].sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
@@ -1012,7 +1012,7 @@ class BarrierAlt(Certificate):
             )
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot, Sind, margin, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -1041,7 +1041,6 @@ class BarrierAlt(Certificate):
                 else:
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
-        import pdb; pdb.set_trace()
         return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:

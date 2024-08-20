@@ -55,8 +55,7 @@ def test_lnn(args):
         ACTIVATION=barr_activations,
         N_HIDDEN_NEURONS=barr_hidden_neurons,
         SYMMETRIC_BELT=False,
-        VERBOSE=2,
-        SCENAPP_MAX_ITERS=2,
+        SCENAPP_MAX_ITERS=25,
         MARGIN=0.01,
         )
 

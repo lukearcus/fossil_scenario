@@ -893,30 +893,32 @@ class BarrierAlt(Certificate):
         # this bit adds on the additional samples of just states
 
         # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
+        #import pdb; pdb.set_trace()
+        gamma = 1/5000
         try:
             final_ind = indices["init"][-1][-1]
         except IndexError:
             final_ind = -1
         if final_ind < len(init_loss)-1:
-            loss += init_loss[final_ind+1:].sum()
+            loss += gamma*init_loss[final_ind+1:].sum()
             if supp_loss != -1:
-                supp_loss += init_loss[final_ind+1:].sum()
+                supp_loss += gamma*init_loss[final_ind+1:].sum()
         try:
             final_ind = indices["unsafe"][-1][-1]
         except IndexError:
             final_ind = -1
         if final_ind < len(unsafe_loss)-1:
-            loss += unsafe_loss[final_ind+1:].sum()
+            loss += gamma*unsafe_loss[final_ind+1:].sum()
             if supp_loss != -1:
-                supp_loss += unsafe_loss[final_ind+1:].sum()
+                supp_loss += gamma*unsafe_loss[final_ind+1:].sum()
         try:
             final_ind = indices["lie"][-1][-1]
         except IndexError:
             final_ind = -1
-        if final_ind < len(lie_loss)-1:
-            loss += lie_loss[final_ind+1:].sum()
-            if supp_loss != -1:
-                supp_loss += lie_loss[final_ind+1:].sum()
+        #if final_ind < len(lie_loss)-1:
+        #    loss += lie_loss[final_ind+1:].sum()
+        #    if supp_loss != -1:
+        #        supp_loss += lie_loss[final_ind+1:].sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 

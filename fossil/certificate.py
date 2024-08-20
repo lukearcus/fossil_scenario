@@ -827,7 +827,7 @@ class BarrierAlt(Certificate):
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
         unsafe_loss = relu(-B_u + margin)
 
-        lie_loss = relu(Bdot_d + margin) # MAX OVER TRAJECTORY DATA, BUT SUM BETWEEN TRAJECTORIES
+        lie_loss = relu(Bdot_d + margin)
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
@@ -1010,8 +1010,7 @@ class BarrierAlt(Certificate):
             )
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
-
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot, Sind, margin, supp_samples, convex)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:

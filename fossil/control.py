@@ -95,13 +95,10 @@ class DynamicalModel:
                 for k in range(self.time_horizon):
                     traj.append(np.hstack(self.f_torch(k, traj[-1])))
                     deriv.append(traj[-1])
-                deriv.append(traj.pop(-1))
+                traj.pop(-1)
                 state_trajs.append(np.vstack(traj).T)
                 derivs.append(np.vstack(deriv).T)
             times = [list(range(self.time_horizon)) for traj in state_trajs]
-            # Following will NOT return true derivatives for trajectory when stochasticity is included
-            #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
-            #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
         return times, state_trajs, derivs
 
     def check_similarity(self):

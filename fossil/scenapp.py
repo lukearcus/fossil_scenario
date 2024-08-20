@@ -242,7 +242,6 @@ class SingleScenApp:
                 #outputs = self.consolidator.get(**state)
                 #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
-                self.a_post_verify(state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
                 stop = self.process_certificate(S, state, iters)
     
             elif state[ScenAppStateKeys.verification_timed_out]:
@@ -273,6 +272,7 @@ class SingleScenApp:
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
         self._result = Result(state[ScenAppStateKeys.bounds], state["net"], stats)
+        self.a_post_verify(state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
     def init_state(self, Sdot, S, S_traj, S_inds):

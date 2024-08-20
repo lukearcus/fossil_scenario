@@ -56,7 +56,7 @@ def test_lnn(args):
         N_HIDDEN_NEURONS=barr_hidden_neurons,
         SYMMETRIC_BELT=False,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=5
+        SCENAPP_MAX_ITERS=2
         )
 
     main.run_benchmark(

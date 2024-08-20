@@ -99,8 +99,8 @@ def benchmark_plane(
             ax = certificate_countour(cert, ax=ax, levels=lev)
 
     try:
-        xrange = domains[consts.XD].lower_bounds[0], domains[consts.XD].upper_bounds[0]
-        yrange = domains[consts.XD].lower_bounds[1], domains[consts.XD].upper_bounds[1]
+        xrange = domains[consts.DomainNames.XD.value].lower_bounds[0], domains[consts.DomainNames.XD.value].upper_bounds[0]
+        yrange = domains[consts.DomainNames.XD.value].lower_bounds[1], domains[consts.DomainNames.XD.value].upper_bounds[1]
     except (KeyError, AttributeError):
         pass
 

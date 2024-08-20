@@ -39,6 +39,11 @@ def benchmark(
         iter(certificate)
     except TypeError:
         certificate = [certificate]
+    try:
+        xrange = domains[consts.DomainNames.XD.value].lower_bounds[0], domains[consts.DomainNames.XD.value].upper_bounds[0]
+        yrange = domains[consts.DomainNames.XD.value].lower_bounds[1], domains[consts.DomainNames.XD.value].upper_bounds[1]
+    except (KeyError, AttributeError):
+        pass
 
     levels = [[0, cert.beta] if cert.beta is not None else [0] for cert in certificate]
 
@@ -98,11 +103,6 @@ def benchmark_plane(
         if cert is not None:
             ax = certificate_countour(cert, ax=ax, levels=lev)
 
-    try:
-        xrange = domains[consts.DomainNames.XD.value].lower_bounds[0], domains[consts.DomainNames.XD.value].upper_bounds[0]
-        yrange = domains[consts.DomainNames.XD.value].lower_bounds[1], domains[consts.DomainNames.XD.value].upper_bounds[1]
-    except (KeyError, AttributeError):
-        pass
 
     ax = add_legend(ax)
     ax.set_xlim(xrange)

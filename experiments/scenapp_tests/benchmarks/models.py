@@ -76,3 +76,39 @@ class HighOrd8(control.DynamicalModel):
             - 2400 * x1
             - 576 * x0,
         ]
+
+class TwoRoomTemp(control.DynamicalModel):
+    # from Data-Driven Safety Verification of
+    # Stochastic Systems via Barrier Certificates
+    # itself adapted from Girard et al, 2016,
+    # Safety controller synthesis for incrementally stable switched
+    # systems using multiscale symbolic models.
+    n_vars = 2
+    time_horizon = 10
+
+    tau = 5  # discretise param
+    alpha = 5 * 1e-2  # heat exchange
+    alpha_e1 = 5 * 1e-3  # heat exchange 1
+    alpha_e2 = 8 * 1e-3  # heat exchange 2
+    temp_e = 15  # external temp
+    alpha_h = 3.6 * 1e-3  # heat exchange room-heater
+    temp_h = 55  # boiler temp
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2 = v[0], v[1]
+        else:
+            x1, x2 = v[:, 0], v[:, 1]
+
+        q1 = (
+            (1 - self.tau * (self.alpha + self.alpha_e1)) * x1
+            + self.tau * self.alpha * x2
+            + self.tau * self.alpha_e1 * self.temp_e
+        )
+        q2 = (
+            (1 - self.tau * (1.0 * self.alpha + self.alpha_e2)) * x2
+            + self.tau * self.alpha * (x1)
+            + self.tau * self.alpha_e2 * self.temp_e
+        )
+
+        return [q1, q2]

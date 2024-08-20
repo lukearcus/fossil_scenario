@@ -933,7 +933,7 @@ class BarrierAlt(Certificate):
         else:
             violated = supports+1
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
-            if type(supports) == list:
+            if type(supports) == set:
                 if i in supports:
                     continue
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)

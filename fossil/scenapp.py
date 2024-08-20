@@ -11,6 +11,8 @@ import torch
 
 import sympy as sp
 
+from scipy.stats import beta as betaF
+
 scenapp_log = logger.Logger.setup_logger(__name__)
 
 class Stats(NamedTuple):
@@ -161,6 +163,24 @@ class SingleScenApp:
         scenapp_log.debug("Updating controller does nothing")
         return state 
 
+    def a_post_verify(self, cert, cert_deriv, n_data):
+        state_data = self.config.DATA["states_only"]
+        test_data = self.config.DOMAINS["init"]._generate_data(n_data)()
+
+        all_test_data = self.config.SYSTEM().generate_trajs(test_data)
+        data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
+        
+        num_violations = self.certificate.get_supports(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN, -1)
+        k = num_violations
+        beta_bar = (1e-5)/n_data
+        N = n_data
+        d = 1
+        eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
+        print("A posteriori scenario approach risk: {:.5f}".format(eps))
+        print("Violation rate: {:.3f}".format(num_violations/n_data))
+        
+
+
     def solve(self) -> Result:
         converge_tol = 1e-4
         Sdot = self.S["derivs"]
@@ -179,6 +199,7 @@ class SingleScenApp:
         iters = 0
         stop = False
         N_data = self.config.N_DATA
+        n_test_data = self.config.N_TEST_DATA
         old_loss = float("Inf") 
         state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
@@ -221,17 +242,19 @@ class SingleScenApp:
                 #outputs = self.consolidator.get(**state)
                 #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                self.a_post_verify(state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
                 stop = self.process_certificate(S, state, iters)
     
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
                 stop = True
-
+                state[ScenAppStateKeys.bounds] = None
             elif (
                     self.config.SCENAPP_MAX_ITERS == iters
                     ):
                 scenapp_log.warning("Out of iterations")
                 stop = True
+                state[ScenAppStateKeys.bounds] = None
 
             elif not (
                     state[ScenAppStateKeys.found]

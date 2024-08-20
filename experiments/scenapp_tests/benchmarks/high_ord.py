@@ -67,6 +67,8 @@ def test_lnn(args):
         repeat=args.repeat,
     )
 
+    
+
 
 if __name__ == "__main__":
     args = main.parse_benchmark_args()

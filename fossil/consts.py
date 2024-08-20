@@ -176,6 +176,7 @@ class ScenAppConfig:
     #CONSOLIDATOR: ConsolidatorType = ConsolidatorType.DEFAULT
     #TRANSLATOR: TranslatorType = TranslatorType.CONTINUOUS
     N_DATA: int = 500
+    N_TEST_DATA: int = 5000
     BETA: float = 1e-5,
     EPS: float = 0.1
     LEARNING_RATE: float = 0.01

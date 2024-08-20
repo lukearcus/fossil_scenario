@@ -406,9 +406,12 @@ class LearnerDT(LearnerNN):
         # define E(x) := (x-eq_0) * ... * (x-eq_N)
         # V = NN(x) * E(x)
         V = nn
-        delta_V = nn_next - V
+        delta_V = nn_next - V[:len(nn_next)]
 
         return V, delta_V, circle
+    
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot)[1] # Returns 1 step change
 
 
 class CtrlLearnerCT(LearnerCT):

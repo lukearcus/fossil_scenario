@@ -1039,7 +1039,7 @@ class BarrierAlt(Certificate):
                 else:
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
-
+        import pdb; pdb.set_trace()
         return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:

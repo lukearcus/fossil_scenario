@@ -117,20 +117,37 @@ class DynamicalModel:
         xx = np.linspace(xrange[0], xrange[1], 50)
         yy = np.linspace(yrange[0], yrange[1], 50)
         XX, YY = np.meshgrid(xx, yy)
-        dx, dy = (
-            self._f_torch(
-                0, # t
-                torch.stack(
-                    [torch.tensor(XX).ravel(), torch.tensor(YY).ravel()]
-                ).T.float()
+        if self.time == "continuous":
+            dx, dy = (
+                self._f_torch(
+                    0, # t
+                    torch.stack(
+                        [torch.tensor(XX).ravel(), torch.tensor(YY).ravel()]
+                    ).T.float()
+                )
+                .detach()
+                .numpy()
+                .T
             )
-            .detach()
-            .numpy()
-            .T
-        )
-        # color = np.sqrt((np.hypot(dx, dy)))
-        dx = dx.reshape(XX.shape)
-        dy = dy.reshape(YY.shape)
+            # color = np.sqrt((np.hypot(dx, dy)))
+            dx = dx.reshape(XX.shape)
+            dy = dy.reshape(YY.shape)
+        else:
+            nx, ny = (
+                self._f_torch(
+                    0, # t
+                    torch.stack(
+                        [torch.tensor(XX).ravel(), torch.tensor(YY).ravel()]
+                    ).T.float()
+                )
+                .detach()
+                .numpy()
+                .T
+            )
+            # color = np.sqrt((np.hypot(dx, dy)))
+            dx = nx.reshape(XX.shape)-XX
+            dy = ny.reshape(YY.shape)-YY
+
         # color = color.reshape(XX.shape)
         ax.set_ylim(xrange)
         ax.set_xlim(yrange)

@@ -643,7 +643,8 @@ class VerifierScenAppConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded))
+        #supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded))
+        supps = min(self.num_data, len(discarded) + supp_lb)
         # support finder shouldn't be needed now I discard in the loop!
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
@@ -704,7 +705,8 @@ class VerifierScenAppNonConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded)) 
+        #supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded)) 
+        supps = min(self.num_data, len(supp_lb) + len(discarded))
         print(supps)
         bounds = self.calc_eps_P2L(supps)
         return {ScenAppStateKeys.bounds: bounds}

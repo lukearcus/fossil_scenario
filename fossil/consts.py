@@ -233,6 +233,8 @@ class ScenAppStateKeys:
     margin = "margin"
     supps = "supps"
     supp_len = "supp_len"
+    best_loss = "best_loss"
+    best_net = "best_net"
 
 class ScenAppComponentsState:
     name = "name"

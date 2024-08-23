@@ -203,7 +203,6 @@ class SingleScenApp:
         old_loss = float("Inf") 
         state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
-        best_loss = np.inf
         while not stop:
             
             opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
@@ -231,11 +230,8 @@ class SingleScenApp:
 
             #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
             #    stop = self.process_certificate(S, state, iters)
-            if state["loss"] <= best_loss:
-                best_loss = state["loss"]
-                best_net = copy.deepcopy(state["net"])
 
-            if torch.abs(state["loss"]-old_loss) < converge_tol:
+            if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 
@@ -276,8 +272,8 @@ class SingleScenApp:
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
-        self._result = Result(state[ScenAppStateKeys.bounds], best_net, stats)
-        self.a_post_verify(best_net, best_net.nn_dot, n_test_data)
+        self._result = Result(state[ScenAppStateKeys.bounds], state[ScenAppStateKeys.best_net], stats)
+        self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
@@ -299,7 +295,9 @@ class SingleScenApp:
                 ScenAppStateKeys.verification_timed_out: False,
                 ScenAppStateKeys.trajectory: None,
                 ScenAppStateKeys.ENet: self.config.ENET,
-                ScenAppStateKeys.margin: self.config.MARGIN
+                ScenAppStateKeys.margin: self.config.MARGIN,
+                ScenAppStateKeys.best_loss: np.inf,
+                ScenAppStateKeys.best_net: None,
                 }
 
         return state

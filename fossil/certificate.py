@@ -14,6 +14,7 @@ that the domains and data are as expected for a given certificate.
 from typing import Generator, Type, Any
 
 import torch
+import copy
 import numpy as np
 from torch.optim import Optimizer
 
@@ -972,9 +973,11 @@ class BarrierAlt(Certificate):
         S: list,
         Sdot: list,
         Sind: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
         f_torch=None,
         margin=0.1,
-        convex=False
+        convex=False,
     ) -> dict:
         """
         :param learner: learner object
@@ -1015,6 +1018,10 @@ class BarrierAlt(Certificate):
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
             loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
+            
+            if loss <= best_loss:
+                best_loss = loss
+                best_net = copy.deepcopy(learner)
             # loss = loss + (100-percent_accuracy)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -1043,7 +1050,22 @@ class BarrierAlt(Certificate):
                 else:
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
-        return {ScenAppStateKeys.loss: loss, "new_supps": supp_samples}
+        B, Bdot, _ = learner.get_all(samples, samples_dot)
+        (
+            B_d,
+            Bdot_d,
+        ) = (
+            B[:i1],
+            Bdot[:idot1],
+        )
+        B_i = B[i1 : i1 + i2]
+        B_u = B[i1 + i2 :]
+        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
+        
+        if loss <= best_loss:
+            best_loss = loss
+            best_net = copy.deepcopy(learner)
+        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:
         """

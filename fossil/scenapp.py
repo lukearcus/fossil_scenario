@@ -32,7 +32,7 @@ class SingleScenApp:
         self.config = config
         
         self.x, self.x_map, self.domains = self._initialise_domains()
-        self.S, self.S_traj = self._initialise_data() # Needs editing
+        self.S, self.S_traj = self._initialise_data(self.config.DATA["full_data"], self.config.DATA["states_only"]) # Needs editing
         self.certificate = self._initialise_certificate()
         self.learner = self._initialise_learner()
         if config.CONVEX_NET:
@@ -108,15 +108,13 @@ class SingleScenApp:
         return verifier_instance
 
 
-    def _initialise_data(self):
-        traj_data = self.config.DATA["full_data"]
-        state_data = self.config.DATA["states_only"]
+    def _initialise_data(self, traj_data, state_data):
         #traj_data = {key: [torch.tensor(elem.T, dtype=torch.float32 ) for elem in self.config.DATA[key]] for key in self.config.DATA} 
-        lumped_data = {key: torch.tensor(np.hstack(self.config.DATA["full_data"][key]), dtype=torch.float32 ) for key in self.config.DATA["full_data"]} 
+        lumped_data = {key: torch.tensor(np.hstack(traj_data[key]), dtype=torch.float32 ) for key in traj_data} 
         
         traj_inds = [] 
         curr_ind = 0
-        for elem in self.config.DATA["full_data"]["times"]:
+        for elem in traj_data["times"]:
             traj_inds.append((curr_ind, curr_ind+len(elem)))
             curr_ind += len(elem)
 
@@ -148,7 +146,7 @@ class SingleScenApp:
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
             else:
                 domained_data["states"][key] = state_data[key]
-        scenapp_log.debug("Data: {}".format(self.config.DATA))
+        #scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 
 
@@ -170,7 +168,7 @@ class SingleScenApp:
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
         
-        num_violations = self.certificate.get_supports(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN, -1)
+        num_violations = self.certificate.get_supports(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN, -1, [])
         k = num_violations
         beta_bar = (1e-5)/n_data
         N = n_data
@@ -179,6 +177,35 @@ class SingleScenApp:
         print("A posteriori scenario approach risk: {:.5f}".format(eps))
         print("Violation rate: {:.3f}".format(num_violations/n_data))
         
+    def discard(self, state):
+        # Discard all samples that were of support for last run...
+        # Could discard just the current worst case for better guarantees but worse performance
+        # Could probably do this by just discarding last support sample...
+        traj_data = self.config.DATA["full_data"]
+        if not self.config.CONVEX_NET:
+            if len(state["discarded"]) == 0:
+                state["discarded"] = state["supps"]
+                self.remaining_inds = list(set(range(len(traj_data["states"])))-state["discarded"])
+            else:
+                to_remove = set()
+                for new_disc in state["supps"]:
+                    actual_ind = self.remaining_inds[new_disc]
+                    state["discarded"].add(actual_ind)
+                    to_remove.add(actual_ind)
+                self.remaining_inds=list(set(self.remaining_inds)-to_remove)
+
+            #state["discarded"] = state["discarded"].union(state["supps"])
+            state["supps"] = set()
+        new_traj_inds = [i for i in range(len(traj_data["states"])) if i not in state["discarded"]]
+        new_traj_data = {}
+        for key in traj_data:
+            new_traj_data[key] = [traj_data[key][ind] for ind in new_traj_inds]
+        self.S, self.S_traj = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+        state[ScenAppStateKeys.S] = self.S["states"]
+        state[ScenAppStateKeys.S_dot] = self.S["derivs"]
+        state[ScenAppStateKeys.S_traj] = self.S_traj["states"]
+        state[ScenAppStateKeys.S_traj_dot] =  self.S_traj["derivs"]
+        state[ScenAppStateKeys.S_inds] =  self.S["indices"]
 
 
     def solve(self) -> Result:
@@ -233,7 +260,8 @@ class SingleScenApp:
             #    stop = self.process_certificate(S, state, iters)
 
             #if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
-            if torch.abs(state["best_loss"]-old_best) < converge_tol or state["best_loss"] == 0:
+                
+            if state["best_loss"] == 0:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 
@@ -246,7 +274,15 @@ class SingleScenApp:
                 #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
-    
+            elif torch.abs(state["best_loss"]-old_best) < converge_tol:
+                print("Convergence reached, but failed to find barrier certificate, discarding samples")
+                self.discard(state)
+                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
+                iters += 1
+                old_loss = state["loss"]
+                old_best = state["best_loss"]
+                scenapp_log.info("Iteration: {}".format(iters))
+
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
                 stop = True
@@ -301,6 +337,7 @@ class SingleScenApp:
                 ScenAppStateKeys.margin: self.config.MARGIN,
                 ScenAppStateKeys.best_loss: np.inf,
                 ScenAppStateKeys.best_net: None,
+                ScenAppStateKeys.discarded: set(),
                 }
 
         return state

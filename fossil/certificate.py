@@ -46,10 +46,10 @@ def log_loss_acc(t, loss, accuracy, verbose):
     # for k, v in accuracy.items():
     #     cert_log.debug(" - {}: {}%".format(k, v))
     loss_value = loss.item() if hasattr(loss, "item") else loss
-    cert_log.debug("{} - loss: {}".format(t, loss_value))
+    cert_log.debug("{} - loss: {:.5f}".format(t, loss_value))
 
     for k, v in accuracy.items():
-        cert_log.debug(" - {}: {}%".format(k, v))
+        cert_log.debug(" - {}: {:.3f}%".format(k, v))
 
 
 def _set_assertion(required, actual, name):
@@ -824,17 +824,16 @@ class BarrierAlt(Certificate):
         #splu = torch.nn.Softplus(beta=0.5)
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
-        init_loss = relu(B_i + margin)
+        init_loss =relu(B_i + margin)
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
         unsafe_loss = relu(-B_u + margin)
 
-        lie_loss = relu(Bdot_d + margin)
+        lie_loss =  100*relu(Bdot_d + margin)
         lie_accuracy = (
             100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
         )
         subgrad = not convex
         # subgradient descent
-        lie_param = 1000
 
         if subgrad:
             supp_max = torch.tensor([-1.0])
@@ -842,7 +841,7 @@ class BarrierAlt(Certificate):
             ind_init_max = init_loss.argmax()
             unsafe_max = unsafe_loss.max()
             ind_unsafe_max = unsafe_loss.argmax()
-            lie_max = lie_param*lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
+            lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
             ind_lie_max = lie_loss.argmax()
             loss = torch.max(torch.max(init_max, unsafe_max), lie_max)
             sub_sample = -1
@@ -867,7 +866,7 @@ class BarrierAlt(Certificate):
                 if len(unsafe_inds) > 0:
                     supp_max = torch.max(supp_max, unsafe_loss[unsafe_inds].max())
                 if len(lie_inds) > 0:
-                    supp_max = torch.max(supp_max, lie_param*lie_loss[lie_inds].max())
+                    supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
                 #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
             supp_loss = supp_max
             new_sub_samples = set([sub_sample])
@@ -897,31 +896,32 @@ class BarrierAlt(Certificate):
 
         # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
         #import pdb; pdb.set_trace()
-        gamma = 1/5000
-        try:
-            final_ind = indices["init"][-1][-1]
-        except IndexError:
-            final_ind = -1
-        if final_ind < len(init_loss)-1:
-            loss += gamma*init_loss[final_ind+1:].sum()
-            if supp_loss != -1:
-                supp_loss += gamma*init_loss[final_ind+1:].sum()
-        try:
-            final_ind = indices["unsafe"][-1][-1]
-        except IndexError:
-            final_ind = -1
-        if final_ind < len(unsafe_loss)-1:
-            loss += gamma*unsafe_loss[final_ind+1:].sum()
-            if supp_loss != -1:
-                supp_loss += gamma*unsafe_loss[final_ind+1:].sum()
-        try:
-            final_ind = indices["lie"][-1][-1] # Where do these come from?
-        except IndexError:
-            final_ind = -1
-        if final_ind < len(lie_loss)-1:
-            loss += lie_loss[final_ind+1:].sum()
-            if supp_loss != -1:
-                supp_loss += lie_loss[final_ind+1:].sum()
+        if supp_loss > 0: # This way we terminate once we can fit to all the samples, but add this on otherwise 
+            gamma = 1/5000
+            try:
+                final_ind = indices["init"][-1][-1]
+            except IndexError:
+                final_ind = -1
+            if final_ind < len(init_loss)-1:
+                loss += gamma*init_loss[final_ind+1:].sum()
+                if supp_loss != -1:
+                    supp_loss += gamma*init_loss[final_ind+1:].sum()
+            try:
+                final_ind = indices["unsafe"][-1][-1]
+            except IndexError:
+                final_ind = -1
+            if final_ind < len(unsafe_loss)-1:
+                loss += gamma*unsafe_loss[final_ind+1:].sum()
+                if supp_loss != -1:
+                    supp_loss += gamma*unsafe_loss[final_ind+1:].sum()
+            try:
+                final_ind = indices["lie"][-1][-1] # Where do these come from?
+            except IndexError:
+                final_ind = -1
+            if final_ind < len(lie_loss)-1:
+                loss += lie_loss[final_ind+1:].sum()
+                if supp_loss != -1:
+                    supp_loss += lie_loss[final_ind+1:].sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
@@ -932,11 +932,12 @@ class BarrierAlt(Certificate):
 
         return loss, supp_loss, accuracy, new_sub_samples
     
-    def get_supports(self, B, Bdot, S, Sdot, margin, supports):
+    def get_supports(self, B, Bdot, S, Sdot, margin, supports, discarded):
         if type(supports) == set:
             violated = len(supports)+1
         else:
             violated = supports+1
+        violated += len(discarded)
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
             if type(supports) == set:
                 if i in supports:

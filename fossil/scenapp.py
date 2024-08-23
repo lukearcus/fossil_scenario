@@ -200,7 +200,8 @@ class SingleScenApp:
         stop = False
         N_data = self.config.N_DATA
         n_test_data = self.config.N_TEST_DATA
-        old_loss = float("Inf") 
+        old_loss = float("Inf")
+        old_best = float("Inf")
         state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
         while not stop:
@@ -231,7 +232,8 @@ class SingleScenApp:
             #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
             #    stop = self.process_certificate(S, state, iters)
 
-            if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
+            #if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
+            if torch.abs(state["best_loss"]-old_best) < converge_tol or state["best_loss"] == 0:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 
@@ -264,6 +266,7 @@ class SingleScenApp:
 
                 iters += 1
                 old_loss = state["loss"]
+                old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
 
         state = self.process_timers(state)

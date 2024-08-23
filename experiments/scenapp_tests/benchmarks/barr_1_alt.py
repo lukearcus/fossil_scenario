@@ -34,6 +34,16 @@ class UnsafeDomain(domains.Set):
     def check_containment(self, x):
         return x[:,0] + x[:,1]**2 <= 0
 
+    def plot(self, fig, ax, label=None):
+        if self.dimension != 2:
+            raise NotImplementedError("Plotting only supported for 2D sets")
+        colour, label = "red", "Unsafe" 
+        
+        y = np.linspace(-2,2,50)
+        x = -y**2
+        ax.plot(x,y, colour, linewidth=2, label=label)
+        return fig, ax
+
 def test_lnn(args):
     XD = domains.Rectangle([-2, -2], [2, 2])
     XI = domains.Rectangle([0, 1], [1, 2])

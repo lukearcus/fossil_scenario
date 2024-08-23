@@ -833,13 +833,15 @@ class BarrierAlt(Certificate):
         )
         subgrad = not convex
         # subgradient descent
+        lie_param = 100
+
         if subgrad:
             supp_max = torch.tensor([-1.0])
             init_max = init_loss.max()
             ind_init_max = init_loss.argmax()
             unsafe_max = unsafe_loss.max()
             ind_unsafe_max = unsafe_loss.argmax()
-            lie_max = 1000*lie_loss.max() # This helps the DT converge for some reason...
+            lie_max = lie_param*lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
             ind_lie_max = lie_loss.argmax()
             loss = torch.max(torch.max(init_max, unsafe_max), lie_max)
             sub_sample = -1
@@ -864,7 +866,7 @@ class BarrierAlt(Certificate):
                 if len(unsafe_inds) > 0:
                     supp_max = torch.max(supp_max, unsafe_loss[unsafe_inds].max())
                 if len(lie_inds) > 0:
-                    supp_max = torch.max(supp_max, 1000*lie_loss[lie_inds].max())
+                    supp_max = torch.max(supp_max, lie_param*lie_loss[lie_inds].max())
                 #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
             supp_loss = supp_max
             new_sub_samples = set([sub_sample])

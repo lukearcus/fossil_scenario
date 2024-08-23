@@ -8,7 +8,7 @@ import fossil.logger as logger
 import fossil.certificate as certificate
 
 import torch
-
+import copy
 import sympy as sp
 
 from scipy.stats import beta as betaF
@@ -203,6 +203,7 @@ class SingleScenApp:
         old_loss = float("Inf") 
         state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
+        best_loss = np.inf
         while not stop:
             
             opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
@@ -230,6 +231,10 @@ class SingleScenApp:
 
             #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
             #    stop = self.process_certificate(S, state, iters)
+            if state["loss"] <= best_loss:
+                best_loss = state["loss"]
+                best_net = copy.deepcopy(state["net"])
+
             if torch.abs(state["loss"]-old_loss) < converge_tol:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
@@ -271,8 +276,9 @@ class SingleScenApp:
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
-        self._result = Result(state[ScenAppStateKeys.bounds], state["net"], stats)
-        self.a_post_verify(state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
+        self._result = Result(state[ScenAppStateKeys.bounds], best_net, stats)
+        self.a_post_verify(best_net, best_net.nn_dot, n_test_data)
+                #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
     def init_state(self, Sdot, S, S_traj, S_inds):

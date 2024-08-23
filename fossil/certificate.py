@@ -834,7 +834,7 @@ class BarrierAlt(Certificate):
         )
         subgrad = not convex
         # subgradient descent
-        lie_param = 100
+        lie_param = 1000
 
         if subgrad:
             supp_max = torch.tensor([-1.0])

@@ -22,14 +22,22 @@ class Barr1(control.DynamicalModel):
 
 class Barr1_stoch(control.DynamicalModel):
     n_vars = 2
-    time_horizon = 2
+    time_horizon = 0.5 
+    stochastic = True
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
             x, y = v[0], v[1]
         else:
             x, y = v[:, 0], v[:, 1]
-        return [y + 2 * x * y + np.random.normal(loc=-0.25), -x - y**2 + 2 * x**2+np.random.normal(loc=-1)]
+        return [y + 2 * x * y, -x - y**2 + 2 * x**2]
+
+    def g_torch(self, t, v):
+        return np.diag([0.1,0.1])
+
+    def f_smt(self, v):
+        x, y = v
+        return [y + 2 * x * y, -x - y**2 + 2 * x**2]
 
 class HighOrd8(control.DynamicalModel):
     n_vars = 8

@@ -23,11 +23,14 @@ from fossil.activations_symbolic import activation_sym
 from fossil.consts import SP_FNCS, VerifierType
 from fossil.utils import vprint, contains_object
 
+import sdeint
+
 ctrl_log = logger.Logger.setup_logger(__name__)
 
 
 class DynamicalModel:
     time = "continuous"
+    stochastic = False
     def __init__(self) -> None:
         self.fncs = None
 
@@ -79,13 +82,30 @@ class DynamicalModel:
         #    x_0 = x_0.flatten()
         trajs = []
         if self.time == "continuous":
-            for elem in x_0:
-                trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
-            state_trajs = [traj["y"] for traj in trajs]
-            times = [traj["t"] for traj in trajs]
-            # Following will NOT return true derivatives for trajectory when stochasticity is included
-            derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
-            #derivs = [self.get_derivative(time, state) for time, state in zip(times, state_traj.T)]
+            if self.stochastic:
+                def f_func(y, t):
+                    return np.array(self.f_torch(t,y))
+                def g_func(y, t):
+                    return np.array(self.g_torch(t,y))
+                tspan = np.linspace(0., self.time_horizon, int(1000*self.time_horizon+1))
+                seed = int(10000*np.random.random())
+                generator = np.random.default_rng(seed=seed)
+                for elem in x_0:
+                    # Apparently we should use an SDE solver not an ODE solver (something to do with sqrt(T))
+                    trajs.append(sdeint.itoint(f_func, g_func, elem, tspan, generator=generator))
+                    #trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
+                state_trajs = [np.array([elem for elem in traj if not np.isnan(np.sum(elem))]).T for traj in trajs]
+                times = [tspan[0:len(state_traj[0])-1] for state_traj in state_trajs]
+                h = (tspan[-1]-tspan[0])/len(tspan)
+                derivs = [(state_traj[:, 1:]-state_traj[:, :-1])/h for state_traj in state_trajs]
+                state_trajs = [state_traj[:, :-1] for state_traj in state_trajs]
+                # use difference to calculate derivative... not very satisfying but seems to be the best option?
+            else:
+                for elem in x_0:
+                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
+                state_trajs = [traj["y"] for traj in trajs]
+                times = [traj["t"] for traj in trajs]
+                derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
         else:
             state_trajs = []
             derivs = []

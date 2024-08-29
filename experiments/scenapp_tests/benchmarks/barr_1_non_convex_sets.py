@@ -39,7 +39,7 @@ class UnsafeDomain(domains.Set):
             raise NotImplementedError("Plotting only supported for 2D sets")
         colour, label = "red", "Unsafe" 
         
-        x = np.linspace(-2,2,50)
+        x = np.linspace(-2,0,50)
         y = -2*x**2 -4*x-2
         ax.plot(x,y, colour, linewidth=2, label=label)
         return fig, ax
@@ -47,7 +47,7 @@ class UnsafeDomain(domains.Set):
 def test_lnn(args):
     XD = domains.Rectangle([-2, -2], [2, 2])
     XI = domains.SetMinus(domains.Rectangle([0.25, -1], [1, 1]), domains.Rectangle([0.25, -0.5],[0.75,0.5]))
-    XU = domains.SetMinus(UnsafeDomain(), domains.Sphere([0,-1], 0.5))
+    XU = domains.SetMinus(UnsafeDomain(), domains.Sphere([0,-1], 1.0))
 
     n_data = 1000
     

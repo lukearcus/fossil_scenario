@@ -560,7 +560,7 @@ class VerifierScenAppConvex(Component):
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
     
-    def __init__(self, n_vars, support_finder, beta, num_data, margin, num_opt_vars, verbose):
+    def __init__(self, n_vars, beta, num_data, margin, num_opt_vars, verbose):
         super().__init__()
         self.iter = -1
         self.n = n_vars
@@ -568,7 +568,6 @@ class VerifierScenAppConvex(Component):
         self.beta = beta[0]
         self.num_data = num_data
         self._solver_timeout = 300
-        self.support_finder = support_finder
         self.verbose = verbose
         self.optional_configs = VerifierConfig()
         self.margin = margin
@@ -643,7 +642,6 @@ class VerifierScenAppConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        #supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded))
         supps = min(self.num_data, len(discarded) + supp_lb)
         # support finder shouldn't be needed now I discard in the loop!
         bounds = self.calc_eps_risk_complexity(supps)
@@ -662,7 +660,7 @@ class VerifierScenAppNonConvex(Component):
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
     
-    def __init__(self, n_vars, support_finder, beta, num_data, margin, num_opt_vars, verbose):
+    def __init__(self, n_vars, beta, num_data, margin, num_opt_vars, verbose):
         super().__init__()
         self.iter = -1
         self.n = n_vars
@@ -670,7 +668,6 @@ class VerifierScenAppNonConvex(Component):
         self.beta = beta[0]
         self.num_data = num_data
         self._solver_timeout = 300
-        self.support_finder = support_finder
         self.verbose = verbose
         self.optional_configs = VerifierConfig()
         self.margin = margin
@@ -705,7 +702,6 @@ class VerifierScenAppNonConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        #supps = min(self.num_data, self.support_finder(C, dC, S, dS, self.margin, supp_lb, discarded)) 
         supps = min(self.num_data, len(supp_lb) + len(discarded))
         print(supps)
         bounds = self.calc_eps_P2L(supps)

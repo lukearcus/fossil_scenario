@@ -932,41 +932,6 @@ class BarrierAlt(Certificate):
 
         return loss, supp_loss, accuracy, new_sub_samples
     
-    def get_supports(self, B, Bdot, S, Sdot, margin, supports, discarded):
-        if type(supports) == set:
-            violated = len(supports)+1
-        else:
-            violated = supports+1
-        violated += len(discarded)
-        for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
-            if type(supports) == set:
-                if i in supports:
-                    continue
-            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
-        
-            valid_inds = torch.where(self.D[XD].check_containment(traj))
-        
-            traj = traj[valid_inds]
-            traj_deriv = traj_deriv[valid_inds]
-
-            initial_inds = torch.where(self.D[XI].check_containment(traj))
-            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
-            
-            pred_B_i = B(traj[initial_inds])
-            
-            pred_B_u = B(traj[unsafe_inds])
-
-            pred_B_dots = Bdot(traj, traj_deriv)
-            
-            # find number of violations (ignore those that are active) and take UB on number of active as number of optimisation variables
-            if (any(pred_B_i > - margin) or
-                    any(pred_B_u < margin) or
-                    any(pred_B_dots > -margin)):
-                violated += 1
-                continue
-
-        return violated # plus one for sample that supports solution after discarding violated samples?
-
     def learn(
         self,
         learner: learner.LearnerNN,

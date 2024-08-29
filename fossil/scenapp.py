@@ -98,7 +98,6 @@ class SingleScenApp:
         verifier_type = verifier.get_verifier_type(self.config.VERIFIER)
         verifier_instance = verifier_type(
                     self.config.N_VARS,
-                    self.certificate.get_supports,
                     self.config.BETA,
                     self.config.N_DATA,
                     self.config.MARGIN,

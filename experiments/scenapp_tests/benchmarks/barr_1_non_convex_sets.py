@@ -20,7 +20,7 @@ class UnsafeDomain(domains.Set):
 
     def generate_domain(self, v):
         x, y = v
-        return x + y**2 <= 0
+        return 2*x**2 + 4*x + 2 + y <= 0
 
     def generate_data(self, batch_size):
         points = []
@@ -46,8 +46,8 @@ class UnsafeDomain(domains.Set):
 
 def test_lnn(args):
     XD = domains.Rectangle([-2, -2], [2, 2])
-    XI = domains.Rectangle([0.0, 1], [1, 2])
-    XU = UnsafeDomain()
+    XI = domains.SetMinus(domains.Rectangle([0.25, -1], [1, 1]), domains.Rectangle([0.25, -0.5],[0.75,0.5]))
+    XU = domains.SetMinus(UnsafeDomain(), domains.Sphere([0,-1], 0.5))
 
     n_data = 1000
     

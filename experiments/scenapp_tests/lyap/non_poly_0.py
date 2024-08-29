@@ -37,6 +37,9 @@ def test_lnn():
     all_data = system().generate_trajs(init_data)
     data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
 
+    state_data = {fossil.XD: X._generate_data(500)()}
+    data = {"states_only": state_data, "full_data":data}
+
     # define NN parameters
     activations = [fossil.ActivationType.SQUARE]
     n_hidden_neurons = [6] * len(activations)
@@ -56,7 +59,7 @@ def test_lnn():
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         LLO=True,
-        SCENAPP_MAX_ITERS=5,
+        VERBOSE=2,
     )
     result = fossil.synthesise(opts)
     

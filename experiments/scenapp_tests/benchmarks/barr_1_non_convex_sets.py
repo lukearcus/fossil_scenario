@@ -39,8 +39,8 @@ class UnsafeDomain(domains.Set):
             raise NotImplementedError("Plotting only supported for 2D sets")
         colour, label = "red", "Unsafe" 
         
-        y = np.linspace(-2,2,50)
-        x = -y**2
+        x = np.linspace(-2,2,50)
+        y = -2*x**2 -4*x-2
         ax.plot(x,y, colour, linewidth=2, label=label)
         return fig, ax
 

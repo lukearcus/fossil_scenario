@@ -60,10 +60,10 @@ def test_lnn():
         N_HIDDEN_NEURONS=n_hidden_neurons,
         LLO=True,
         VERBOSE=2,
+        MARGIN=1e-10
     )
     result = fossil.synthesise(opts)
     
-    import pdb; pdb.set_trace()
     axes = plotting.benchmark(
         system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 2.5], yrange=[-2, 1]
     )

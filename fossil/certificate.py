@@ -222,7 +222,8 @@ class Lyapunov(Certificate):
         # compute loss function. if last layer of ones (llo), can drop parts with V
         
         state_loss = relu(-V+margin)
-        lie_loss = relu(Vdot+margin)
+        lie_weight = 100
+        lie_loss = lie_weight*relu(Vdot+margin)
 
         subgrad = not convex
         
@@ -274,9 +275,9 @@ class Lyapunov(Certificate):
             #    loss = torch.max((relu(Vdot + margin )).max() , (
             #        relu(-V + margin)
             #    ).max()) # Why times circle?
-        accuracy = (V <= -margin).count_nonzero().item() + (Vdot >= margin).count_nonzero().item()
+        accuracy = (V >= margin).count_nonzero().item() + (Vdot <= -margin).count_nonzero().item()
         accuracy /= (len(V) + len(Vdot))
-        accuracy = {"acc": accuracy * 100 / Vdot.shape[0]}
+        accuracy = {"acc": accuracy * 100}
         if loss > 0:
             gamma = 1/5000
             try:
@@ -374,6 +375,23 @@ class Lyapunov(Certificate):
             best_loss = loss
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
+
+    def get_violations(self, V, Vdot, S, Sdot, margin):
+        violated = 0
+        for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
+            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+            
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+
+            pred_V = V(traj)
+            pred_Vdot = Vdot(traj, traj_deriv)
+
+            if (any(pred_V < margin) or any(pred_Vdot > - margin)):
+                violated += 1
+        return violated
+
 
     def get_constraints(self, verifier, V, Vdot) -> Generator:
         """
@@ -1104,16 +1122,9 @@ class BarrierAlt(Certificate):
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_supports(self, B, Bdot, S, Sdot, margin, supports, discarded):
-        if type(supports) == set:
-            violated = len(supports)+1
-        else:
-            violated = supports+1
-        violated += len(discarded)
+    def get_violations(self, B, Bdot, S, Sdot, margin):
+        violated = 0
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
-            if type(supports) == set:
-                if i in supports:
-                    continue
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
 
             valid_inds = torch.where(self.D[XD].check_containment(traj))

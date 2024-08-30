@@ -162,13 +162,17 @@ class SingleScenApp:
 
     def a_post_verify(self, cert, cert_deriv, n_data):
         state_data = self.config.DATA["states_only"]
-        test_data = self.config.DOMAINS["init"]._generate_data(n_data)()
+        try:
+            test_data = self.config.DOMAINS["init"]._generate_data(n_data)()
+        except KeyError:
+            test_data = self.config.DOMAINS["lie"]._generate_data(n_data)()
 
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
         
-        num_violations = self.certificate.get_supports(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN, -1, [])
+        num_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN)
         k = num_violations
+        import pdb
         beta_bar = (1e-5)/n_data
         N = n_data
         d = 1

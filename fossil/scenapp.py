@@ -170,9 +170,8 @@ class SingleScenApp:
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
         
-        num_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], self.config.MARGIN)
+        num_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"])
         k = num_violations
-        import pdb
         beta_bar = (1e-5)/n_data
         N = n_data
         d = 1
@@ -264,7 +263,7 @@ class SingleScenApp:
 
             #if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
                 
-            if state["best_loss"] == 0:
+            if state["best_loss"] < 0:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 

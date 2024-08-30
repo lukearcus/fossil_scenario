@@ -200,7 +200,6 @@ class Lyapunov(Certificate):
             V: torch.Tensor, 
             Vdot: torch.Tensor, 
             indices: list,
-            margin: float, 
             supp_samples: set,
             convex: bool
     ) -> tuple[torch.Tensor, dict]:
@@ -220,10 +219,9 @@ class Lyapunov(Certificate):
         relu = torch.nn.ReLU()
         # relu = torch.nn.Softplus()
         # compute loss function. if last layer of ones (llo), can drop parts with V
-        
-        state_loss = relu(-V+margin)
+        state_loss = -V
         lie_weight = 100
-        lie_loss = lie_weight*relu(Vdot+margin)
+        lie_loss = lie_weight*Vdot
 
         subgrad = not convex
         
@@ -275,10 +273,10 @@ class Lyapunov(Certificate):
             #    loss = torch.max((relu(Vdot + margin )).max() , (
             #        relu(-V + margin)
             #    ).max()) # Why times circle?
-        accuracy = (V >= margin).count_nonzero().item() + (Vdot <= -margin).count_nonzero().item()
+        accuracy = (V > 0).count_nonzero().item() + (Vdot < 0).count_nonzero().item()
         accuracy /= (len(V) + len(Vdot))
         accuracy = {"acc": accuracy * 100}
-        if loss > 0:
+        if loss >= 0:
             gamma = 1/5000
             try:
                 final_ind = indices["lie"][-1][-1]
@@ -302,7 +300,6 @@ class Lyapunov(Certificate):
         best_loss: float,
         best_net: learner.LearnerNN,
         f_torch=None,
-        margin=0.1,
         convex=False
     ) -> dict:
         """
@@ -329,8 +326,9 @@ class Lyapunov(Certificate):
                 samples_dot = f_torch(samples)
 
             V, Vdot, circle = learner.get_all(samples, samples_dot)
+            V -= learner(torch.zeros_like(samples))
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, margin, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -367,7 +365,7 @@ class Lyapunov(Certificate):
 
             if learner._take_abs:
                 learner.make_final_layer_positive()
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, margin, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
@@ -376,7 +374,7 @@ class Lyapunov(Certificate):
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, V, Vdot, S, Sdot, margin):
+    def get_violations(self, V, Vdot, S, Sdot):
         violated = 0
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
@@ -386,9 +384,10 @@ class Lyapunov(Certificate):
             traj_deriv = traj_deriv[valid_inds]
 
             pred_V = V(traj)
+            pred_0 = V(torch.zeros_like(traj))
             pred_Vdot = Vdot(traj, traj_deriv)
 
-            if (any(pred_V < margin) or any(pred_Vdot > - margin)):
+            if (any(pred_V < pred_0) or any(pred_Vdot > 0)):
                 violated += 1
         return violated
 
@@ -883,7 +882,6 @@ class BarrierAlt(Certificate):
         B_d: torch.Tensor,
         Bdot_d: torch.Tensor,
         indices: list,
-        margin: float,
         supp_samples: set,
         convex: bool,
     ) -> tuple[torch.Tensor, dict]:
@@ -900,8 +898,8 @@ class BarrierAlt(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        learn_accuracy = (B_i <= -margin).count_nonzero().item() + (
-            B_u >= margin
+        learn_accuracy = (B_i <= 0).count_nonzero().item() + (
+            B_u > 0
         ).count_nonzero().item()
         percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(B_u) + len(B_i))
         slope = 1e-2  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
@@ -909,13 +907,13 @@ class BarrierAlt(Certificate):
         #splu = torch.nn.Softplus(beta=0.5)
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
-        init_loss =relu(B_i + margin)
+        init_loss =B_i
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
-        unsafe_loss = relu(-B_u + margin)
+        unsafe_loss = -B_u
 
-        lie_loss =  100*relu(Bdot_d + margin)
+        lie_loss =  100*Bdot_d
         lie_accuracy = (
-            100 * ((Bdot_d <= -margin).count_nonzero()).item() / Bdot_d.shape[0]
+            100 * ((Bdot_d < 0).count_nonzero()).item() / Bdot_d.shape[0]
         )
         subgrad = not convex
         # subgradient descent
@@ -985,7 +983,7 @@ class BarrierAlt(Certificate):
         # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
         # Don't worry, state data is all added to the end of the data
         #import pdb; pdb.set_trace()
-        if loss > 0: # This way we terminate once we can fit to all the samples, but add this on otherwise 
+        if loss >= 0: # This way we terminate once we can fit to all the samples, but add this on otherwise 
             gamma = 1/5000
             try:
                 final_ind = indices["init"][-1][-1]
@@ -1031,7 +1029,6 @@ class BarrierAlt(Certificate):
         best_loss: float,
         best_net: learner.LearnerNN,
         f_torch=None,
-        margin=0.1,
         convex=False,
     ) -> dict:
         """
@@ -1072,7 +1069,7 @@ class BarrierAlt(Certificate):
             )
             B_i = B[i1 : i1 + i2]
             B_u = B[i1 + i2 :]
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
             
             if loss <= best_loss:
                 best_loss = loss
@@ -1115,14 +1112,14 @@ class BarrierAlt(Certificate):
         )
         B_i = B[i1 : i1 + i2]
         B_u = B[i1 + i2 :]
-        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, margin, supp_samples, convex)
+        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
         
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, B, Bdot, S, Sdot, margin):
+    def get_violations(self, B, Bdot, S, Sdot):
         violated = 0
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
@@ -1137,9 +1134,9 @@ class BarrierAlt(Certificate):
             pred_B_i = B(traj[initial_inds])
             pred_B_u = B(traj[unsafe_inds])
             pred_B_dots = Bdot(traj, traj_deriv)
-            if (any(pred_B_i > - margin) or
-                    any(pred_B_u < margin) or
-                    any(pred_B_dots > -margin)):
+            if (any(pred_B_i > 0) or
+                    any(pred_B_u <= 0) or
+                    any(pred_B_dots >= 0)):
                 violated += 1
                 continue
         return violated

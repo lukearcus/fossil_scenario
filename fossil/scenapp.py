@@ -100,7 +100,6 @@ class SingleScenApp:
                     self.config.N_VARS,
                     self.config.BETA,
                     self.config.N_DATA,
-                    self.config.MARGIN,
                     num_params,
                     self.config.VERBOSE,
                             )
@@ -336,7 +335,6 @@ class SingleScenApp:
                 ScenAppStateKeys.verification_timed_out: False,
                 ScenAppStateKeys.trajectory: None,
                 ScenAppStateKeys.ENet: self.config.ENET,
-                ScenAppStateKeys.margin: self.config.MARGIN,
                 ScenAppStateKeys.best_loss: np.inf,
                 ScenAppStateKeys.best_net: None,
                 ScenAppStateKeys.discarded: set(),

@@ -560,7 +560,7 @@ class VerifierScenAppConvex(Component):
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
     
-    def __init__(self, n_vars, beta, num_data, margin, num_opt_vars, verbose):
+    def __init__(self, n_vars, beta, num_data, num_opt_vars, verbose):
         super().__init__()
         self.iter = -1
         self.n = n_vars
@@ -570,7 +570,6 @@ class VerifierScenAppConvex(Component):
         self._solver_timeout = 300
         self.verbose = verbose
         self.optional_configs = VerifierConfig()
-        self.margin = margin
         self._vars_bounds = [self.optional_configs.VARS_BOUNDS for _ in range(n_vars)]
 
     def calc_eps_risk_complexity(self, k):
@@ -660,7 +659,7 @@ class VerifierScenAppNonConvex(Component):
     def new_vars(n, base="x"):
         return [sp.symbols(base+str(i)) for i in range(n)]
     
-    def __init__(self, n_vars, beta, num_data, margin, num_opt_vars, verbose):
+    def __init__(self, n_vars, beta, num_data, num_opt_vars, verbose):
         super().__init__()
         self.iter = -1
         self.n = n_vars
@@ -670,7 +669,6 @@ class VerifierScenAppNonConvex(Component):
         self._solver_timeout = 300
         self.verbose = verbose
         self.optional_configs = VerifierConfig()
-        self.margin = margin
         self._vars_bounds = [self.optional_configs.VARS_BOUNDS for _ in range(n_vars)]
 
     def calc_eps_P2L(self, k):

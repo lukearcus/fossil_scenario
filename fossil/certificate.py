@@ -283,9 +283,9 @@ class Lyapunov(Certificate):
             except IndexError:
                 final_ind = -1
             if final_ind < len(lie_loss) - 1:
-                loss += lie_loss[final_ind+1:].sum() + state_loss[final_ind+1:].sum
+                loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
                 if supp_loss != -1:
-                    supp_loss += lie_loss[final_ind+1:].sum() + state_loss[final_ind+1:].sum()
+                    supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
 
 
         return loss, supp_loss, accuracy, new_sub_samples
@@ -990,25 +990,25 @@ class BarrierAlt(Certificate):
             except IndexError:
                 final_ind = -1
             if final_ind < len(init_loss)-1:
-                loss += gamma*init_loss[final_ind+1:].sum()
+                loss += gamma*relu(init_loss)[final_ind+1:].sum()
                 if supp_loss != -1:
-                    supp_loss += gamma*init_loss[final_ind+1:].sum()
+                    supp_loss += gamma*relu(init_loss)[final_ind+1:].sum()
             try:
                 final_ind = indices["unsafe"][-1][-1]
             except IndexError:
                 final_ind = -1
             if final_ind < len(unsafe_loss)-1:
-                loss += gamma*unsafe_loss[final_ind+1:].sum()
+                loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
                 if supp_loss != -1:
-                    supp_loss += gamma*unsafe_loss[final_ind+1:].sum()
+                    supp_loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
             try:
                 final_ind = indices["lie"][-1][-1] # Where do these come from? 
             except IndexError:
                 final_ind = -1
             if final_ind < len(lie_loss)-1:
-                loss += lie_loss[final_ind+1:].sum()
+                loss += relu(lie_loss[final_ind+1:]).sum()
                 if supp_loss != -1:
-                    supp_loss += lie_loss[final_ind+1:].sum()
+                    supp_loss += relu(lie_loss[final_ind+1:]).sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 

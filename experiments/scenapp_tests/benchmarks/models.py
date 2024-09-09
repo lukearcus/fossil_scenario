@@ -85,6 +85,17 @@ class HighOrd8(control.DynamicalModel):
             - 576 * x0,
         ]
 
+class JetEngBarr(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 5
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y = v[0], v[1]
+        else:
+            x, y = v[:, 0], v[:, 1]
+        return [-y-1.5*x**2-0.5*x**3, x]
+
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of
     # Stochastic Systems via Barrier Certificates

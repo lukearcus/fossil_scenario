@@ -10,7 +10,7 @@ def test_lnn(args):
     XI = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
     XU = domains.Rectangle([0.7, 0.7], [1, 1])
 
-    n_data = 1000
+    n_data = 10000
     
     sets = {
         certificate.XD: XD,

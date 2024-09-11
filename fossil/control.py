@@ -77,7 +77,9 @@ class DynamicalModel:
         """Get learnable parameters of the model"""
         return ()
 
-    def generate_trajs(self, x_0):
+    def generate_trajs(self, x_0, time_horizon=None):
+        if time_horizon is None:
+            time_horizon = self.time_horizon
         #if x_0.ndim > 1:
         #    x_0 = x_0.flatten()
         trajs = []
@@ -87,7 +89,7 @@ class DynamicalModel:
                     return np.array(self.f_torch(t,y))
                 def g_func(y, t):
                     return np.array(self.g_torch(t,y))
-                tspan = np.linspace(0., self.time_horizon, int(1000*self.time_horizon+1))
+                tspan = np.linspace(0., time_horizon, int(1000*time_horizon+1))
                 seed = int(10000*np.random.random())
                 generator = np.random.default_rng(seed=seed)
                 for elem in x_0:
@@ -102,7 +104,7 @@ class DynamicalModel:
                 # use difference to calculate derivative... not very satisfying but seems to be the best option?
             else:
                 for elem in x_0:
-                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
+                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem))
                 state_trajs = [traj["y"] for traj in trajs]
                 times = [traj["t"] for traj in trajs]
                 derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
@@ -112,13 +114,13 @@ class DynamicalModel:
             for elem in x_0:
                 traj = [elem]
                 deriv = []
-                for k in range(self.time_horizon):
+                for k in range(time_horizon):
                     traj.append(np.hstack(self.f_torch(k, traj[-1])))
                     deriv.append(traj[-1])
                 traj.pop(-1)
                 state_trajs.append(np.vstack(traj).T)
                 derivs.append(np.vstack(deriv).T)
-            times = [list(range(self.time_horizon)) for traj in state_trajs]
+            times = [list(range(time_horizon)) for traj in state_trajs]
         return times, state_trajs, derivs
 
     def check_similarity(self):

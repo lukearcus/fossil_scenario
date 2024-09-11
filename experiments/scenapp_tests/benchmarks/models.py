@@ -39,6 +39,17 @@ class Barr1_stoch(control.DynamicalModel):
         x, y = v
         return [y + 2 * x * y, -x - y**2 + 2 * x**2]
 
+class Barr4D(control.DynamicalModel):
+    n_vars = 4
+    time_horizon = 2
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
+        else:
+            x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
+        return [x1 + 2 * x1 * x2 -3*x3*x4, np.cos(x4), x1, -x1 - x2**2 + 2 * np.sin(x4)]
+
 class HighOrd8(control.DynamicalModel):
     n_vars = 8
     time_horizon = 2
@@ -111,8 +122,6 @@ class TwoRoomTemp(control.DynamicalModel):
     alpha_e1 = 5 * 1e-3  # heat exchange 1
     alpha_e2 = 8 * 1e-3  # heat exchange 2
     temp_e = 15  # external temp
-    alpha_h = 3.6 * 1e-3  # heat exchange room-heater
-    temp_h = 55  # boiler temp
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -132,3 +141,42 @@ class TwoRoomTemp(control.DynamicalModel):
         )
 
         return [q1, q2]
+
+class ThreeRoomTemp(control.DynamicalModel):
+    # from Data-Driven Verification and synthesis of
+    # Stochastic Systems via Barrier Certificates
+    # itself adapted from Girard et al, 2016,
+    # Safety controller synthesis for incrementally stable switched
+    # systems using multiscale symbolic models.
+    n_vars = 3
+    time_horizon = 3
+    time = "discrete" 
+    
+    tau = 5  # discretise param
+    alpha = 6.2 * 1e-3  # heat exchange
+    alpha_e = 8 * 1e-3  # heat exchange 1
+    temp_e = 10  # external temp
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3 = v[0], v[1], v[2]
+        else:
+            x1, x2, x3 = v[:, 0], v[:, 1], v[:, 2]
+
+        q1 = (
+            (1 - self.tau * (self.alpha + self.alpha_e)) * x1
+            + self.tau * self.alpha * x2
+            + self.tau * self.alpha_e * self.temp_e + np.random.normal(scale=0.01)
+        )
+        q2 = (
+            (1 - self.tau * (2*self.alpha + self.alpha_e)) * x2
+            + self.tau * self.alpha * (x1+x3)
+            + self.tau * self.alpha_e * self.temp_e+ np.random.normal(scale=0.01)
+        )
+        q3 = (
+            (1 - self.tau * (self.alpha + self.alpha_e)) * x3
+            + self.tau * self.alpha * (x2)
+            + self.tau * self.alpha_e * self.temp_e+ np.random.normal(scale=0.01)
+        )
+
+        return [q1, q2, q3]

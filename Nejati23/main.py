@@ -57,8 +57,8 @@ def Jet_engine(N):
 
     system = models.JetEngBarr
     all_data = system().generate_trajs(init_data, tau)
-    state_data = np.vstack([elem[0] for elem in all_data[1]])
-    next_states = np.vstack([elem[-1] for elem in all_data[1]])
+    state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
+    next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
     A_mat = cp.Variable((2,2), symmetric=True)
     B_mat = cp.Variable((2,1))

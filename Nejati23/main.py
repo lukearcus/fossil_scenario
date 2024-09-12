@@ -1,7 +1,28 @@
 import cvxpy as cp
 import numpy as np
 from fossil import domains
+from fossil import plotting
 from experiments.scenapp_tests.benchmarks import models
+
+class certificate:
+    beta = None
+    _type = "Nejati23 Barrier"
+
+    def __init__(self, A, B, c):
+        self.A = np.array(A)
+        self.B = np.array(B)
+        self.c = np.array(c)
+
+    def __call__(self,data):
+        data = np.array(data)
+        res = np.diag(data@self.A@data.T)+(data@self.B).flatten()+self.c
+        return res
+    
+    def compute_net_gradnet(self, data):
+        data = np.array(data)
+        net = np.diag(data@self.A@data.T)+(data@self.B).flatten()+self.c
+        grad_net = 2*self.A@data.T+self.B
+        return net, grad_net
 
 def Jet_engine(N):
     c = 0
@@ -58,6 +79,9 @@ def Jet_engine(N):
     print(B_mat.value[1])
     print(C_mat.value)
     print(gamma.value)
+    cert = certificate(A_mat.value, B_mat.value, C_mat.value)
+    plotting.benchmark(system(), cert)
+
 
 class RCP_SCP:
     def __init__(self, barrier_func, barrier_lie_func, barr_data_params):

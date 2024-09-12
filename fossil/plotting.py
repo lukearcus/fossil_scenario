@@ -197,7 +197,10 @@ def certificate_surface(
     XT = torch.tensor(X, dtype=torch.float32)
     YT = torch.tensor(Y, dtype=torch.float32)
     ZT = certificate(torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1))
-    Z = ZT.detach().numpy().reshape(X.shape)
+    try:
+        Z = ZT.detach().numpy().reshape(X.shape)
+    except AttributeError:
+        Z = ZT.reshape(X.shape)
     ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, alpha=0.7, rstride=5, cstride=5)
     levels.sort()
     ax.contour(
@@ -225,7 +228,11 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
     ZT = certificate.compute_net_gradnet(
         torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1)
     )[1]
-    Z = ZT.detach().numpy()
+    try:
+    
+        Z = ZT.detach().numpy()
+    except AttributeError:
+        Z = ZT.T
     dx, dy = (
         model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
         .detach()
@@ -264,7 +271,10 @@ def certificate_countour(certificate, ax=None, levels=[0]):
     XT = torch.tensor(X, dtype=torch.float32)
     YT = torch.tensor(Y, dtype=torch.float32)
     ZT = certificate(torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1))
-    Z = ZT.detach().numpy().reshape(X.shape)
+    try:
+        Z = ZT.detach().numpy().reshape(X.shape)
+    except AttributeError:
+        Z = ZT.reshape(X.shape)
     levels.sort()
     CS = ax.contour(X, Y, Z, levels=levels, colors="black", linestyles="dashed")
     # ax.clabel(CS, inline=True, fontsize=10)

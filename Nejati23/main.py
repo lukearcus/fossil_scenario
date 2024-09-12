@@ -4,6 +4,8 @@ from fossil import domains
 from fossil import plotting
 from experiments.scenapp_tests.benchmarks import models
 from fossil.consts import *
+import torch
+torch.manual_seed(0)
 
 class certificate:
     beta = None

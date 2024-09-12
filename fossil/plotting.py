@@ -45,7 +45,8 @@ def benchmark(
     except (KeyError, AttributeError):
         pass
 
-    levels = [[0, cert.beta] if cert.beta is not None else [0] for cert in certificate]
+    if levels == [0]:
+        levels = [[0, cert.beta] if cert.beta is not None else [0] for cert in certificate]
 
     ax1 = benchmark_plane(model, certificate, domains, levels, xrange, yrange)
 

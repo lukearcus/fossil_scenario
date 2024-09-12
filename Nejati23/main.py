@@ -88,7 +88,7 @@ def Jet_engine(N):
         SYSTEM=system,
         CERTIFICATE=cert,
     )
-    axes = plotting.benchmark(system(), cert, levels=[gamma.value, lambd], xrange=[0.1,1], yrange=[0.1,1])
+    axes = plotting.benchmark(system(), cert, levels=[[lambd, gamma.value[0]] ], xrange=[0.1,1], yrange=[0.1,1])
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 

@@ -4,6 +4,8 @@ from fossil import domains
 from fossil import plotting
 from experiments.scenapp_tests.benchmarks import models
 from fossil.consts import *
+from scipy.special import betaincinv
+
 import torch
 torch.manual_seed(0)
 
@@ -38,6 +40,9 @@ def Jet_engine(N):
     beta = 0.01
     tau = 1e-5
     delta = 1.2438e-4
+    k = 4+1+1
+
+    eps = betaincinv(k, N-k+1, 1-beta)
 
     T = 1 # ignore this
     mu = -0.0 # Not sure what to set this to
@@ -69,11 +74,17 @@ def Jet_engine(N):
     gamma = cp.Variable(1)
     constraints.append(gamma + c*T - lambd - mu <= eta)
 
-    constraints.append(cp.diag(init_dom_data@A_mat@init_dom_data.T)+(init_dom_data@B_mat).flatten()+C_mat-gamma <= eta)
-    constraints.append(-(cp.diag(unsafe_dom_data@A_mat@unsafe_dom_data.T)+(unsafe_dom_data@B_mat).flatten()+C_mat)+lambd <= eta)
-    
-    constraints.append(-(cp.diag(state_data@A_mat@state_data.T)+(state_data@B_mat).flatten() 
-                        - cp.diag(next_states@A_mat@next_states.T)+(next_states@B_mat).flatten())/tau-c+delta <= eta)
+    for elem in init_dom_data:
+        constraints.append(elem@A_mat@elem+elem@B_mat+C_mat-gamma<=eta)
+    for elem in unsafe_dom_data:
+        constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
+    for elem, next_s in zip(state_data, next_states):
+        constraints.append((next_s@A_mat@next_s+next_s@B_mat-(elem@A_mat@elem+elem@B_mat))/tau-c+delta <= eta)
+    #constraints.append(cp.diag(init_dom_data@A_mat@init_dom_data.T)+(init_dom_data@B_mat).flatten()+C_mat-gamma <= eta)
+    #constraints.append(-(cp.diag(unsafe_dom_data@A_mat@unsafe_dom_data.T)+(unsafe_dom_data@B_mat).flatten()+C_mat)+lambd <= eta)
+    #
+    #constraints.append(-(cp.diag(state_data@A_mat@state_data.T)+(state_data@B_mat).flatten() 
+    #                    - cp.diag(next_states@A_mat@next_states.T)-(next_states@B_mat).flatten())/tau-c+delta <= eta)
 
     prob = cp.Problem(objective, constraints)
     prob.solve()
@@ -83,6 +94,8 @@ def Jet_engine(N):
     print(B_mat.value[1])
     print(C_mat.value)
     print(gamma.value)
+    
+    print(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps))
     cert = certificate(A_mat.value, B_mat.value, C_mat.value)
     opts = ScenAppConfig(
         SYSTEM=system,

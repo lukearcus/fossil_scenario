@@ -3,10 +3,12 @@ import numpy as np
 from fossil import domains
 from fossil import plotting
 from experiments.scenapp_tests.benchmarks import models
+from fossil.consts import *
 
 class certificate:
     beta = None
     _type = "Nejati23 Barrier"
+    name = "Nejati23_Barrier"
 
     def __init__(self, A, B, c):
         self.A = np.array(A)
@@ -80,7 +82,13 @@ def Jet_engine(N):
     print(C_mat.value)
     print(gamma.value)
     cert = certificate(A_mat.value, B_mat.value, C_mat.value)
-    plotting.benchmark(system(), cert)
+    opts = ScenAppConfig(
+        SYSTEM=system,
+        CERTIFICATE=cert,
+    )
+    axes = plotting.benchmark(system(), cert)
+    for ax, name in axes:
+        plotting.save_plot_with_tags(ax, opts, name)
 
 
 class RCP_SCP:

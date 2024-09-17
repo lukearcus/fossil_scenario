@@ -27,7 +27,7 @@ class UnsafeDomain(domains.Set):
 
 def test_lnn(args):
     XD = domains.Rectangle([-2] * 4, [2] * 4)
-    XI = domains.Rectangle([0.0, 1, 1.5, 1.5], [1, 2, 2, 2])
+    XI = domains.Rectangle([0.75, 1.5, 1.5, 1.5], [1, 2, 2, 2])
     XU = UnsafeDomain()
 
     n_data = 1000

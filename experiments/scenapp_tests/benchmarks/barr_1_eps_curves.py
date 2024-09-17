@@ -14,7 +14,8 @@ from fossil import certificate
 from fossil import main
 from experiments.scenapp_tests.benchmarks import models
 from fossil.consts import *
-
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 class UnsafeDomain(domains.Set):
     dimension = 2
@@ -66,32 +67,46 @@ def test_lnn(args):
 
     system = models.Barr1
     all_data = system().generate_trajs(init_data)
-    data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
-    activations = [ActivationType.SIGMOID]
-    #activations = [ActivationType.RELU]
-    hidden_neurons = [5] * len(activations)
-    opts = ScenAppConfig(
-        N_VARS=2,
-        SYSTEM=system,
-        DOMAINS=sets,
-        DATA=data,
-        N_DATA=n_data,
-        CERTIFICATE=CertificateType.BARRIERALT,
-        TIME_DOMAIN=TimeDomain.CONTINUOUS,
-        #VERIFIER=VerifierType.DREAL,
-        ACTIVATION=activations,
-        N_HIDDEN_NEURONS=hidden_neurons,
-        SYMMETRIC_BELT=True,
-        VERBOSE=2,
-        SCENAPP_MAX_ITERS=2500,
-        VERIFIER=VerifierType.SCENAPPNONCONVEX,
-        #CONVEX_NET=True,
-    )
+    eps_P2L = []
+    eps_post = []
+    N_vals = list(range(100,1000,500))
+    for i in tqdm(N_vals):
+        data = {"states_only": state_data, "full_data": {"times":all_data[0][:i],"states":all_data[1][:i],"derivs":all_data[2][:i]}}
+
+        activations = [ActivationType.SIGMOID]
+        #activations = [ActivationType.RELU]
+        hidden_neurons = [5] * len(activations)
+        opts = ScenAppConfig(
+            N_VARS=2,
+            SYSTEM=system,
+            DOMAINS=sets,
+            DATA=data,
+            N_DATA=n_data,
+            CERTIFICATE=CertificateType.BARRIERALT,
+            TIME_DOMAIN=TimeDomain.CONTINUOUS,
+            #VERIFIER=VerifierType.DREAL,
+            ACTIVATION=activations,
+            N_HIDDEN_NEURONS=hidden_neurons,
+            SYMMETRIC_BELT=True,
+            VERBOSE=0,
+            SCENAPP_MAX_ITERS=2500,
+            VERIFIER=VerifierType.SCENAPPNONCONVEX,
+            #CONVEX_NET=True,
+        )
+        
+
+        PAC = ScenApp(opts)
+        result = PAC.solve()
+        eps_P2L.append(result.res)
+        eps_post.append(result.a_post_res)
+
+    plt.plot(N_vals, eps_P2L)
+    plt.plot(N_vals, eps_post)
     
-
-    PAC = ScenApp(opts)
-    result = PAC.solve()
+    plot_name = f"risk_comparison_curves.pdf"
+    plot_name = "results/" + plot_name
+    plt.savefig(plot_name)
     #main.run_benchmark(
     #    opts,
     #    record=args.record,

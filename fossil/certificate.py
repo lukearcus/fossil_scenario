@@ -376,6 +376,7 @@ class Lyapunov(Certificate):
 
     def get_violations(self, V, Vdot, S, Sdot):
         violated = 0
+        true_violated = 0
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
             
@@ -386,10 +387,11 @@ class Lyapunov(Certificate):
             pred_V = V(traj)
             pred_0 = V(torch.zeros_like(traj))
             pred_Vdot = Vdot(traj, traj_deriv)
-
+            if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
+                true_violated += 1
             if (any(pred_V < pred_0) or any(pred_Vdot > 0)):
                 violated += 1
-        return violated
+        return violated, true_violated
 
 
     def get_constraints(self, verifier, V, Vdot) -> Generator:
@@ -911,7 +913,8 @@ class BarrierAlt(Certificate):
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
         unsafe_loss = -B_u
 
-        lie_loss =  100*Bdot_d
+        lie_loss = Bdot_d # sometimes it is useful to weight this term I think??
+        # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < 0).count_nonzero()).item() / Bdot_d.shape[0]
         )
@@ -958,11 +961,12 @@ class BarrierAlt(Certificate):
             new_sub_samples = set([sub_sample])
         else:    
             # relaxed constraints below
+            supp_loss = -1
             loss = 0
-            sub_samples = set()
+            sub_samples = {"active":0,"relaxed":0}
             i = 0
             for inds_init, inds_unsafe, inds_lie in zip(indices["init"], indices["unsafe"], indices["lie"]):
-                curr_max = torch.tensor(0.0)
+                curr_max = torch.tensor(-1.0)
                 elems_init = init_loss[inds_init]
                 elems_unsafe = unsafe_loss[inds_unsafe]
                 elems_lie = lie_loss[inds_lie]
@@ -974,8 +978,11 @@ class BarrierAlt(Certificate):
                     curr_max = torch.max(curr_max, elems_lie.max())
                 if curr_max > 0:
                     loss += curr_max
-                    sub_samples.add(i)
+                    sub_samples["relaxed"] += 1
+                elif curr_max > -0.01: #Some wiggle room for what counts as active
+                    sub_samples["active"] += 1
                 i += 1
+            new_sub_samples = sub_samples
 
         
         # this bit adds on the additional samples of just states
@@ -1016,7 +1023,6 @@ class BarrierAlt(Certificate):
             "acc init unsafe": percent_accuracy_init_unsafe,
             "acc lie": lie_accuracy,
         }
-
         return loss, supp_loss, accuracy, new_sub_samples
     
     def learn(
@@ -1114,12 +1120,15 @@ class BarrierAlt(Certificate):
         B_u = B[i1 + i2 :]
         loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
         
+        supp_samples = sub_sample
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
+            print(supp_samples)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot):
+        true_violated = 0
         violated = 0
         for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
             traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
@@ -1134,12 +1143,14 @@ class BarrierAlt(Certificate):
             pred_B_i = B(traj[initial_inds])
             pred_B_u = B(traj[unsafe_inds])
             pred_B_dots = Bdot(traj, traj_deriv)
+            if any(self.D[XU].check_containment(traj)):
+                true_violated += 1
             if (any(pred_B_i > 0) or
                     any(pred_B_u <= 0) or
                     any(pred_B_dots >= 0)):
                 violated += 1
                 continue
-        return violated
+        return violated, true_violated
 
     def get_constraints(self, verifier, B, Bdot) -> Generator:
         """

@@ -41,14 +41,14 @@ class Barr1_stoch(control.DynamicalModel):
 
 class Barr4D(control.DynamicalModel):
     n_vars = 4
-    time_horizon = 2
+    time_horizon = 4
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
             x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
         else:
             x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
-        return [x1 + 2 * x1 * x2 -3*x3*x4, np.cos(x4), x1, -x1 - x2**2 + 2 * np.sin(x4)]
+        return [x1 + 0.2 * x1 * x2 -0.5*x3*x4, np.cos(x4), 0.01*np.sqrt(np.abs(x1)), -x1 - x2**2 + np.sin(x4)]
 
 class HighOrd8(control.DynamicalModel):
     n_vars = 8

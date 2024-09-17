@@ -235,6 +235,8 @@ class ScenAppStateKeys:
     best_loss = "best_loss"
     best_net = "best_net"
     discarded = "discarded"
+    convex = "convex"
+
 
 class ScenAppComponentsState:
     name = "name"

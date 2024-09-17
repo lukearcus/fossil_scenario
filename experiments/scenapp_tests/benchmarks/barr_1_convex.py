@@ -7,7 +7,6 @@
 
 import timeit
 
-from fossil.scenapp import ScenApp, Result
 from fossil import plotting
 from fossil import domains
 from fossil import certificate
@@ -68,8 +67,8 @@ def test_lnn(args):
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
-    activations = [ActivationType.SIGMOID]
-    #activations = [ActivationType.RELU]
+    #activations = [ActivationType.SIGMOID]
+    activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)
     opts = ScenAppConfig(
         N_VARS=2,
@@ -85,20 +84,16 @@ def test_lnn(args):
         SYMMETRIC_BELT=True,
         VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
-        VERIFIER=VerifierType.SCENAPPNONCONVEX,
-        #CONVEX_NET=True,
+        VERIFIER=VerifierType.SCENAPPCONVEX,
+        CONVEX_NET=True,
     )
-    
-
-    PAC = ScenApp(opts)
-    result = PAC.solve()
-    #main.run_benchmark(
-    #    opts,
-    #    record=args.record,
-    #    plot=args.plot,
-    #    concurrent=args.concurrent,
-    #    repeat=args.repeat,
-    #)
+    main.run_benchmark(
+        opts,
+        record=args.record,
+        plot=args.plot,
+        concurrent=args.concurrent,
+        repeat=args.repeat,
+    )
 
 
 if __name__ == "__main__":

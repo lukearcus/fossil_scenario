@@ -23,6 +23,7 @@ class Stats(NamedTuple):
 
 class Result(NamedTuple):
     res: float 
+    a_post_res: float
     cert: learner.LearnerNN
     stats: Stats
 
@@ -169,15 +170,18 @@ class SingleScenApp:
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
         
-        num_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"])
+        num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"])
         k = num_violations
-        beta_bar = (1e-5)/n_data
+        beta_bar = self.config.BETA[0]/n_data
         N = n_data
         d = 1
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
         print("A posteriori scenario approach risk: {:.5f}".format(eps))
-        print("Violation rate: {:.3f}".format(num_violations/n_data))
-        
+        print("Certificate violation rate: {:.3f}".format(num_violations/n_data))
+        print("Property violation rate: {:.3f}".format(true_violations/n_data))
+        return eps
+
+
     def discard(self, state):
         # Discard all samples that were of support for last run...
         # Could discard just the current worst case for better guarantees but worse performance
@@ -230,10 +234,12 @@ class SingleScenApp:
         n_test_data = self.config.N_TEST_DATA
         old_loss = float("Inf")
         old_best = float("Inf")
-        state["supps"] = set()
+        if self.config.CONVEX_NET:
+            state["supps"] = {"active":0,"relaxed":0}
+        else:
+            state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
         while not stop:
-            
             opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
             opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
             state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
@@ -242,7 +248,9 @@ class SingleScenApp:
             outputs = self.learner.get(**state)
             state = {**state, **outputs}
             
-            if not self.config.CONVEX_NET:
+            if self.config.CONVEX_NET:
+                state["supps"] = outputs["new_supps"]
+            else:
                 state["supps"] = state["supps"].union(outputs["new_supps"])
                 #state["supp_len"] = len(state["supps"])
             #print("len supps: {}".format(state["supp_len"]))
@@ -261,8 +269,7 @@ class SingleScenApp:
             #    stop = self.process_certificate(S, state, iters)
 
             #if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
-                
-            if state["best_loss"] < 0:
+            if self.config.CONVEX_NET and torch.abs(state["loss"]-old_loss) < converge_tol:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 
@@ -275,7 +282,21 @@ class SingleScenApp:
                 #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
-            elif torch.abs(state["best_loss"]-old_best) < converge_tol:
+
+            elif not self.config.CONVEX_NET and state["best_loss"] < 0:
+                scenapp_log.debug("\033[1m Verifier \033[0m")
+                
+
+                outputs = self.verifier.get(**state)
+                state = {**state, **outputs}
+
+                # Consolidator component # Don't think this is needed/possible for us
+                #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                #outputs = self.consolidator.get(**state)
+                #state = {**state, **outputs}
+                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                stop = self.process_certificate(S, state, iters)
+            elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
                 print("Convergence reached, but failed to find barrier certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
@@ -312,8 +333,8 @@ class SingleScenApp:
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
-        self._result = Result(state[ScenAppStateKeys.bounds], state[ScenAppStateKeys.best_net], stats)
-        self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
@@ -338,6 +359,7 @@ class SingleScenApp:
                 ScenAppStateKeys.best_loss: np.inf,
                 ScenAppStateKeys.best_net: None,
                 ScenAppStateKeys.discarded: set(),
+                ScenAppStateKeys.convex: self.config.CONVEX_NET,
                 }
 
         return state

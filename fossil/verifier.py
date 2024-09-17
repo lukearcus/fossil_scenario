@@ -631,7 +631,7 @@ class VerifierScenAppConvex(Component):
         epsU = 1-t1
         return epsU
     
-    def verify(self, C, dC, S, dS, supp_lb, discarded):
+    def verify(self, C, dC, S, dS, supps, active_len_ub):
         """
         :param C: function
         :param dC: function
@@ -641,14 +641,15 @@ class VerifierScenAppConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = min(self.num_data, len(discarded) + supp_lb)
-        # support finder shouldn't be needed now I discard in the loop!
+        # often finding more active than just counting parameters
+        supps = min(self.num_data, min(supps["active"], active_len_ub)+supps["relaxed"])
+        # calc_eps_risk_complexity and calc_eps_P2L are identical!!!
         bounds = self.calc_eps_risk_complexity(supps)
         return {ScenAppStateKeys.bounds: bounds}
     
     def get(self, **kw):
         # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supp_len], kw[ScenAppStateKeys.discarded])
+        return self.verify(kw[ScenAppStateKeys.net], kw[ScenAppStateKeys.net_dot], kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supps], kw[ScenAppStateKeys.supp_len])
     
     @staticmethod
     def get_timer():
@@ -701,7 +702,6 @@ class VerifierScenAppNonConvex(Component):
                 bounds: upper and lower PAC bounds
         """
         supps = min(self.num_data, len(supp_lb) + len(discarded))
-        print(supps)
         bounds = self.calc_eps_P2L(supps)
         return {ScenAppStateKeys.bounds: bounds}
     

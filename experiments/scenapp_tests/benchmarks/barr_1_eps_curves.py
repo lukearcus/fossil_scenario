@@ -70,7 +70,7 @@ def test_lnn(args):
 
     eps_P2L = []
     eps_post = []
-    N_vals = list(range(100,1000,500))
+    N_vals = list(range(100,1000,5001))
     for i in tqdm(N_vals):
         data = {"states_only": state_data, "full_data": {"times":all_data[0][:i],"states":all_data[1][:i],"derivs":all_data[2][:i]}}
 
@@ -102,9 +102,12 @@ def test_lnn(args):
         eps_P2L.append(result.res)
         eps_post.append(result.a_post_res)
 
-    plt.plot(N_vals, eps_P2L)
-    plt.plot(N_vals, eps_post)
-    
+    plt.plot(N_vals, eps_P2L, label="Risk calculated using training data")
+    plt.plot(N_vals, eps_post, label="Risk calculated from additional data")
+    plt.title("Risk Curves for Varying N")
+    plt.xlabel("N")
+    plt.ylabel("Risk")
+    plt.legend()
     plot_name = f"risk_comparison_curves.pdf"
     plot_name = "results/" + plot_name
     plt.savefig(plot_name)

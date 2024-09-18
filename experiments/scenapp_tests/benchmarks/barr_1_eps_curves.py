@@ -70,7 +70,7 @@ def test_lnn(args):
 
     eps_P2L = []
     eps_post = []
-    N_vals = list(range(100,1000,5001))
+    N_vals = list(range(100,1000))
     for i in tqdm(N_vals):
         data = {"states_only": state_data, "full_data": {"times":all_data[0][:i],"states":all_data[1][:i],"derivs":all_data[2][:i]}}
 

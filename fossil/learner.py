@@ -96,11 +96,12 @@ class LearnerNN(nn.Module, Learner):
         S: dict,
         Sdot: dict,
         Sind: dict,
+        times: dict,
         best_loss: float,
         best_net: "LearnerNN",
         convex: bool
     ) -> dict:
-        return self.learn_method(net, optimizer, S, Sdot, Sind, best_loss, best_net, None, convex)
+        return self.learn_method(net, optimizer, S, Sdot, Sind, times, best_loss, best_net, None, convex)
 
     def get(self, **kw):
         return self.learn(
@@ -109,6 +110,7 @@ class LearnerNN(nn.Module, Learner):
             kw[ScenAppStateKeys.S],
             kw[ScenAppStateKeys.S_dot],
             kw[ScenAppStateKeys.S_inds],
+            kw[ScenAppStateKeys.times],
             kw[ScenAppStateKeys.best_loss],
             kw[ScenAppStateKeys.best_net],
             kw[ScenAppStateKeys.convex]
@@ -335,7 +337,7 @@ class LearnerCT(LearnerNN):
     """
 
     def get_all(
-        self, S: torch.Tensor, Sdot: torch.Tensor
+            self, S: torch.Tensor, Snext: torch.Tensor, times: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Returns the value of the function, its lie derivative and circle.
 
@@ -354,16 +356,20 @@ class LearnerCT(LearnerNN):
         """
         #assert len(S) == len(Sdot)
 
-        nn, grad_nn = self.compute_net_gradnet(S)
+        nn = self(S)
+        nn_next = self(Snext)
+        V = nn
+        Vdot = (nn_next-nn)/times
+        #nn, grad_nn = self.compute_net_gradnet(S)
         # circle = x0*x0 + ... + xN*xN
         circle = torch.pow(S, 2).sum(dim=1)
-
-        V, gradV = self.compute_V_gradV(nn, grad_nn, S)
-        Vdot = self.compute_dV(gradV[:len(Sdot)], Sdot)
+        #V, gradV = self.compute_V_gradV(nn, grad_nn, S)
+        
+        #Vdot = self.compute_dV(gradV[:len(Sdot)], Sdot)
         return V, Vdot, circle
     
-    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
-        return self.get_all(S, Sdot)[1]
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot, times)[1]
 
     def compute_dV(self, gradV: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
         """Computes the  lie derivative of the function.

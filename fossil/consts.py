@@ -211,6 +211,7 @@ class ScenAppStateKeys:
     S_inds= "S_ind"
     S_traj = "S_traj"
     S_traj_dot = "S_traj_dot"
+    times = "times"
     B = "B"
     B_dot = "B_dot"
     optimizer = "optimizer"

@@ -145,6 +145,7 @@ class SingleScenApp:
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
             else:
                 domained_data["states"][key] = state_data[key]
+        
         #scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 
@@ -169,12 +170,14 @@ class SingleScenApp:
 
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
-        
-        num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"])
+        import pdb; pdb.set_trace()
+        # times are wrong for some reason??
+        num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], data["full_data"]["times"])
         k = num_violations
         beta_bar = self.config.BETA[0]/n_data
         N = n_data
         d = 1
+        print(N)
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
         print("A posteriori scenario approach risk: {:.5f}".format(eps))
         print("Certificate violation rate: {:.3f}".format(num_violations/n_data))
@@ -219,8 +222,9 @@ class SingleScenApp:
         S = self.S["states"]
         S_inds = self.S["indices"]
         S_traj = self.S_traj
+        times = self.S["times"]
         # Initialize CEGIS state
-        state = self.init_state(Sdot, S, S_traj, S_inds)
+        state = self.init_state(Sdot, S, S_traj, S_inds, times)
 
         # Reset timers for components
         self.learner.get_timer().reset()
@@ -338,7 +342,7 @@ class SingleScenApp:
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
-    def init_state(self, Sdot, S, S_traj, S_inds):
+    def init_state(self, Sdot, S, S_traj, S_inds, times):
         state = {
                 ScenAppStateKeys.net: self.learner,
                 ScenAppStateKeys.optimizer: self.optimizer,
@@ -347,6 +351,7 @@ class SingleScenApp:
                 ScenAppStateKeys.S_traj: S_traj["states"],
                 ScenAppStateKeys.S_traj_dot: S_traj["derivs"],
                 ScenAppStateKeys.S_inds: S_inds,
+                ScenAppStateKeys.times: times,
                 ScenAppStateKeys.V: None,
                 ScenAppStateKeys.V_dot: None,
                 ScenAppStateKeys.x_v_map: self.x_map,

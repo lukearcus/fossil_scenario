@@ -1032,6 +1032,7 @@ class BarrierAlt(Certificate):
         S: list,
         Sdot: list,
         Sind: list,
+        times: list,
         best_loss: float,
         best_net: learner.LearnerNN,
         f_torch=None,
@@ -1044,7 +1045,6 @@ class BarrierAlt(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        assert len(S) == len(Sdot)
 
         learn_loops = 1000
         condition_old = False
@@ -1052,10 +1052,16 @@ class BarrierAlt(Certificate):
         idot1 = Sdot[XD].shape[0]
         i2 = S[XI].shape[0]
         idot2 = Sdot[XI].shape[0]
+        if type(Sdot[XU]) is not list:
+            idot3 = Sdot[XU].shape[0]
+        else:
+            idot3 = 0
         # samples = torch.cat([s for s in S.values()])
         label_order = [XD, XI, XU]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
-
+        samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:]])
+        times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
         # samples_dot = torch.cat([s for s in Sdot.values()])
         samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         supp_samples = set()
@@ -1065,16 +1071,17 @@ class BarrierAlt(Certificate):
 
             # permutation_index = torch.randperm(S[0].size()[0])
             # permuted_S, permuted_Sdot = S[0][permutation_index], S_dot[0][permutation_index]
-            B, Bdot, _ = learner.get_all(samples, samples_dot)
+            B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
+            B2 = learner(states_only)
             (
                 B_d,
                 Bdot_d,
             ) = (
-                B[:i1],
+                    torch.cat([B[:i1] ,B2[:i1-idot1]]) ,
                 Bdot[:idot1],
             )
-            B_i = B[i1 : i1 + i2]
-            B_u = B[i1 + i2 :]
+            B_i = torch.cat([B[i1 : i1 + i2], B2[i1-idot1:i1+i2-idot2-idot1]])
+            B_u = torch.cat([B[i1 + i2 :], B2[i1+i2-idot1-idot2:]])
             loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
             
             if loss <= best_loss:
@@ -1108,16 +1115,17 @@ class BarrierAlt(Certificate):
                 else:
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
-        B, Bdot, _ = learner.get_all(samples, samples_dot)
+        B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
+        B2 = learner(states_only)
         (
             B_d,
             Bdot_d,
         ) = (
-            B[:i1],
+                torch.cat([B[:i1] ,B2[:i1-idot1]]) ,
             Bdot[:idot1],
         )
-        B_i = B[i1 : i1 + i2]
-        B_u = B[i1 + i2 :]
+        B_i = torch.cat([B[i1 : i1 + i2], B2[i1-idot1:i1+i2-idot2-idot1]])
+        B_u = torch.cat([B[i1 + i2 :], B2[i1+i2-idot1-idot2:]])
         loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
         
         supp_samples = sub_sample
@@ -1127,11 +1135,11 @@ class BarrierAlt(Certificate):
             print(supp_samples)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, B, Bdot, S, Sdot):
+    def get_violations(self, B, Bdot, S, Sdot, times):
         true_violated = 0
         violated = 0
-        for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
-            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
+            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
 
             valid_inds = torch.where(self.D[XD].check_containment(traj))
             
@@ -1142,7 +1150,8 @@ class BarrierAlt(Certificate):
             unsafe_inds = torch.where(self.D[XU].check_containment(traj))
             pred_B_i = B(traj[initial_inds])
             pred_B_u = B(traj[unsafe_inds])
-            pred_B_dots = Bdot(traj, traj_deriv)
+            import pdb; pdb.set_trace()
+            pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1
             if (any(pred_B_i > 0) or

@@ -99,29 +99,34 @@ class DynamicalModel:
                 state_trajs = [np.array([elem for elem in traj if not np.isnan(np.sum(elem))]).T for traj in trajs]
                 times = [tspan[0:len(state_traj[0])-1] for state_traj in state_trajs]
                 h = (tspan[-1]-tspan[0])/len(tspan)
-                derivs = [(state_traj[:, 1:]-state_traj[:, :-1])/h for state_traj in state_trajs]
+                #nexts = [(state_traj[:, 1:]-state_traj[:, :-1])/h for state_traj in state_trajs]
+                nexts = [state_traj[:, 1:] for state_traj in state_trajs]
                 state_trajs = [state_traj[:, :-1] for state_traj in state_trajs]
+                times = [[h for s in state_traj] for state_traj in state_trajs]        
                 # use difference to calculate derivative... not very satisfying but seems to be the best option?
             else:
                 for elem in x_0:
                     trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem))
                 state_trajs = [traj["y"] for traj in trajs]
                 times = [traj["t"] for traj in trajs]
-                derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
+                nexts = [traj[:, 1:] for traj in state_trajs]
+                state_trajs = [traj[:, :-1] for traj in state_trajs]
+                times = [time[1:] - time[-1:] for time in times]
+                #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
         else:
             state_trajs = []
             derivs = []
             for elem in x_0:
                 traj = [elem]
-                deriv = []
+                next_s = []
                 for k in range(time_horizon):
                     traj.append(np.hstack(self.f_torch(k, traj[-1])))
-                    deriv.append(traj[-1])
+                    next_s.append(traj[-1])
                 traj.pop(-1)
                 state_trajs.append(np.vstack(traj).T)
-                derivs.append(np.vstack(deriv).T)
+                nexts.append(np.vstack(deriv).T)
             times = [list(range(time_horizon)) for traj in state_trajs]
-        return times, state_trajs, derivs
+        return times, state_trajs, nexts
 
     def check_similarity(self):
         """

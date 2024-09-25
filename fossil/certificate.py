@@ -1145,12 +1145,12 @@ class BarrierAlt(Certificate):
             
             traj = traj[valid_inds]
             traj_deriv = traj_deriv[valid_inds]
+            time = time[valid_inds]
 
             initial_inds = torch.where(self.D[XI].check_containment(traj))
             unsafe_inds = torch.where(self.D[XU].check_containment(traj))
             pred_B_i = B(traj[initial_inds])
             pred_B_u = B(traj[unsafe_inds])
-            import pdb; pdb.set_trace()
             pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1

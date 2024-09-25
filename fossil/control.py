@@ -111,7 +111,7 @@ class DynamicalModel:
                 times = [traj["t"] for traj in trajs]
                 nexts = [traj[:, 1:] for traj in state_trajs]
                 state_trajs = [traj[:, :-1] for traj in state_trajs]
-                times = [time[1:] - time[-1:] for time in times]
+                times = [time[1:] - time[:-1] for time in times]
                 #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
         else:
             state_trajs = []

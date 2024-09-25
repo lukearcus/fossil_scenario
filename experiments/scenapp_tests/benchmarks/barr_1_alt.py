@@ -90,15 +90,15 @@ def test_lnn(args):
     )
     
 
-    PAC = ScenApp(opts)
-    result = PAC.solve()
-    #main.run_benchmark(
-    #    opts,
-    #    record=args.record,
-    #    plot=args.plot,
-    #    concurrent=args.concurrent,
-    #    repeat=args.repeat,
-    #)
+    #PAC = ScenApp(opts)
+    #result = PAC.solve()
+    main.run_benchmark(
+        opts,
+        record=args.record,
+        plot=args.plot,
+        concurrent=args.concurrent,
+        repeat=args.repeat,
+    )
 
 
 if __name__ == "__main__":

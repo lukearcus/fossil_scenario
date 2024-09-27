@@ -55,7 +55,7 @@ def benchmark(
     ax3 = benchmark_lie(model, certificate, domains, levels, xrange, yrange)
 
     # plotting lie does not work with concurrency. Something to do with autograd call and multiprocessing.
-    return (ax1, "plane"), (ax2, "surface")  # , (ax3, "Cdot")
+    return (ax1, "plane"), (ax2, "surface")  , (ax3, "Cdot")
 
 
 def save_plot_with_tags(ax, config: consts.ScenAppConfig, plot_type: str):

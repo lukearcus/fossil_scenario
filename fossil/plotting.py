@@ -102,7 +102,7 @@ def benchmark_plane(
 
     for cert, lev in zip(certificate, levels):
         if cert is not None:
-            ax = certificate_countour(cert, ax=ax, levels=lev)
+            ax = certificate_countour(cert, ax=ax, levels=lev, xrange=xrange, yrange=yrange)
 
 
     ax = add_legend(ax)
@@ -256,7 +256,7 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
     return ax
 
 
-def certificate_countour(certificate, ax=None, levels=[0]):
+def certificate_countour(certificate, ax=None, levels=[0], xrange=[-5,5], yrange=[-5,5]):
     """Plot contours of the certificate.
 
     Args:
@@ -266,8 +266,8 @@ def certificate_countour(certificate, ax=None, levels=[0]):
     """
 
     ax = ax or plt.gca()
-    x = np.linspace(-5, 5, 100)
-    y = np.linspace(-5, 5, 100)
+    x = np.linspace(xrange[0], xrange[1], 100)
+    y = np.linspace(yrange[0], yrange[1], 100)
     X, Y = np.meshgrid(x, y)
     XT = torch.tensor(X, dtype=torch.float32)
     YT = torch.tensor(Y, dtype=torch.float32)

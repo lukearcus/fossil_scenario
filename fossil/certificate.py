@@ -913,7 +913,7 @@ class BarrierAlt(Certificate):
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
         unsafe_loss = -B_u
 
-        lie_loss = Bdot_d # sometimes it is useful to weight this term I think??
+        lie_loss = Bdot_d*100 # sometimes it is useful to weight this term I think??
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < 0).count_nonzero()).item() / Bdot_d.shape[0]

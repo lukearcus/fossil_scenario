@@ -115,7 +115,7 @@ class DynamicalModel:
                 #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
         else:
             state_trajs = []
-            derivs = []
+            nexts = []
             for elem in x_0:
                 traj = [elem]
                 next_s = []
@@ -124,7 +124,7 @@ class DynamicalModel:
                     next_s.append(traj[-1])
                 traj.pop(-1)
                 state_trajs.append(np.vstack(traj).T)
-                nexts.append(np.vstack(deriv).T)
+                nexts.append(np.vstack(next_s).T)
             times = [list(range(time_horizon)) for traj in state_trajs]
         return times, state_trajs, nexts
 

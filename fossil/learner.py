@@ -390,7 +390,7 @@ class LearnerDT(LearnerNN):
     """Leaner class for discrete time dynamical models."""
 
     def get_all(
-        self, S: torch.Tensor, Sdot: torch.Tensor
+            self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Computes V, delta_V and circle.
 
@@ -420,8 +420,8 @@ class LearnerDT(LearnerNN):
 
         return V, delta_V, circle
     
-    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor) -> torch.Tensor:
-        return self.get_all(S, Sdot)[1] # Returns 1 step change
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot, times)[1] # Returns 1 step change
 
 
 class CtrlLearnerCT(LearnerCT):

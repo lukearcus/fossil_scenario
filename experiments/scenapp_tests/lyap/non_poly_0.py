@@ -60,7 +60,6 @@ def test_lnn():
         N_HIDDEN_NEURONS=n_hidden_neurons,
         LLO=True,
         VERBOSE=2,
-        MARGIN=1e-10
     )
     result = fossil.synthesise(opts)
     

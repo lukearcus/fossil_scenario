@@ -169,32 +169,6 @@ class Lyapunov(Certificate):
         self.D = config.DOMAINS
         self.beta = None
 
-    def alt_loss(
-        self, V: torch.Tensor, gradV: torch.Tensor, f: torch.Tensor
-    ) -> torch.Tensor:
-        """
-        Args:
-             V: Lyapunov function
-             gradV: gradient of Lyapunov function
-             f: system dynamics
-
-        Return: loss function
-        """
-        relu = torch.nn.Softplus()
-        cosine = torch.nn.CosineSimilarity(dim=1)
-        Vdot = torch.sum(torch.mul(gradV, f), dim=1)
-        if self.llo:
-            loss = cosine(gradV, f).mean()
-            learn_accuracy = (Vdot <= 0).count_nonzero().item()
-        else:
-            loss = cosine(gradV, f) + relu(-(V))
-            loss = loss.mean()
-            learn_accuracy = 0.5 * (
-                (Vdot <= -0).count_nonzero().item() + (V >= 0).count_nonzero().item()
-            )
-        accuracy = {"acc": learn_accuracy * 100 / len(Vdot)}
-        return loss, accuracy
-
     def compute_loss(
             self, 
             V: torch.Tensor, 
@@ -297,6 +271,7 @@ class Lyapunov(Certificate):
         S: list,
         Sdot: list,
         Sind: list,
+        times: list,
         best_loss: float,
         best_net: learner.LearnerNN,
         f_torch=None,
@@ -319,13 +294,20 @@ class Lyapunov(Certificate):
         else:
             samples_dot = Sdot[XD]
 
+        idot = len(samples_dot)
+        samples_with_nexts = samples[:idot]
+        states_only = samples[idot:]
+        times = times[XD]
+
         supp_samples = set()
         for t in range(learn_loops):
             optimizer.zero_grad()
             if self.control:
                 samples_dot = f_torch(samples)
 
-            V, Vdot, circle = learner.get_all(samples, samples_dot)
+            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+            V2 = learner(states_only)
+            V = torch.cat([V1,V2])
             V -= learner(torch.zeros_like(samples))
 
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
@@ -374,19 +356,20 @@ class Lyapunov(Certificate):
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, V, Vdot, S, Sdot):
+    def get_violations(self, V, Vdot, S, Sdot, times):
         violated = 0
         true_violated = 0
-        for i, (traj, traj_deriv) in enumerate(zip(S, Sdot)):
-            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
+        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
+            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
             
             valid_inds = torch.where(self.D[XD].check_containment(traj))
             traj = traj[valid_inds]
             traj_deriv = traj_deriv[valid_inds]
-
+            time = time[valid_inds]
+    
             pred_V = V(traj)
             pred_0 = V(torch.zeros_like(traj))
-            pred_Vdot = Vdot(traj, traj_deriv)
+            pred_Vdot = Vdot(traj, traj_deriv, time)
             if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
                 true_violated += 1
             if (any(pred_V < pred_0) or any(pred_Vdot > 0)):
@@ -610,253 +593,6 @@ class ROA(Certificate):
         data_labels = set(data.keys())
         _set_assertion(set([XI]), domain_labels, "Symbolic Domains")
         _set_assertion(set([XD, XI]), data_labels, "Data Sets")
-
-
-class Barrier(Certificate):
-    """
-    Certifies Safety for CT models
-
-    Don't use for scenario approach
-
-    Arguments:
-    domains {dict}: dictionary of string:domains pairs for a initial set, unsafe set and domain
-
-    Keyword Arguments:
-    SYMMETRIC_BELT {bool}: sets belt symmetry
-
-    """
-
-    def __init__(self, domains, config: ScenAppConfig) -> None:
-        print("WARNING: USE BARRIER ALT INSTEAD")
-        self.domain = domains[XD]
-        self.initial_s = domains[XI]
-        self.unsafe_s = domains[XU]
-        self.SYMMETRIC_BELT = config.SYMMETRIC_BELT
-        self.bias = True
-        self.relu = torch.relu
-        self.D = config.DOMAINS
-
-    def compute_loss(
-        self,
-        B_i: torch.Tensor,
-        B_u: torch.Tensor,
-        B_d: torch.Tensor,
-        Bdot_d: torch.Tensor,
-        margin: float
-    ) -> tuple[torch.Tensor, dict]:
-        """Computes loss function for Barrier certificate.
-
-        Also computes accuracy of the current model.
-
-        Args:
-            B_i (torch.Tensor): Barrier values for initial set
-            B_u (torch.Tensor): Barrier values for unsafe set
-            B_d (torch.Tensor): Barrier values for domain
-            Bdot_d (torch.Tensor): Barrier derivative values for domain
-
-        Returns:
-            tuple[torch.Tensor, float]: loss and accuracy
-        """
-
-        ### We spend A LOT of time computing the accuracies and belt percent.
-        ### Changing from builtins sum to torch.sum() makes the whole code 4x faster.
-        learn_accuracy = (B_i <= -margin).count_nonzero().item() + (
-            B_u >= margin
-        ).count_nonzero().item()
-        percent_accuracy_init_unsafe = (
-            learn_accuracy * 100 / (B_u.shape[0] + B_i.shape[0])
-        )
-
-        # relu = torch.nn.Softplus()
-        relu = self.relu
-        loss = relu(B_i + margin)
-        if len(B_u) != 0:
-            unsafe_loss = relu(-B_u + margin)
-            loss = torch.max(loss, unsafe_loss)
-
-        # set two belts
-        percent_belt = 0
-        if self.SYMMETRIC_BELT:
-            belt_index = torch.nonzero(torch.abs(B_d) <= 0.5)
-        else:
-            belt_index = torch.nonzero(B_d >= -margin)
-
-        if belt_index.nelement() != 0:
-            dB_belt = torch.index_select(Bdot_d, dim=0, index=belt_index[:, 0])
-            learn_accuracy = (
-                learn_accuracy + ((dB_belt <= -margin).count_nonzero()).item()
-            )
-            percent_belt = (
-                100 * ((dB_belt <= -margin).count_nonzero()).item() / dB_belt.shape[0]
-            )
-
-            lie_loss = (relu(dB_belt + margin)).max()
-            loss = torch.max(loss, lie_loss)
-
-        accuracy = {
-            "acc init unsafe": percent_accuracy_init_unsafe,
-            "acc belt": percent_belt,
-            "belt size": len(belt_index),
-        }
-
-        return loss, accuracy
-
-    def learn(
-        self,
-        learner: learner.LearnerNN,
-        optimizer: Optimizer,
-        S: dict,
-        Sdot: dict,
-        f_torch=None,
-        margin=0.1,
-    ) -> dict:
-        """
-        :param learner: learner object
-        :param optimizer: torch optimiser
-        :param S: dict of tensors of data
-        :param Sdot: dict of tensors containing f(data)
-        :return: --
-        """
-        assert len(S) == len(Sdot)
-
-        learn_loops = 1000
-        condition_old = False
-        i1 = S[XD].shape[0]
-        i2 = S[XI].shape[0]
-        # samples = torch.cat([s for s in S.values()])
-        label_order = [XD, XI, XU]
-        samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
-
-        # samples_dot = torch.cat([s for s in Sdot.values()])
-        samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
-
-        for t in range(learn_loops):
-            optimizer.zero_grad()
-
-
-            # This seems slightly faster
-            B, Bdot, _ = learner.get_all(samples, samples_dot)
-            (
-                B_d,
-                Bdot_d,
-            ) = (
-                B[:i1],
-                Bdot[:i1],
-            )
-            B_i = B[i1 : i1 + i2]
-            B_u = B[i1 + i2 :]
-            import pdb; pdb.set_trace()
-            (loss, accuracy) = self.compute_loss(B_i, B_u, B_d, Bdot_d, margin)
-
-            if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
-                log_loss_acc(t, loss, accuracy, learner.verbose)
-
-            if accuracy["acc init unsafe"] == 100 and accuracy["acc belt"] >= 99.9:
-                condition = True
-            else:
-                condition = False
-
-            if condition and condition_old:
-                break
-            condition_old = condition
-
-            loss.backward()
-            optimizer.step()
-
-        return {ScenAppStateKeys.loss: loss}
-
-    def get_constraints(self, verifier, B, Bdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param B: SMT formula of Barrier function
-        :param Bdot: SMT formula of Barrier lie derivative
-        :return: tuple of dictionaries of Barrier conditons
-        """
-        _And = verifier.solver_fncts()["And"]
-        _Or = verifier.solver_fncts()["Or"]
-        _Not = verifier.solver_fncts()["Not"]
-        # Bdot <= 0 in B == 0
-        # lie_constr = And(B >= -0.05, B <= 0.05, Bdot > 0)
-        # lie_constr = _Not(_Or(Bdot < 0, _Not(B==0)))
-        lie_constr = _And(B == 0, Bdot >= 0)
-
-        # B < 0 if x \in initial
-        initial_constr = _And(B >= 0, self.initial_s)
-
-        # B > 0 if x \in unsafe
-        unsafe_constr = _And(B <= 0, self.unsafe_s)
-
-        # add domain constraints
-        lie_constr = _And(lie_constr, self.domain)
-        inital_constr = _And(initial_constr, self.domain)
-        unsafe_constr = _And(unsafe_constr, self.domain)
-
-        for cs in (
-            {XI: inital_constr, XU: unsafe_constr},
-            {XD: lie_constr},
-        ):
-            yield cs
-    
-    def get_supports(self, B, Bdot, S, Sdot, margin, tol):
-        supports = 0
-        for traj, traj_deriv in zip(S, Sdot):
-            traj, traj_deriv = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32)
-        
-            valid_inds = torch.where(self.D[XD].check_containment(traj))
-        
-            traj = traj[valid_inds]
-            traj_deriv = traj_deriv[valid_inds]
-
-            initial_inds = torch.where(self.D[XI].check_containment(traj))
-            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
-            
-            pred_B_i = B(traj[initial_inds])
-            pred_B_u = B(traj[unsafe_inds])
-            if (any(pred_B_i >= - margin - tol) or
-                    any(pred_B_u <= margin + tol)):
-                supports += 1
-                continue
-
-            percent_belt = 0
-            if self.SYMMETRIC_BELT:
-                belt_index = torch.nonzero(torch.abs(traj) <= 0.5)
-            else:
-                belt_index = torch.nonzero(traj >= -margin)
-
-            if belt_index.nelement() != 0:
-                dB_belt_S = torch.index_select(traj, dim=0, index=belt_index[:, 0])
-                dB_belt_Sdot = torch.index_select(traj_deriv, dim=0, index=belt_index[:, 0])
-                pred_B_dots = Bdot(dB_belt_S, dB_belt_Sdot)
-
-                
-                if any(pred_B_dots >= -margin-tol):
-                    supports += 1
-        return supports
-
-    @classmethod
-    def _for_goal_final(cls, domains, config: ScenAppConfig) -> "Barrier":
-        """Initialises a Barrier certificate for a goal and final set."""
-        new_domains = {**domains}  # Don't modify the original
-        new_domains[XI] = domains[XG]
-        new_domains[XU] = domains[XNF]  # This should be the negation of XF
-        cert = cls(new_domains, config)
-        cert.relu = torch.nn.Softplus()
-        return cert
-
-    @classmethod
-    def _for_safe_roa(cls, domains, config: ScenAppConfig) -> "Barrier":
-        """Initialises a Barrier certificate for a safe set and roa."""
-        cert = cls(domains, config)
-        cert.relu = torch.nn.Softplus()
-        return cert
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XD, XI, XU]), domain_labels, "Symbolic Domains")
-        _set_assertion(set([XD, XI, XU]), data_labels, "Data Sets")
-
 
 class BarrierAlt(Certificate):
     """
@@ -1976,8 +1712,6 @@ def get_certificate(
         return Lyapunov
     elif certificate == CertificateType.ROA:
         return ROA
-    elif certificate == CertificateType.BARRIER:
-        return Barrier
     elif certificate == CertificateType.BARRIERALT:
         return BarrierAlt
     elif certificate in (CertificateType.RWS, CertificateType.RWA):

@@ -940,18 +940,16 @@ class RWS(Certificate):
 
             initial_inds = torch.where(self.D[XI].check_containment(traj))
             
-            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
-           
-            goal_inds = torch.where(self.D[XG].check_containment(traj))
-
             V_d = B(traj)
 
             pred_B_dots = Bdot(traj, traj_deriv, time)
             
-            if any(self.D[XU].check_containment(traj)) or not any(self.D[XG].check_containment(traj)):
+            goal_inds = torch.where(self.D[XG].check_containment(traj))[0]
+            if not all(self.D[XS].check_containment(traj)) or not any(self.D[XG].check_containment(traj)):
                 true_violated += 1
             lie_inds = torch.nonzero(V_d <= 0)
-            lie_inds = [ind for ind in lie_inds if ind not in goal_inds]
+            if any(self.D[XG].check_containment(traj)):
+                lie_inds = [ind.item() for ind in lie_inds if ind not in goal_inds]
             if any(pred_B_dots[lie_inds] >= 0):
                 violated += 1
                 continue

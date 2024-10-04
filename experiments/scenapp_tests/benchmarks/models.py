@@ -180,3 +180,30 @@ class ThreeRoomTemp(control.DynamicalModel):
         )
 
         return [q1, q2, q3]
+
+class SecondOrderLQR(control.DynamicalModel):
+    n_vars = 2
+    K = [1.0, 1.73]
+    time_horizon = 2
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y = v[0], v[1]
+        else:
+            x, y = v[:, 0], v[:, 1]
+        u1 = -(self.K[0] * x + self.K[1] * y)
+        return [y - x**3, u1]
+
+
+class ThirdOrderLQR(control.DynamicalModel):
+    n_vars = 3
+    K = [23.71, 18.49, 0.0]
+    time_horizon = 2
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3 = v[0], v[1], v[2]
+        else:
+            x1, x2, x3 = v[:, 0], v[:, 1], v[:, 2]
+        u1 = -(self.K[0] * x1 + self.K[1] * x2 + self.K[2] * x3)
+        return [-10 * x1 + 10 * x2 + u1, 28 * x1 - x2 - x1 * x3, x1 * x2 - 8 / 3 * x3]

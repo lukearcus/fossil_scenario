@@ -140,7 +140,10 @@ class SingleScenApp:
                     
                 #domained_data[key] = [elem for elem in lumped_data["states"] if domain.check_containment(elem)]
             if len(domained_data["states"][key]) > 0:
-                domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
+                if key in state_data:
+                    domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
+                else:
+                    domained_data["states"][key] = torch.stack(domained_data["states"][key])
                 domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
             else:

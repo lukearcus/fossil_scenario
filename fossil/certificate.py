@@ -250,16 +250,15 @@ class Lyapunov(Certificate):
         accuracy = (V > 0).count_nonzero().item() + (Vdot < 0).count_nonzero().item()
         accuracy /= (len(V) + len(Vdot))
         accuracy = {"acc": accuracy * 100}
-        if loss >= 0:
-            gamma = 1/5000
-            try:
-                final_ind = indices["lie"][-1][-1]
-            except IndexError:
-                final_ind = -1
-            if final_ind < len(lie_loss) - 1:
-                loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
-                if supp_loss != -1:
-                    supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
+        gamma = 1/5000
+        try:
+            final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(lie_loss) - 1:
+            loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
+            if supp_loss != -1:
+                supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
 
 
         return loss, supp_loss, accuracy, new_sub_samples
@@ -418,182 +417,6 @@ class Lyapunov(Certificate):
         _set_assertion(set([XD]), domain_labels, "Symbolic Domains")
         _set_assertion(set([XD]), data_labels, "Data Sets")
 
-
-class ROA(Certificate):
-    """Certifies that a set a region of attraction for the origin
-
-    For this certificate, the domain XD is relatively unimportant, as the
-    verification is done with respect to XI, and (hopefully) the smallest sub-level set of V
-    that contains XI. XD is expected to be much larger than XI, and provides training data
-    over a larger region than XI."""
-
-    bias = False
-
-    def __init__(self, domains, config: ScenAppConfig) -> None:
-        self.XI = domains[XI]
-        self.llo = config.LLO
-        self.control = config.CTRLAYER is not None
-        self.D = config.DOMAINS
-
-    def alt_loss(
-        self, V: torch.Tensor, gradV: torch.Tensor, f: torch.Tensor
-    ) -> torch.Tensor:
-        """
-        param V: Lyapunov function
-        param gradV: gradient of Lyapunov function
-        param f: system dynamics
-        return: loss function
-        """
-        relu = torch.nn.Softplus()
-        cosine = torch.nn.CosineSimilarity(dim=1)
-        Vdot = torch.sum(torch.mul(gradV, f), dim=1)
-        if self.llo:
-            loss = cosine(gradV, f).mean()
-            learn_accuracy = (Vdot <= 0).count_nonzero().item()
-        else:
-            loss = cosine(gradV, f) + relu(-(V))
-            loss = loss.mean()
-            learn_accuracy = 0.5 * (
-                (Vdot <= -0).count_nonzero().item() + (V >= 0).count_nonzero().item()
-            )
-        accuracy = {"acc": learn_accuracy * 100 / len(Vdot)}
-        return loss, accuracy
-
-    def compute_loss(
-        self, V: torch.Tensor, Vdot: torch.Tensor, circle: torch.Tensor
-    ) -> tuple[torch.Tensor, dict]:
-        """_summary_
-
-        Args:
-            V (torch.Tensor): Lyapunov samples over domain
-            Vdot (torch.Tensor): Lyapunov derivative samples over domain
-            circle (torch.Tensor): Circle
-
-        Returns:
-            tuple[torch.Tensor, float]: loss and accuracy
-        """
-        margin = 0 * 0.01
-
-        #relu = torch.nn.Softplus()
-        relu = torch.nn.ReLU()
-        # compute loss function. if last layer of ones (llo), can drop parts with V
-        if self.llo:
-            learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            #loss = (relu(Vdot + margin * circle)).mean()
-            loss = (relu(Vdot + margin)).max()
-        else:
-            learn_accuracy = 0.5 * (
-                (Vdot <= -margin).count_nonzero().item()
-                + (V >= margin).count_nonzero().item()
-            )
-            loss = torch.max(relu(Vdot+margin),relu(-V + margin)).sum() # test this
-            #loss = (relu(Vdot + margin * circle)).mean() + (
-            #    relu(-V + margin * circle)
-            #).mean()
-
-        accuracy = {"acc": learn_accuracy * 100 / Vdot.shape[0]}
-
-        return loss, accuracy
-
-    def learn(
-        self,
-        learner: learner.LearnerNN,
-        optimizer: Optimizer,
-        S: list,
-        Sdot: list,
-        f_torch=None,
-    ) -> dict:
-        """
-        :param learner: learner object
-        :param optimizer: torch optimiser
-        :param S: dict of tensors of data
-        :param Sdot: dict of tensors containing f(data)
-        :return: --
-        """
-
-        learn_loops = 1000
-        samples = S[XD]
-
-        samples_dot = Sdot[XD]
-
-        assert len(samples) == len(samples_dot)
-
-        for t in range(learn_loops):
-            optimizer.zero_grad()
-            if self.control:
-                samples_dot = f_torch(samples)
-
-            V, Vdot, circle = learner.get_all(samples, samples_dot)
-
-            loss, learn_accuracy = self.compute_loss(V, Vdot, circle)
-
-            if t % 100 == 0 or t == learn_loops - 1:
-                log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-
-            # t>=1 ensures we always have at least 1 optimisation step
-            if learn_accuracy["acc"] == 100 and t >= 1:
-                break
-
-            loss.backward()
-            optimizer.step()
-
-            if learner._take_abs:
-                learner.make_final_layer_positive()
-
-        SI = S[XI]
-        self.beta = learner.compute_maximum(SI)[0]
-        learner.beta = self.beta
-        return {}
-
-    def estimate_beta(self, net):
-        net.beta = self.beta
-        return self.beta
-
-    def get_constraints(self, verifier, V, Vdot) -> Generator:
-        # Inflate beta slightly to ensure it is not on the border
-        beta = self.beta * 1.1
-
-        _And = verifier.solver_fncts()["And"]
-        _Not = verifier.solver_fncts()["Not"]
-        _Or = verifier.solver_fncts()["Or"]
-        B = V <= beta
-
-        # We want to prove that XI lies entirely in B (the ROA)
-        B_cond = _And(self.XI, _Not(B))
-
-        if self.llo:
-            lyap_negated = Vdot >= 0
-        else:
-            lyap_negated = _Or(V <= 0, Vdot > 0)
-
-        # We only care about the lyap conditions within B, but B includes the origin.
-        # The temporary solution is just to remove a small sphere around the origin here,
-        # but it could be better to pass a specific domain to CEGIS that excludes the origin. It cannot
-        # be done with XI or XD, because they might not contain B and the conditions must hold everywhere
-        # in B (except sphere around origin). This could be a goal set?
-        sphere = sum([xs**2 for xs in verifier.xs]) <= 0.01**2
-        sphere = sum([xs**2 for xs in verifier.xs]) <= 0.01 * 2
-
-        B_less_sphere = _And(B, _Not(sphere))
-        lyap_condition = _And(B_less_sphere, lyap_negated)
-
-        roa_condition = _Or(B_cond, lyap_condition)
-
-        for cs in ({XD: roa_condition},):
-            yield cs
-    
-    def get_supports(self, V, Vdot, S, Sdot, tol):
-        supports = 0
-        raise NotImplementedError("ROA is the same as lyapunov for us I think...")
-        return supports
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XI]), domain_labels, "Symbolic Domains")
-        _set_assertion(set([XD, XI]), data_labels, "Data Sets")
-
 class BarrierAlt(Certificate):
     """
     Certifies Safety of a model  using Lie derivative everywhere.
@@ -726,32 +549,31 @@ class BarrierAlt(Certificate):
         # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
         # Don't worry, state data is all added to the end of the data
         #import pdb; pdb.set_trace()
-        if loss >= 0: # This way we terminate once we can fit to all the samples, but add this on otherwise 
-            gamma = 1/5000
-            try:
-                final_ind = indices["init"][-1][-1]
-            except IndexError:
-                final_ind = -1
-            if final_ind < len(init_loss)-1:
-                loss += gamma*relu(init_loss)[final_ind+1:].sum()
-                if supp_loss != -1:
-                    supp_loss += gamma*relu(init_loss)[final_ind+1:].sum()
-            try:
-                final_ind = indices["unsafe"][-1][-1]
-            except IndexError:
-                final_ind = -1
-            if final_ind < len(unsafe_loss)-1:
-                loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
-                if supp_loss != -1:
-                    supp_loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
-            try:
-                final_ind = indices["lie"][-1][-1] # Where do these come from? 
-            except IndexError:
-                final_ind = -1
-            if final_ind < len(lie_loss)-1:
-                loss += relu(lie_loss[final_ind+1:]).sum()
-                if supp_loss != -1:
-                    supp_loss += relu(lie_loss[final_ind+1:]).sum()
+        gamma = 1/500
+        try:
+            final_ind = [ind for ind in indices["init"] if len(ind) > 0][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(init_loss)-1:
+            loss += gamma*relu(init_loss)[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += gamma*relu(init_loss)[final_ind+1:].sum()
+        try:
+            final_ind = [ind for ind in indices["unsafe"] if len(ind) > 0][-1][-1]
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(unsafe_loss)-1:
+            loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
+            if supp_loss != -1:
+                supp_loss += gamma*relu(unsafe_loss)[final_ind+1:].sum()
+        try:
+            final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1] # Where do these come from? 
+        except IndexError:
+            final_ind = -1
+        if final_ind < len(lie_loss)-1:
+            loss += relu(lie_loss[final_ind+1:]).sum()
+            if supp_loss != -1:
+                supp_loss += relu(lie_loss[final_ind+1:]).sum()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
@@ -967,16 +789,6 @@ class RWS(Certificate):
         self.bias = True
         self.BORDERS = (XS,)
 
-    def alt_Vdot_loss(self, gradV: torch.Tensor, f: torch.Tensor) -> torch.Tensor:
-        """
-        param V: Lyapunov function
-        param gradV: gradient of Lyapunov function
-        param f: system dynamics
-        return: loss function
-        """
-        cosine = torch.nn.CosineSimilarity(dim=1)
-        return cosine(gradV, f).mean()
-
     def compute_loss(self, V_i, V_u, V_d, grad_V, f):
         margin = 0
         margin_lie = 0.0
@@ -985,7 +797,7 @@ class RWS(Certificate):
         ).count_nonzero().item()
         percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(V_i) + len(V_u))
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
-        relu = torch.nn.Softplus()
+        relu = torch.nn.ReLU()
 
         lie_index = torch.nonzero(V_d < -margin)
 
@@ -1710,8 +1522,6 @@ def get_certificate(
 ) -> Type[Certificate]:
     if certificate == CertificateType.LYAPUNOV:
         return Lyapunov
-    elif certificate == CertificateType.ROA:
-        return ROA
     elif certificate == CertificateType.BARRIERALT:
         return BarrierAlt
     elif certificate in (CertificateType.RWS, CertificateType.RWA):

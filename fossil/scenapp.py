@@ -285,7 +285,7 @@ class SingleScenApp:
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
 
-            elif not self.config.CONVEX_NET and state["best_loss"] < 0:
+            elif not self.config.CONVEX_NET and state["best_loss"] == 0.0:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 

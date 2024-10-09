@@ -953,10 +953,10 @@ class BarrierAlt(Certificate):
             pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1
-            if (any(pred_B_i > req_diff) or
+            if (any(pred_B_i >= 0) or
                     any(pred_B_u <= 0)):
                 raise ValueError("Value violation!")
-            if any(pred_B_dots >= 0):
+            if any(pred_B_dots > req_diff):
                 violated += 1
                 continue
         return violated, true_violated
@@ -973,9 +973,9 @@ class RWS(Certificate):
     """Certificate to satisfy a reach-while-stay property.
 
     Reach While stay must satisfy:
-    \forall x in XI, V <= 0,
-    \forall x in boundary of XS, V > 0,
-    \forall x in A \ XG, dV/dt < 0
+    forall x in XI, V <= 0,
+    forall x in boundary of XS, V > 0,
+    forall x in A \ XG, dV/dt < 0
     A = {x \in XS| V <=0 }
 
     """
@@ -1005,7 +1005,7 @@ class RWS(Certificate):
         self.D = config.DOMAINS
         self.T = config.SYSTEM.time_horizon
 
-    def compute_loss(self, V_i, V_u, V_d, Vdot_d, indices, supp_samples, convex):
+    def compute_loss(self, V_i, V_u, V_d, V_g, Vdot_d, indices, supp_samples, convex):
         margin = 1e-3
         margin_lie = 0.0
         learn_accuracy = (V_i <= -margin).count_nonzero().item() + (
@@ -1023,12 +1023,12 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            req_diff = (V_i-V_u).max()/self.T
-
+            req_diff = (V_i-V_g).max()/self.T
             # this might need changing in case there are points in the unsafe or goal set?
+            # ensure no goal states in domain data (see rwa_2 for example)
             Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
             lie_loss = relu(Vdot_selected+req_diff)*10
-            lie_accuracy=(((Vdot_selected <= -margin).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
+            lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
             if subgrad:
                 supp_max = torch.tensor([-1.0])
@@ -1096,41 +1096,41 @@ class RWS(Certificate):
         idot1 = Sdot[XD].shape[0]
         i2 = S[XI].shape[0]
         idot2 = Sdot[XI].shape[0]
+        
+        i3 = S[XG].shape[0]
+        idot3 = 0
         if type(Sdot[XS_BORDER]) is not list:
-            idot3 = Sdot[XS_BORDER].shape[0]
+            idot4 = Sdot[XS_BORDER].shape[0]
         else:
-            idot3 = 0
-        label_order = [XD, XI, XS_BORDER]
+            idot4 = 0
+        label_order = [XD, XI, XG, XS_BORDER]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
         # samples = torch.cat((S[XD], S[XI], S[XU]))
 
-        samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
-        samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3]])
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:]])
+        samples_dot = Sdot[XD]
+        samples_with_nexts = S[XD][:idot1]
+        #samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
+        #samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3], samples[i1+i2+i3:i1+i2+i3+idot4]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:]])
         times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
         supp_samples = set()
 
         for t in range(learn_loops):
             optimizer.zero_grad()
 
-            _, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
+            B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
 
             #nn, grad_nn = learner.compute_net_gradnet(samples)
 
             #V, gradV = learner.compute_V_gradV(nn, grad_nn, samples)
             B = learner(states_only)
-
-            (
-                B_d,
-                Bdot_d,
-            ) = (
-                B[:i1-idot1],
-                Bdot[:idot1],
-            )
+            
             B_i = B[i1-idot1 : i1 + i2-idot1-idot2]
-            B_u = B[i1 + i2-idot1-idot2 :]
+            B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
+            B_u = B[i1+i2+i3-idot1-idot2-idot3:]
+            
 
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
 
             if loss <= best_loss:
                 best_loss = loss
@@ -1158,18 +1158,11 @@ class RWS(Certificate):
                 else:
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
-        B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
-        B2 = learner(states_only)
-        (
-            B_d,
-            Bdot_d,
-        ) = (
-                B2[:i1-idot1] ,
-            Bdot[:idot1],
-        )
-        B_i = B2[i1-idot1:i1+i2-idot2-idot1]
-        B_u = B2[i1+i2-idot1-idot2:]
-        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+        B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
+        B_i = B[i1-idot1:i1+i2-idot2-idot1]
+        B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
+        B_u = B[i1+i2+i3-idot1-idot2-idot3:]
+        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
         
         supp_samples = sub_sample
         if loss <= best_loss:
@@ -1178,7 +1171,8 @@ class RWS(Certificate):
             print(supp_samples)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, B, Bdot, S, Sdot, times):
+    def get_violations(self, B, Bdot, S, Sdot, times, states):
+        req_diff = (B(states["init"])-B(states["goal"])).max()/self.T
         true_violated = 0
         violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -1193,7 +1187,6 @@ class RWS(Certificate):
             initial_inds = torch.where(self.D[XI].check_containment(traj))
             goal_inds = torch.where(self.D[XG].check_containment(traj))
 
-            req_diff = -(B(traj[goal_inds])-B(traj[initial_inds]))/self.T
 
             V_d = B(traj)
 

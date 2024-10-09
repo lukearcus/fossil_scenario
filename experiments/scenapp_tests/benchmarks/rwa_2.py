@@ -45,6 +45,7 @@ def test_lnn(args):
         certificate.XD: XD._generate_data(n_state_data)(),
         certificate.XI: XI._generate_data(n_state_data)(),
         certificate.XS_BORDER: SU._generate_data(n_state_data)(),
+        certificate.XG: XG._generate_data(n_state_data)(),
     }
     init_data = XI._generate_data(n_data)()
     sets = {
@@ -56,7 +57,11 @@ def test_lnn(args):
     }
 
     all_data = system().generate_trajs(init_data)
-    data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
+    not_goal_inds = [torch.where(domains.Complement(XG).check_containment(torch.Tensor(elem.T))) for elem in all_data[1]]
+    times = [elem[inds] for elem, inds in zip(all_data[0], not_goal_inds[0])]
+    states = [elem[:,inds] for elem, inds in zip(all_data[1], not_goal_inds[0])]
+    derivs = [elem[:,inds] for elem, inds in zip(all_data[2], not_goal_inds[0])]
+    data = {"states_only": state_data, "full_data": {"times":times,"states":states,"derivs":derivs}}
     # define NN parameters
     activations = [ActivationType.SQUARE]
     n_hidden_neurons = [4] * len(activations)

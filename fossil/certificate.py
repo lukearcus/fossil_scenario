@@ -421,6 +421,280 @@ class Lyapunov(Certificate):
         _set_assertion(set([XD]), domain_labels, "Symbolic Domains")
         _set_assertion(set([XD]), data_labels, "Data Sets")
 
+class Practical_Lyapunov(Certificate):
+    """
+    Certificies stability for CT and DT models
+    bool LLO: last layer of ones in network
+    XD: Symbolic formula of domain
+    XG: Goal region (around origin)
+    """
+
+    bias = False
+
+    def __init__(self, domains, config: ScenAppConfig) -> None:
+        self.domain = domains[XD]
+        self.llo = config.LLO
+        self.control = config.CTRLAYER is not None
+        self.D = config.DOMAINS
+        self.beta = None
+        sekf.T = config.SYSTEM.time_horizon
+
+    def compute_loss(
+            self, 
+            V_D: torch.Tensor, 
+            V_G: torch.Tensor,
+            Vdot: torch.Tensor, 
+            indices: list,
+            supp_samples: set,
+            convex: bool
+    ) -> tuple[torch.Tensor, dict]:
+        """_summary_
+
+        Args:
+            V (torch.Tensor): Lyapunov samples over domain
+            Vdot (torch.Tensor): Lyapunov derivative samples over domain
+            circle (torch.Tensor): Circle
+
+        Returns:
+            tuple[torch.Tensor, float]: loss and accuracy
+        """
+        #margin = 0.1 # Need to change this and carry it around for later
+        slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
+        #relu = torch.nn.LeakyReLU(1 / slope.item())
+        relu = torch.nn.ReLU()
+        # relu = torch.nn.Softplus()
+        # compute loss function. if last layer of ones (llo), can drop parts with V
+        state_loss = -V_D
+        goal_loss = V_G
+        margin = 1e-3
+        req_diff = (V_D-V_G).max()/self.T
+        lie_loss = relu(Vdot+req_diff)
+
+        subgrad = not convex
+        
+        if subgrad:
+            supp_max = torch.tensor([-1.])
+            lie_max = lie_loss.max()
+            ind_lie_max = lie_loss.argmax()
+            loss = lie_max
+            sub_sample = -1
+            for i, elem in enumerate(indices["lie"]):
+                if ind_lie_max in elem:
+                    sub_sample = i
+                    break
+            for ind in supp_samples:
+                inds = indices["lie"][ind]
+                supp_max = torch.max(supp_max, lie_loss[inds].max())
+            supp_loss = supp_max
+            new_sub_samples = set([sub_sample])
+        else:
+            loss = 0
+            for inds in indices["lie"]:
+                curr_max = torch.tensor(0.)
+                if self.llo:
+                    state_elems = torch.tensor(0.)
+                else:
+                    state_elems = state_loss[inds]
+                lie_elems = lie_loss[inds]
+                loss += lie_elems.max()
+            #if self.llo:
+            #    learn_accuracy = (Vdot <= -margin).count_nonzero().item()
+            #    #loss = (relu(Vdot + margin * circle)).max()
+            #    loss = (relu(Vdot + margin)).max()
+            #else:
+            #    learn_accuracy = 0.5 * (
+            #        (Vdot <= -margin).count_nonzero().item()
+            #        + (V >= margin).count_nonzero().item()
+            #    )
+            #    #loss = torch.max((relu(Vdot + margin * circle)).max() , (
+            #    #    relu(-V + margin * circle)
+            #    #).max()) # Why times circle?
+            #    loss = torch.max((relu(Vdot + margin )).max() , (
+            #        relu(-V + margin)
+            #    ).max()) # Why times circle?
+        accuracy = (V > 0).count_nonzero().item() + (Vdot < 0).count_nonzero().item()
+        accuracy /= (len(V) + len(Vdot))
+        accuracy = {"acc": accuracy * 100}
+        gamma = 0.1 
+        state_con = relu(state_loss+margin).mean()
+        goal_con = relu(goal_con+margin).mean()
+        loss = loss+ gamma*(state_con+goal_con)
+        if supp_loss != -1:
+            supp_loss = supp_loss + gamma*(state_con+goal_con)
+        #try:
+        #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]
+        #except IndexError:
+        #    final_ind = -1
+        #if final_ind < len(lie_loss) - 1:
+        #    loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
+        #    if supp_loss != -1:
+        #        supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
+
+
+        return loss, supp_loss, accuracy, new_sub_samples
+
+    def learn(
+        self,
+        learner: learner.LearnerNN,
+        optimizer: Optimizer,
+        S: list,
+        Sdot: list,
+        Sind: list,
+        times: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
+        f_torch=None,
+        convex=False
+    ) -> dict:
+        """
+        :param learner: learner object
+        :param optimizer: torch optimiser
+        :param S: dict of tensors of data
+        :param Sdot: dict of tensors containing f(data)
+        :return: --
+        """
+
+        batch_size = len(S[XD])
+        learn_loops = 1000
+        samples = S[XD]
+
+        if f_torch:
+            samples_dot = f_torch(samples)
+        else:
+            samples_dot = Sdot[XD]
+
+        idot = len(samples_dot)
+        samples_with_nexts = samples[:idot]
+        states_only = samples[idot:]
+        times = times[XD]
+
+        supp_samples = set()
+        for t in range(learn_loops):
+            optimizer.zero_grad()
+            if self.control:
+                samples_dot = f_torch(samples)
+
+            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+            V2 = learner(states_only)
+            #V = torch.cat([V1,V2])
+            V = V2
+            V -= learner(torch.zeros_like(samples))
+
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
+            if loss <= best_loss:
+                best_loss = loss
+                best_net = copy.deepcopy(learner)
+
+            if self.control:
+                loss = loss + control.cosine_reg(samples, samples_dot)
+
+            if t % 100 == 0 or t == learn_loops - 1:
+                log_loss_acc(t, loss, learn_accuracy, learner.verbose)
+
+            # t>=1 ensures we always have at least 1 optimisation step
+            if learn_accuracy["acc"] == 100 and t >= 1:
+                break
+            
+            if convex:
+                loss.backward()
+            else:
+                loss.backward(retain_graph=True)
+                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                # Code below is for non-convex
+                if supp_loss != -1:
+                    optimizer.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    inner = torch.inner(grads, supp_grads)
+                    #print(inner)
+                    if inner <= 0:
+                        supp_samples = supp_samples.union(sub_sample)
+                        optimizer.zero_grad()
+                        loss.backward()
+                else:
+                    supp_samples = supp_samples.union(sub_sample)
+            optimizer.step()
+
+            if learner._take_abs:
+                learner.make_final_layer_positive()
+        V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+        V2 = learner(states_only)
+        #V = torch.cat([V1,V2])
+        V = V2
+        V -= learner(torch.zeros_like(samples))
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
+
+        if self.control:
+            loss = loss + control.cosine_reg(samples, samples_dot)
+        if loss <= best_loss:
+            best_loss = loss
+            best_net = copy.deepcopy(learner)
+        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
+
+    def get_violations(self, V, Vdot, S, Sdot, times):
+        violated = 0
+        true_violated = 0
+        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
+            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
+            
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+            time = time[valid_inds]
+    
+            pred_V = V(traj)
+            pred_0 = V(torch.zeros_like(traj))
+            pred_Vdot = Vdot(traj, traj_deriv, time)
+            if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
+                true_violated += 1
+            if any(pred_V < pred_0):
+                raise ValueError("Value violation!")
+            if any(pred_Vdot > 0):
+                violated += 1
+        return violated, true_violated
+
+
+    def get_constraints(self, verifier, V, Vdot) -> Generator:
+        """
+        :param verifier: verifier object
+        :param V: SMT formula of Lyapunov Function
+        :param Vdot: SMT formula of Lyapunov lie derivative
+        :return: tuple of dictionaries of lyapunov conditons
+        """
+        _Or = verifier.solver_fncts()["Or"]
+        _And = verifier.solver_fncts()["And"]
+        _Not = verifier.solver_fncts()["Not"]
+
+        if self.llo:
+            # V is positive definite by construction
+            lyap_negated = Vdot >= 0
+        else:
+            lyap_negated = _Or(V <= 0, Vdot >= 0)
+
+        not_origin = _Not(_And(*[xi == 0 for xi in verifier.xs]))
+        lyap_negated = _And(lyap_negated, not_origin)
+        lyap_condition = _And(self.domain, lyap_negated)
+        for cs in ({XD: lyap_condition},):
+            yield cs
+
+
+    def estimate_beta(self, net):
+        # This function is unused I think
+        print("Estimating beta!")
+        try:
+            border_D = self.D[XD].sample_border(300)
+            beta, _ = net.compute_minimum(border_D)
+        except NotImplementedError:
+            beta = self.D[XD].generate_data(300)
+        return beta
+
+    @staticmethod
+    def _assert_state(domains, data):
+        domain_labels = set(domains.keys())
+        data_labels = set(data.keys())
+        _set_assertion(set([XD]), domain_labels, "Symbolic Domains")
+        _set_assertion(set([XD]), data_labels, "Data Sets")
+
 class BarrierAlt(Certificate):
     """
     Certifies Safety of a model  using Lie derivative everywhere.
@@ -439,6 +713,7 @@ class BarrierAlt(Certificate):
         self.unsafe_s = domains[XU]
         self.bias = True
         self.D = config.DOMAINS
+        self.T=config.SYSTEM.time_horizon
 
     def compute_loss(
         self,
@@ -473,8 +748,9 @@ class BarrierAlt(Certificate):
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
 
+        req_diff = (B_u - B_i).max()/self.T
         lie_margin = 1e-3
-        lie_loss = relu(Bdot_d+lie_margin)
+        lie_loss = relu(Bdot_d-req_diff)
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < 0).count_nonzero()).item() / Bdot_d.shape[0]
@@ -657,7 +933,8 @@ class BarrierAlt(Certificate):
             print(supp_samples)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, B, Bdot, S, Sdot, times):
+    def get_violations(self, B, Bdot, S, Sdot, times, state_data):
+        req_diff = (B(state_data["unsafe"])-B(state_data["init"])).max()/self.T
         true_violated = 0
         violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -676,41 +953,13 @@ class BarrierAlt(Certificate):
             pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1
-            if (any(pred_B_i > 0) or
+            if (any(pred_B_i > req_diff) or
                     any(pred_B_u <= 0)):
                 raise ValueError("Value violation!")
             if any(pred_B_dots >= 0):
                 violated += 1
                 continue
         return violated, true_violated
-
-    def get_constraints(self, verifier, B, Bdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param B: SMT Formula of Barrier function
-        :param Bdot: SMT Formula of Barrier lie derivative or one-step difference
-        :return: tuple of dictionaries of Barrier conditons
-        """
-        _And = verifier.solver_fncts()["And"]
-        # Bdot <= 0 in B == 0
-        # lie_constr = And(B >= -0.05, B <= 0.05, Bdot > 0)
-        lie_constr = _And(Bdot > 0)
-
-        # B < 0 if x \in initial
-        inital_constr = _And(B >= 0, self.initial_s)
-
-        # B > 0 if x \in unsafe
-        unsafe_constr = _And(B <= 0, self.unsafe_s)
-
-        # add domain constraints
-        lie_constr = _And(lie_constr, self.domain)
-        inital_constr = _And(inital_constr, self.domain)
-        unsafe_constr = _And(unsafe_constr, self.domain)
-        for cs in (
-            {XI: inital_constr, XU: unsafe_constr},
-            {XD: lie_constr},
-        ):
-            yield cs
 
     @staticmethod
     def _assert_state(domains, data):
@@ -754,6 +1003,7 @@ class RWS(Certificate):
         self.bias = True
         self.BORDERS = (XS,)
         self.D = config.DOMAINS
+        self.T = config.SYSTEM.time_horizon
 
     def compute_loss(self, V_i, V_u, V_d, Vdot_d, indices, supp_samples, convex):
         margin = 1e-3
@@ -773,9 +1023,11 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
+            req_diff = (V_i-V_u).max()/self.T
+
             # this might need changing in case there are points in the unsafe or goal set?
             Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
-            lie_loss = relu(Vdot_selected)*10
+            lie_loss = relu(Vdot_selected+req_diff)*10
             lie_accuracy=(((Vdot_selected <= -margin).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
             if subgrad:
@@ -939,7 +1191,10 @@ class RWS(Certificate):
             time = time[valid_inds]
 
             initial_inds = torch.where(self.D[XI].check_containment(traj))
-            
+            goal_inds = torch.where(self.D[XG].check_containment(traj))
+
+            req_diff = -(B(traj[goal_inds])-B(traj[initial_inds]))/self.T
+
             V_d = B(traj)
 
             pred_B_dots = Bdot(traj, traj_deriv, time)
@@ -950,7 +1205,7 @@ class RWS(Certificate):
             lie_inds = torch.nonzero(V_d <= 0)
             if any(self.D[XG].check_containment(traj)):
                 lie_inds = [ind.item() for ind in lie_inds if ind not in goal_inds]
-            if any(pred_B_dots[lie_inds] >= 0):
+            if any(pred_B_dots[lie_inds] > req_diff):
                 violated += 1
                 continue
         return violated, true_violated

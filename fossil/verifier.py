@@ -701,7 +701,7 @@ class VerifierScenAppNonConvex(Component):
         :return:
                 bounds: upper and lower PAC bounds
         """
-        supps = min(self.num_data, len(supp_lb) + len(discarded) + 1) # plus 1 in case worst case at end is not included in supps, better to check this
+        supps = min(self.num_data, len(supp_lb) + len(discarded)) # plus 1 not needed, even if worst case not in supps, we don't care about the value (except that it's below 0), removing wc would still lead to same solution (in terms of network) 
         bounds = self.calc_eps_P2L(supps)
         return {ScenAppStateKeys.bounds: bounds}
     

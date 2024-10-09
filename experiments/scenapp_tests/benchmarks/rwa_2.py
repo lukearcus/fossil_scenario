@@ -38,7 +38,7 @@ def test_lnn(args):
         certificate.XG: XG,
     }
     n_data = 1000
-    n_state_data = 1000
+    n_state_data = 10000
 
     # not sure if we should generate data from border of XS? Should be possible for simple borders
     state_data = {

@@ -1185,6 +1185,9 @@ class RWS(Certificate):
             time = time[valid_inds]
 
             initial_inds = torch.where(self.D[XI].check_containment(traj))
+            
+            # getting too many violations, need to investigate
+
             goal_inds = torch.where(self.D[XG].check_containment(traj))
 
 

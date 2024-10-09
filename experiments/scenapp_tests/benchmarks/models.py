@@ -184,7 +184,7 @@ class ThreeRoomTemp(control.DynamicalModel):
 class SecondOrderLQR(control.DynamicalModel):
     n_vars = 2
     K = [1.0, 1.73]
-    time_horizon = 20 
+    time_horizon = 250 
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:

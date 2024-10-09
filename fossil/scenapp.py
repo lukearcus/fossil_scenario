@@ -110,12 +110,16 @@ class SingleScenApp:
     def _initialise_data(self, traj_data, state_data):
         #traj_data = {key: [torch.tensor(elem.T, dtype=torch.float32 ) for elem in self.config.DATA[key]] for key in self.config.DATA} 
         lumped_data = {key: torch.tensor(np.hstack(traj_data[key]), dtype=torch.float32 ) for key in traj_data} 
-        
+
         traj_inds = [] 
         curr_ind = 0
         for elem in traj_data["times"]:
-            traj_inds.append((curr_ind, curr_ind+len(elem)))
-            curr_ind += len(elem)
+            if type(elem) is not np.float64:
+                elem_len = len(elem)
+            else:
+                elem_len = 1
+            traj_inds.append((curr_ind, curr_ind+elem_len))
+            curr_ind += elem_len
 
         #domained_data = {key: [] for key in self.config.DOMAINS}
         domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}}
@@ -178,7 +182,6 @@ class SingleScenApp:
         beta_bar = self.config.BETA[0]/n_data
         N = n_data
         d = 1
-        print(N)
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
         print("A posteriori scenario approach risk: {:.5f}".format(eps))
         print("Certificate violation rate: {:.3f}".format(num_violations/n_data))
@@ -302,7 +305,7 @@ class SingleScenApp:
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
             elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
-                print("Convergence reached, but failed to find barrier certificate, discarding samples")
+                print("Convergence reached, but failed to find valid certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1

@@ -82,7 +82,7 @@ class SingleScenApp:
     def _initialise_learner(self):
         learner_type = learner.get_learner(
                     self.config.TIME_DOMAIN, self.config.CTRLAYER
-                            )
+                        )
         learner_instance = learner_type(
             self.config.N_VARS,
             self.certificate.learn,

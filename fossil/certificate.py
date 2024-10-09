@@ -1055,7 +1055,7 @@ class RWS(Certificate):
         else:
             # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
             lie_accuracy = 0.0
-            loss = relu(V_i + margin).max()
+            loss = (V_i + margin).mean()
             supp_loss = -1
             new_sub_samples = set()
         

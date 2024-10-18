@@ -33,9 +33,9 @@ def test_lnn():
     n_data = 1000
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
-    XG = fossil.domains.Sphere([0,0], 1)
-    XI = fossil.domains.Torus([0,0], 15, 10)
-    XD = fossil.domains.Sphere([0, 0], 15)
+    XG = fossil.domains.Sphere([0,0], 0.1)
+    XI = fossil.domains.Torus([0,0], 1, 0.5)
+    XD = fossil.domains.Sphere([0, 0], 1)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
             fossil.XG: XG,

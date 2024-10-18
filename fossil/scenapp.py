@@ -305,14 +305,6 @@ class SingleScenApp:
                 #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
-            elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
-                print("Convergence reached, but failed to find valid certificate, discarding samples")
-                self.discard(state)
-                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
-                iters += 1
-                old_loss = state["loss"]
-                old_best = state["best_loss"]
-                scenapp_log.info("Iteration: {}".format(iters))
 
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
@@ -324,6 +316,14 @@ class SingleScenApp:
                 scenapp_log.warning("Out of iterations")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
+            elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
+                print("Convergence reached, but failed to find valid certificate, discarding samples")
+                self.discard(state)
+                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
+                iters += 1
+                old_loss = state["loss"]
+                old_best = state["best_loss"]
+                scenapp_log.info("Iteration: {}".format(iters))
 
             elif not (
                     state[ScenAppStateKeys.found]

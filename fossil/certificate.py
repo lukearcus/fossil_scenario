@@ -442,7 +442,7 @@ class Practical_Lyapunov(Certificate):
 
     def compute_loss(
             self, 
-            V_D: torch.Tensor, 
+            V_I: torch.Tensor, 
             V_G: torch.Tensor,
             Vdot: torch.Tensor, 
             indices: list,
@@ -465,10 +465,10 @@ class Practical_Lyapunov(Certificate):
         relu = torch.nn.ReLU()
         # relu = torch.nn.Softplus()
         # compute loss function. if last layer of ones (llo), can drop parts with V
-        state_loss = -V_D
+        state_loss = -V_I
         goal_loss = V_G
         margin = 1e-3
-        req_diff = (V_D-V_G).max()/self.T
+        req_diff = (V_I.max()-V_G.min())/self.T
         lie_loss = relu(Vdot+req_diff)
 
         subgrad = not convex
@@ -514,7 +514,7 @@ class Practical_Lyapunov(Certificate):
             #        relu(-V + margin)
             #    ).max()) # Why times circle?
         goal_accuracy = (V_G<0).count_nonzero().item()/len(V_G)
-        dom_accuracy = (V_D>0).count_nonzero().item()/len(V_D)
+        dom_accuracy = (V_I>0).count_nonzero().item()/len(V_I)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         gamma = .1 
@@ -562,17 +562,20 @@ class Practical_Lyapunov(Certificate):
         
         i1 = S[XD].shape[0]
         idot1 = Sdot[XD].shape[0]
+        
+        i2 = S[XI].shape[0]
+        idot2 = Sdot[XI].shape[0]
 
-        samples = torch.cat([S[XD], S[XG]])
+        samples = torch.cat([S[XD], S[XI], S[XG]])
 
         if type(Sdot[XG]) is list:
-            idot2 = 0
+            idot3 = 0
         else:
-            idot2 = Sdot[XG].shape[0]
+            idot3 = Sdot[XG].shape[0]
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:]])
+        states_only = torch.cat([samples[i1+idot1:i1+i2], samples[i1+i2+idot2:]])
         times = times[XD]
 
         supp_samples = set()
@@ -586,10 +589,11 @@ class Practical_Lyapunov(Certificate):
             #V = torch.cat([V1,V2])
             V = V2
             V_D = V[:i1-idot1]
-            V_G = V[i1-idot1:]
+            V_I = V[i1-idot1:i1+i2-i1-idot2]
+            V_G = V[i1+i2-idot1-idot2:]
 
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -627,11 +631,12 @@ class Practical_Lyapunov(Certificate):
         #V = torch.cat([V1,V2])
         V = V2
         V_D = V[:i1-idot1]
-        V_G = V[i1-idot1:]
+        V_I = V[i1-idot1:i1+i2-i1-idot2]
+        V_G = V[i1+i2-idot1-idot2:]
 
 
 
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
@@ -641,7 +646,7 @@ class Practical_Lyapunov(Certificate):
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, V, Vdot, S, Sdot, times, state_data):
-        req_diff = (V(state_data["lie"])-V(state_data["goal"])).max()/self.T
+        req_diff = (V(state_data["lie"]).max()-V(state_data["goal"]).min())/self.T
         violated = 0
         true_violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -758,7 +763,7 @@ class BarrierAlt(Certificate):
         # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
 
-        req_diff = (B_u - B_i).max()/self.T
+        req_diff = (B_u.min() - B_i.max())/self.T
         lie_margin = 1e-3
         lie_loss = relu(Bdot_d-req_diff)
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
@@ -944,7 +949,7 @@ class BarrierAlt(Certificate):
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot, times, state_data):
-        req_diff = (B(state_data["unsafe"])-B(state_data["init"])).max()/self.T
+        req_diff = (B(state_data["unsafe"]).min()-B(state_data["init"]).max())/self.T
         true_violated = 0
         violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -1033,7 +1038,7 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            req_diff = (V_i-V_g).max()/self.T
+            req_diff = (V_i.max()-V_g.min())/self.T
             # this might need changing in case there are points in the unsafe or goal set?
             # ensure no goal states in domain data (see rwa_2 for example)
             Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
@@ -1182,7 +1187,7 @@ class RWS(Certificate):
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot, times, states):
-        req_diff = (B(states["init"])-B(states["goal"])).max()/self.T
+        req_diff = (B(states["init"]).max()-B(states["goal"]).min())/self.T
         true_violated = 0
         violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):

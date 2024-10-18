@@ -34,12 +34,14 @@ def test_lnn():
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
     XG = fossil.domains.Sphere([0,0], 1)
-    XD = fossil.domains.Torus([0, 0], 15, 10)
+    XI = fossil.domains.Torus([0,0], 15, 10)
+    XD = fossil.domains.Sphere([0, 0], 15)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
-            fossil.XG: XG
+            fossil.XG: XG,
+            fossil.XI: XI
                 }
-    init_data = XD._generate_data(n_data)()
+    init_data = XI._generate_data(n_data)()
 
     all_data = system().generate_trajs(init_data)
     
@@ -54,13 +56,13 @@ def test_lnn():
     
     n_state_data = 1000
 
-    state_data = {fossil.XD: XD._generate_data(n_state_data)(), fossil.XG: XG._generate_data(n_state_data)()}
+    state_data = {fossil.XI: XI._generate_data(n_state_data)(), fossil.XG: XG._generate_data(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
 
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
     activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
-    n_hidden_neurons = [6] * len(activations)
+    n_hidden_neurons = [16] * len(activations)
 
     ###
     #
@@ -82,7 +84,7 @@ def test_lnn():
     result = fossil.synthesise(opts)
     
     axes = plotting.benchmark(
-        system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 2.5], yrange=[-2, 1]
+        system(), result.cert, domains=opts.DOMAINS, xrange=[-15, 15], yrange=[-15, 15]
     )
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)

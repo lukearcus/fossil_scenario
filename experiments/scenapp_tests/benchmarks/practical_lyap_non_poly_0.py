@@ -85,7 +85,7 @@ def test_lnn():
     result = fossil.synthesise(opts)
     
     axes = plotting.benchmark(
-        system(), result.cert, domains=opts.DOMAINS, xrange=[-15, 15], yrange=[-15, 15]
+        system(), result.cert, domains=opts.DOMAINS, xrange=[-1, 1], yrange=[-1, 1]
     )
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)

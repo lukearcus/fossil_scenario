@@ -990,7 +990,15 @@ class Torus(Set):
         returns: data points generated in relevant domain according to shape
         """
         # Fix this!!!!!!!
-        return round_init_data(self.centre, self.outer_radius**2, batch_size)
+        data = round_init_data(self.centre, self.outer_radius**2, batch_size)
+        data = data[torch.where(self.check_containment(data))]
+        n_data = len(data) 
+        while n_data < batch_size:
+            new_data = round_init_data(self.centre, self.outer_radius**2, batch_size-n_data)
+            new_data = data[torch.where(self.check_containment(data))]
+            data = torch.cat([data,new_data])
+            n_data = len(data)
+        return data[:batch_size]
 
     def sample_border(self, batch_size):
         """

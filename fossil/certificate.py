@@ -517,7 +517,7 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_D>0).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 1000 
+        gamma = .1 
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         loss = loss+ gamma*(state_con+goal_con)
@@ -589,8 +589,6 @@ class Practical_Lyapunov(Certificate):
             V_G = V[i1-idot1:]
 
 
-
-            import pdb; pdb.set_trace()
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
@@ -642,7 +640,8 @@ class Practical_Lyapunov(Certificate):
             best_net = copy.deepcopy(learner)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
-    def get_violations(self, V, Vdot, S, Sdot, times):
+    def get_violations(self, V, Vdot, S, Sdot, times, state_data):
+        req_diff = (V(state_data["lie"])-V(state_data["goal"])).max()/self.T
         violated = 0
         true_violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -660,7 +659,7 @@ class Practical_Lyapunov(Certificate):
                 true_violated += 1
             if any(pred_V < pred_0):
                 raise ValueError("Value violation!")
-            if any(pred_Vdot > 0):
+            if any(pred_Vdot > -req_diff):
                 violated += 1
         return violated, true_violated
 

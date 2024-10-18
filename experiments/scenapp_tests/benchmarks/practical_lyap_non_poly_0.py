@@ -33,7 +33,7 @@ def test_lnn():
     n_data = 1000
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
-    XG = fossil.domains.Sphere([0,0], 10)
+    XG = fossil.domains.Sphere([0,0], 1)
     XD = fossil.domains.Torus([0, 0], 15, 10)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
@@ -55,11 +55,11 @@ def test_lnn():
     n_state_data = 1000
 
     state_data = {fossil.XD: XD._generate_data(n_state_data)(), fossil.XG: XG._generate_data(n_state_data)()}
-    import pdb; pdb.set_trace()
     data = {"states_only": state_data, "full_data":data}
 
     # define NN parameters
-    activations = [fossil.ActivationType.SQUARE]
+    #activations = [fossil.ActivationType.SQUARE]
+    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [6] * len(activations)
 
     ###
@@ -76,7 +76,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        LLO=True,
+        #LLO=True,
         VERBOSE=2,
     )
     result = fossil.synthesise(opts)

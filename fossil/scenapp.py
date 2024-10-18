@@ -319,7 +319,7 @@ class SingleScenApp:
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             elif (
-                    self.config.SCENAPP_MAX_ITERS == iters
+                    self.config.SCENAPP_MAX_ITERS <= iters
                     ):
                 scenapp_log.warning("Out of iterations")
                 stop = True

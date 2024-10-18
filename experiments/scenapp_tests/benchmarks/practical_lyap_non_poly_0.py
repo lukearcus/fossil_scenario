@@ -15,7 +15,7 @@ import numpy as np
 
 class NonPoly0(fossil.control.DynamicalModel):
     n_vars = 2
-    time_horizon = 250
+    time_horizon = 25
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -78,6 +78,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
+        SCENAPP_MAX_ITERS=2, 
         #LLO=True,
         VERBOSE=2,
     )

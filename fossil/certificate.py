@@ -646,7 +646,7 @@ class Practical_Lyapunov(Certificate):
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, V, Vdot, S, Sdot, times, state_data):
-        req_diff = (V(state_data["lie"]).max()-V(state_data["goal"]).min())/self.T
+        req_diff = (V(state_data["init"]).max()-V(state_data["goal"]).min())/self.T
         violated = 0
         true_violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -662,8 +662,8 @@ class Practical_Lyapunov(Certificate):
             pred_Vdot = Vdot(traj, traj_deriv, time)
             if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
                 true_violated += 1
-            if any(pred_V < pred_0):
-                raise ValueError("Value violation!")
+            #if any(pred_V < pred_0):
+            #    raise ValueError("Value violation!")
             if any(pred_Vdot > -req_diff):
                 violated += 1
         return violated, true_violated

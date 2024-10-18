@@ -575,7 +575,7 @@ class Practical_Lyapunov(Certificate):
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[i1+idot1:i1+i2], samples[i1+i2+idot2:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot1:i1+i2], samples[i1+i2+idot2:]])
         times = times[XD]
 
         supp_samples = set()
@@ -591,7 +591,7 @@ class Practical_Lyapunov(Certificate):
             V_D = V[:i1-idot1]
             V_I = V[i1-idot1:i1+i2-i1-idot2]
             V_G = V[i1+i2-idot1-idot2:]
-
+            import pdb; pdb.set_trace()
 
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:

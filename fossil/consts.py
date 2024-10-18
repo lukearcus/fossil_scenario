@@ -103,6 +103,7 @@ class CertificateType(Enum):
     BARRIER = auto()
     BARRIERALT = auto()
     LYAPUNOV = auto()
+    PRACTICALLYAPUNOV = auto()
     ROA = auto()
     RWA = auto()
     RSWA = auto()
@@ -120,6 +121,9 @@ class CertificateType(Enum):
         if certificate_type == CertificateType.LYAPUNOV:
             domains = [dn.XD]
             data = [dn.XD]
+        elif certificate_type == CertificateType.PRACTICALLYAPUNOV:
+            domains = [dn.XD, dn.XG]
+            data = [dn.XD, dn.XG]
         elif certificate_type == CertificateType.BARRIER:
             domains = [dn.XD, dn.XI, dn.XU]
             data = [dn.XD, dn.XI, dn.XU]
@@ -272,7 +276,7 @@ ACTIVATION_NAMES = {
 
 PROPERTIES = {
     CertificateType.LYAPUNOV: "Stability",
-    CertificateType.ROA: "ROA",
+    CertificateType.PRACTICALLYAPUNOV: "Reachability",
     CertificateType.BARRIER: "Safety",
     CertificateType.BARRIERALT: "Safety",
     CertificateType.RAR: "RAR",

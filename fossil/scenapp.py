@@ -218,6 +218,7 @@ class SingleScenApp:
         state[ScenAppStateKeys.S_traj] = self.S_traj["states"]
         state[ScenAppStateKeys.S_traj_dot] =  self.S_traj["derivs"]
         state[ScenAppStateKeys.S_inds] =  self.S["indices"]
+        state[ScenAppStateKeys.times] = self.S["times"]
 
 
     def solve(self) -> Result:

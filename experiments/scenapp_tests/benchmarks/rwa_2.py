@@ -26,7 +26,7 @@ def test_lnn(args):
     XS = domains.Rectangle([-1, -1], [1, 1])
     XI = domains.Rectangle([-0.5, -0.5], [0.5, 0.5])
     XG = domains.Rectangle([-0.05, -0.05], [0.05, 0.05])
-
+    # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states????
     SU = domains.SetMinus(XD, XS)  # Data for unsafe set
     SD = domains.SetMinus(XS, XG)  # Data for lie set
 

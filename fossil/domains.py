@@ -989,6 +989,7 @@ class Torus(Set):
         param batch_size: number of data points to generate
         returns: data points generated in relevant domain according to shape
         """
+        # Fix this!!!!!!!
         return round_init_data(self.centre, self.outer_radius**2, batch_size)
 
     def sample_border(self, batch_size):
@@ -996,6 +997,7 @@ class Torus(Set):
         param batch_size: number of data points to generate
         returns: data points generated on the border of the set
         """
+        # this would be useful for RWA
         return round_init_data(
             self.centre, self.outer_radius**2, batch_size, on_border=True
         )

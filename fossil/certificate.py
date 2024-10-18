@@ -168,6 +168,7 @@ class Lyapunov(Certificate):
         self.control = config.CTRLAYER is not None
         self.D = config.DOMAINS
         self.beta = None
+        self.T = config.SYSTEM.time_horizon
 
     def compute_loss(
             self, 
@@ -437,7 +438,7 @@ class Practical_Lyapunov(Certificate):
         self.control = config.CTRLAYER is not None
         self.D = config.DOMAINS
         self.beta = None
-        sekf.T = config.SYSTEM.time_horizon
+        self.T = config.SYSTEM.time_horizon
 
     def compute_loss(
             self, 
@@ -512,12 +513,13 @@ class Practical_Lyapunov(Certificate):
             #    loss = torch.max((relu(Vdot + margin )).max() , (
             #        relu(-V + margin)
             #    ).max()) # Why times circle?
-        accuracy = (V > 0).count_nonzero().item() + (Vdot < 0).count_nonzero().item()
-        accuracy /= (len(V) + len(Vdot))
-        accuracy = {"acc": accuracy * 100}
-        gamma = 0.1 
+        goal_accuracy = (V_G<0).count_nonzero().item()/len(V_G)
+        dom_accuracy = (V_D>0).count_nonzero().item()/len(V_D)
+        lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
+        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
+        gamma = 1000 
         state_con = relu(state_loss+margin).mean()
-        goal_con = relu(goal_con+margin).mean()
+        goal_con = relu(goal_loss+margin).mean()
         loss = loss+ gamma*(state_con+goal_con)
         if supp_loss != -1:
             supp_loss = supp_loss + gamma*(state_con+goal_con)
@@ -557,15 +559,20 @@ class Practical_Lyapunov(Certificate):
         batch_size = len(S[XD])
         learn_loops = 1000
         samples = S[XD]
+        
+        i1 = S[XD].shape[0]
+        idot1 = Sdot[XD].shape[0]
 
-        if f_torch:
-            samples_dot = f_torch(samples)
+        samples = torch.cat([S[XD], S[XG]])
+
+        if type(Sdot[XG]) is list:
+            idot2 = 0
         else:
-            samples_dot = Sdot[XD]
+            idot2 = Sdot[XG].shape[0]
+        samples_dot = Sdot[XD]
 
-        idot = len(samples_dot)
-        samples_with_nexts = samples[:idot]
-        states_only = samples[idot:]
+        samples_with_nexts = samples[:idot1]
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:]])
         times = times[XD]
 
         supp_samples = set()
@@ -574,12 +581,16 @@ class Practical_Lyapunov(Certificate):
             if self.control:
                 samples_dot = f_torch(samples)
 
-            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
             V2 = learner(states_only)
             #V = torch.cat([V1,V2])
             V = V2
-            V -= learner(torch.zeros_like(samples))
+            V_D = V[:i1-idot1]
+            V_G = V[i1-idot1:]
 
+
+
+            import pdb; pdb.set_trace()
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
@@ -590,10 +601,6 @@ class Practical_Lyapunov(Certificate):
 
             if t % 100 == 0 or t == learn_loops - 1:
                 log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-
-            # t>=1 ensures we always have at least 1 optimisation step
-            if learn_accuracy["acc"] == 100 and t >= 1:
-                break
             
             if convex:
                 loss.backward()
@@ -621,8 +628,12 @@ class Practical_Lyapunov(Certificate):
         V2 = learner(states_only)
         #V = torch.cat([V1,V2])
         V = V2
-        V -= learner(torch.zeros_like(samples))
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
+        V_D = V[:i1-idot1]
+        V_G = V[i1-idot1:]
+
+
+
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_D, V_G, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
@@ -1774,10 +1785,8 @@ class AutoSets:
     def auto(self) -> (dict, dict):
         if self.certificate == CertificateType.LYAPUNOV:
             return self.auto_lyap()
-        elif self.certificate == CertificateType.ROA:
-            self.auto_roa(self.sets)
-        elif self.certificate == CertificateType.BARRIER:
-            self.auto_barrier(self.sets)
+        elif self.certificate == CertificateType.PRACTICALLYAPUNOV:
+            return self.auto_practical_lyap()
         elif self.certificate == CertificateType.BARRIERALT:
             self.auto_barrier_alt(self.sets)
         elif self.certificate == CertificateType.RWS:
@@ -1800,6 +1809,8 @@ def get_certificate(
 ) -> Type[Certificate]:
     if certificate == CertificateType.LYAPUNOV:
         return Lyapunov
+    elif certificate == CertificateType.PRACTICALLYAPUNOV:
+        return Practical_Lyapunov
     elif certificate == CertificateType.BARRIERALT:
         return BarrierAlt
     elif certificate in (CertificateType.RWS, CertificateType.RWA):

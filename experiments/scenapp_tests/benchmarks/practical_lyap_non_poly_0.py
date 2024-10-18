@@ -15,7 +15,7 @@ import numpy as np
 
 class NonPoly0(fossil.control.DynamicalModel):
     n_vars = 2
-    time_horizon = 25
+    time_horizon = 250
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:

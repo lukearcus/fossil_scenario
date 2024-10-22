@@ -30,10 +30,10 @@ class NonPoly0(fossil.control.DynamicalModel):
 
 
 def test_lnn():
-    n_data = 1000
+    n_data = 100
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
-    XG = fossil.domains.Sphere([0,0], 0.1)
+    XG = fossil.domains.Sphere([0,0], 0.25)
     XI = fossil.domains.Torus([0,0], 1, 0.5)
     XD = fossil.domains.Sphere([0, 0], 1)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
@@ -51,7 +51,6 @@ def test_lnn():
     
     states = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[1], not_goal_inds) ]
     derivs = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[2], not_goal_inds) ]
-    
     data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}
     
     n_state_data = 1000
@@ -78,7 +77,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=2, 
+        SCENAPP_MAX_ITERS=20, 
         #LLO=True,
         VERBOSE=2,
     )

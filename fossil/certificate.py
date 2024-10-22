@@ -593,9 +593,7 @@ class Practical_Lyapunov(Certificate):
             V_I = V[i1-idot1:i1+i2-i1-idot2]
             V_G = V[i1+i2-idot1-idot2:]
 
-            # samples with nexts has samples from goal region!
 
-            import pdb; pdb.set_trace()
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss

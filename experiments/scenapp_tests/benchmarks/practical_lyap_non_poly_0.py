@@ -34,7 +34,7 @@ def test_lnn():
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
     XG = fossil.domains.Sphere([0,0], 0.25)
-    XI = fossil.domains.Torus([0,0], 1, 0.5)
+    XI = fossil.domains.Torus([0,0], 0.75, 0.5)
     XD = fossil.domains.Sphere([0, 0], 1)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
@@ -77,7 +77,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=20, 
+        SCENAPP_MAX_ITERS=2, 
         #LLO=True,
         VERBOSE=2,
     )

@@ -15,7 +15,7 @@ import numpy as np
 
 class NonPoly0(fossil.control.DynamicalModel):
     n_vars = 2
-    time_horizon = 500
+    time_horizon = 2500
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -33,8 +33,8 @@ def test_lnn():
     n_data = 1000
     system = NonPoly0
     #XD = fossil.domains.Sphere([0,0], 1)
-    XG = fossil.domains.Sphere([0,0], 0.1)
-    XI = fossil.domains.Torus([0,0], 1, 0.5)
+    XG = fossil.domains.Sphere([0,0], 0.25)
+    XI = fossil.domains.Torus([0,0], 1, 0.75)
     XD = fossil.domains.Sphere([0, 0], 1)
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,

@@ -22,6 +22,7 @@ import fossil.control as control
 import fossil.logger as logger
 import fossil.learner as learner
 from fossil.consts import ScenAppConfig, CertificateType, DomainNames, ScenAppStateKeys
+import fossil.domains as domains
 
 
 XD = DomainNames.XD.value
@@ -661,11 +662,12 @@ class Practical_Lyapunov(Certificate):
             pred_V = V(traj)
             pred_0 = V(torch.zeros_like(traj))
             pred_Vdot = Vdot(traj, traj_deriv, time)
+            non_goal_inds = torch.where(domains.Complement(self.D[XG]).check_containment(traj))
             if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
                 true_violated += 1
             #if any(pred_V < pred_0):
             #    raise ValueError("Value violation!")
-            if any(pred_Vdot > -req_diff):
+            if any(pred_Vdot[non_goal_inds] > -req_diff):
                 violated += 1
         return violated, true_violated
 

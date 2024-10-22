@@ -517,7 +517,7 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_I>0).count_nonzero().item()/len(V_I)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 10000 
+        gamma = .1 
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         loss = loss+ gamma*(state_con+goal_con)
@@ -575,7 +575,7 @@ class Practical_Lyapunov(Certificate):
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot1:i1+i2], samples[i1+i2+idot2:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:]])
         times = times[XD]
 
         supp_samples = set()

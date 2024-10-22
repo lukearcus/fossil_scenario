@@ -468,7 +468,7 @@ class Practical_Lyapunov(Certificate):
         # compute loss function. if last layer of ones (llo), can drop parts with V
         state_loss = -V_I
         goal_loss = V_G
-        margin = 1e-3
+        margin = 1e-5
         req_diff = (V_I.max()-V_G.min())/self.T
         lie_loss = relu(Vdot+req_diff)
         # Vdot never gets negative...

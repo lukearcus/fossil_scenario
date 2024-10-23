@@ -944,7 +944,6 @@ class BarrierAlt(Certificate):
         B_u = B2[i1+i2-idot1-idot2:]
         loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
         
-        supp_samples = sub_sample
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
@@ -1055,7 +1054,7 @@ class RWS(Certificate):
                 loss = lie_max
                 sub_sample = -1
                 for i, elem in enumerate(indices["lie"]):
-                    if ind_lie_max in elem:
+                    if lie_index[ind_lie_max,0] in elem:
                         sub_sample = i
                         break
                 for ind in supp_samples:
@@ -1182,7 +1181,6 @@ class RWS(Certificate):
         B_u = B[i1+i2+i3-idot1-idot2-idot3:]
         loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
         
-        supp_samples = sub_sample
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
@@ -1282,23 +1280,49 @@ class RSWS(RWS):
         self.goal_border = domains[XG_BORDER]
         self.BORDERS = (XS, XG)
         self.bias = True
+        self.D = config.DOMAINS
+        self.T = config.SYSTEM.time_horizon
 
-    def compute_beta_loss(self, beta, V_g, Vdot_g, V_d):
+    def compute_beta_loss(self, beta, V_g, Vdot_g, V_d, indices, supp_samples, convex):
         """Compute the loss for the beta condition
         :param beta: the guess value of beta based on the min of V of XG_border
         :param V_d: the value of V at points in the goal set
         :param Vdot_d: the value of the lie derivative of V at points in the goal set"""
         lie_index = torch.nonzero(V_g <= beta)
-        relu = torch.nn.Softplus()
+        
+        relu = torch.nn.ReLU()
+        margin = 1e-5
+
         if lie_index.nelement() != 0:
-            beta_lie = torch.index_select(Vdot_g, dim=0, index=lie_index[:, 0])
-            beta_lie_loss = relu(beta_lie).mean()
+            subgrad = not convex
+            beta_lie = relu(torch.index_select(Vdot_g, dim=0, index=lie_index[:, 0]) + margin)
             accuracy = (beta_lie <= 0).count_nonzero().item() * 100 / beta_lie.shape[0]
+            if subgrad:
+                supp_max = torch.tensor([-1.0])
+                lie_max = beta_lie.max()
+                ind_lie_max = beta_lie.argmax()
+                beta_loss = lie_max
+                sub_sample = -1
+                for i, elem in enumerate(indices["lie"]):
+                    if lie_index[ind_lie_max, 0] in elem:
+                        sub_sample = i
+                        break
+                for ind in supp_samples:
+                    lie_inds = indices["lie"][ind]
+                    adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
+                    if len(adjusted_inds) > 0:
+                        supp_max = torch.max(supp_max, beta_lie[adjusted_inds].max())
+                supp_beta_loss = supp_max
+                new_sub_samples = set([sub_sample])
+            else:
+                raise NotImplementedError
         else:
             # Do we penalise V > beta in safe set, or  V < beta in goal set?
-            beta_lie_loss = 0
+            beta_loss = 0
+            supp_beta_loss = -1 
+            new_sub_samples = set()
 
-        return beta_lie_loss
+        return beta_loss, supp_beta_loss, new_sub_samples
 
     def learn(
         self,
@@ -1306,7 +1330,12 @@ class RSWS(RWS):
         optimizer: Optimizer,
         S: list,
         Sdot: list,
+        Sind: list,
+        times: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
         f_torch=None,
+        convex = False,
     ) -> dict:
         """
         :param learner: learner object
@@ -1318,169 +1347,124 @@ class RSWS(RWS):
         assert len(S) == len(Sdot)
 
         learn_loops = 1000
-        condition_old = False
-        lie_indices = 0, S[XD].shape[0]
-        init_indices = lie_indices[1], lie_indices[1] + S[XI].shape[0]
-        unsafe_indices = init_indices[1], init_indices[1] + S[XU].shape[0]
+        
+        lie_indices = Sdot[XD].shape[0], S[XD].shape[0]
+        lie_dot_indices = 0, Sdot[XD].shape[0]
+
+        init_indices = lie_indices[1]+Sdot[XI].shape[0], lie_indices[1] + S[XI].shape[0]
+
+        unsafe_indices = init_indices[1]+len(Sdot[XU]), init_indices[1] + S[XU].shape[0]
+
         goal_border_indices = (
-            unsafe_indices[1],
+            unsafe_indices[1] + len(Sdot[XG_BORDER]),
             unsafe_indices[1] + S[XG_BORDER].shape[0],
         )
+
         goal_indices = (
-            goal_border_indices[1],
+            goal_border_indices[1]+len(Sdot[XG]),
             goal_border_indices[1] + S[XG].shape[0],
         )
+
+        goal_dot_indices = goal_border_indices[1], goal_indices[0]
         # Setting label order allows datasets to be passed in any order
         label_order = [XD, XI, XU, XG_BORDER, XG]
-        samples = torch.cat([S[label] for label in label_order])
+        lie_label_order = [XD, XG] # make sure no goal data in XD
+        samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
 
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            samples_dot = torch.cat([Sdot[label] for label in label_order])
-
+        samples_dot = torch.cat([Sdot[label] for label in lie_label_order])
+        
+        samples_with_nexts = torch.cat([samples[:lie_dot_indices[1]], samples[goal_dot_indices[0]:goal_dot_indices[1]]])
+        
+        times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
+        supp_samples = set()
         for t in range(learn_loops):
             optimizer.zero_grad()
-            if f_torch:
-                samples_dot = f_torch(samples)
 
-            nn, grad_nn = learner.compute_net_gradnet(samples)
+            V, Vdot, _ = learner.get_all(samples_with_nexts, samples_dot, torch.cat([times[:lie_dot_indices[1]],times[-len(Sdot[XG]):]]))
 
-            V, gradV = learner.compute_V_gradV(nn, grad_nn, samples)
             (
                 V_d,
                 gradV_d,
-            ) = (V[: lie_indices[1]], gradV[: lie_indices[1]])
+            ) = (V[: lie_dot_indices[1]], Vdot[: lie_dot_indices[1]])
 
-            V_i = V[init_indices[0] : init_indices[1]]
-            V_u = V[unsafe_indices[0] : unsafe_indices[1]]
+            Vstates = learner(samples)
+
+            V_i = Vstates[init_indices[0] : init_indices[1]]
+            V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
             S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
-            V_g = V[goal_indices[0] : goal_indices[1]]
-            Vdot = torch.sum(torch.mul(gradV, samples_dot), dim=1)
-            Vdot_g = Vdot[goal_indices[0] : goal_indices[1]]
+            V_g = Vstates[goal_indices[0] : goal_indices[1]]
+            
+            Vdot_g = Vdot[lie_dot_indices[1] :]
             samples_dot_d = samples_dot[: lie_indices[1]]
 
-            loss, accuracy = self.compute_loss(V_i, V_u, V_d, gradV_d, samples_dot_d)
-
-            if f_torch:
-                S_d = samples[: lie_indices[1]]
-                loss = loss + control.cosine_reg(S_d, samples_dot_d)
+            loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
 
             beta = learner.compute_minimum(S_dg)[0]
-            beta_loss = self.compute_beta_loss(beta, V_g, Vdot_g, V_d)
+            beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
             loss = loss + beta_loss
+            if supp_loss != -1:
+                if supp_beta_loss != -1:   
+                    supp_loss = supp_loss + supp_beta_loss
+                    sub_sample = sub_sample.union(beta_sub_sample)
+            else:
+                supp_loss = supp_beta_loss
+                sub_sample = beta_sub_sample
+
+            if loss <= best_loss:
+                best_loss = loss
+                best_net = copy.deepcopy(learner)
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
                 log_loss_acc(t, loss, accuracy, learner.verbose)
 
-            if accuracy["acc init unsafe"] == 100 and accuracy["acc lie"] >= 99.9:
-                condition = True
+            if convex:
+                loss.backward()
             else:
-                condition = False
-
-            if condition and condition_old:
-                break
-            condition_old = condition
-
-            loss.backward()
+                loss.backward(retain_graph=True)
+                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                if supp_loss != -1:
+                    optimizer.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    inner = torch.inner(grads, supp_grads)
+                    if inner <= 0:
+                        supp_samples = supp_samples.union(sub_sample)
+                else:
+                    supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
+        V, Vdot, _ = learner.get_all(samples_with_nexts, samples_dot, torch.cat([times[:lie_dot_indices[1]],times[-len(Sdot[XG]):]]))
 
-        return {}
+        (
+            V_d,
+            gradV_d,
+        ) = (V[: lie_dot_indices[1]], Vdot[: lie_dot_indices[1]])
 
-    def stay_in_goal_check(self, verifier, C, Cdot, beta=-10):
-        """Checks if the system stays in the goal region.
-        True if it stays in the goal region, False otherwise.
+        Vstates = learner(samples)
 
-        This check involves finding a beta such that:
+        V_i = Vstates[init_indices[0] : init_indices[1]]
+        V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
+        S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
+        V_g = Vstates[goal_indices[0] : goal_indices[1]]
+        
+        Vdot_g = Vdot[lie_dot_indices[1] :]
+        samples_dot_d = samples_dot[: lie_indices[1]]
 
-        \forall x in border XG: V > \beta
-        \forall x in XG \ int(B): dV/dt < 0
-        B = {x in XS | V <= \beta}
+        loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
 
-        Args:
-            verifier (Verifier): verifier object
-            C: SMT formula of certificate function
-            Cdot: SMT formula of certificate lie derivative
+        beta = learner.compute_minimum(S_dg)[0]
+        beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
+        loss = loss + beta_loss
 
-        Returns:
-            bool: True if sat
-        """
-        _And = verifier.solver_fncts()["And"]
-        _Not = verifier.solver_fncts()["Not"]
-        dG = self.goal_border  # Border of goal set
-        # Solving these separately means we don't have to deal with
-        # spurious counterexamples
-        border_condition = _And(C <= beta, dG)
-        s_border = verifier.new_solver()
-        res1, _ = verifier.solve_with_timeout(s_border, border_condition)
+        if loss <= best_loss:
+            best_loss = loss
+            best_net = copy.deepcopy(learner)
 
-        B = _And(self.safe, C < beta)
-        XG_less_B = _And(self.goal, _Not(B))
-        lie_condition = _And(XG_less_B, Cdot >= 0)
-        s_lie = verifier.new_solver()
-        res2, _ = verifier.solve_with_timeout(s_lie, lie_condition)
+        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps":supp_samples}
 
-        if verifier.is_unsat(res1) and verifier.is_unsat(res2):
-            return True, None
-        elif verifier.is_sat(res1) and verifier.is_unsat(res2):
-            # Border condition is sat, beta too high
-            return False, "decrease"
-        elif verifier.is_unsat(res1) and verifier.is_sat(res2):
-            # Lie condition is sat, beta too low
-            return False, "increase"
-        else:
-            assert verifier.is_sat(res1) and verifier.is_sat(res2)
-            return False, "both"
-            # raise RuntimeError("Both conditions are sat")
 
     def beta_search(self, learner, verifier, C, Cdot, S):
-        """Searches for a beta to prove that the system stays in the goal region.
-
-        Args:
-            learner (Learner): learner object
-            verifier (Verifier): verifier object
-            C: SMT formula of certificate function
-            Cdot: SMT formula of certificate lie derivative
-            S (dict): data sets
-
-        Returns:
-            bool, float: res, beta
-        """
-        # In Verdier, Mazo they do a line search over Beta. I'm not sure how to do that currently.
-        # I'm not even sure if beta should be negative or positive, or on its scale.
-        # We could also do a exists forall query with dreal, but it would scale poorly.
-
-        # beta_upper = learner.compute_minimum(S["goal"])[0]
-        # beta_lower = learner.compute_minimum(S["safe"])[0]
-        beta_upper = 1000
-        beta_lower = -1000000
-        beta_guess = (beta_upper + beta_lower) / 2
-        while True:
-            res, bound = self.stay_in_goal_check(verifier, C, Cdot, beta_guess)
-            if res:
-                learner.beta = beta_guess
-                return True
-            else:
-                if bound == "decrease":
-                    beta_upper = beta_guess
-                    beta_guess = (beta_upper + beta_lower) / 2
-                elif bound == "increase":
-                    beta_lower = beta_guess
-                    beta_guess = (beta_upper + beta_lower) / 2
-                elif bound == "both":
-                    # After testing, we never reach this point and still succeed, se let's return False and instead try synthesis again
-                    return False
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(
-            set([XD, XI, XS, XS_BORDER, XG, XG_BORDER]),
-            domain_labels,
-            "Symbolic Domains",
-        )
-        _set_assertion(set([XD, XI, XU, XS, XG, XG_BORDER]), data_labels, "Data Sets")
+        return learner.compute_minimum(S_dg)[0]
+            
 
 
 class SafeROA(Certificate):
@@ -1491,6 +1475,8 @@ class SafeROA(Certificate):
         self.barrier = Barrier._for_safe_roa(domains, config)
         self.bias = self.ROA.bias, self.barrier.bias
         self.beta = None
+        self.D = config.DOMAINS
+        self.T = config.SYSTEM.time_horizon
 
     def learn(
         self,
@@ -1498,7 +1484,12 @@ class SafeROA(Certificate):
         optimizer: Optimizer,
         S: dict,
         Sdot: dict,
+        Sind: list,
+        times: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
         f_torch=None,
+        convex = False,
     ) -> dict:
         """
         :param learner: learner object
@@ -1513,12 +1504,14 @@ class SafeROA(Certificate):
 
         learn_loops = 1000
         lie_indices = 0, S[XD].shape[0]
+        
         if XR in S.keys():
             # The idea here is that the data set for barrier learning is not conducive to learning the region of attraction (which should ideally only contain stable points that converge.
             # So we allow for a backup data set used only for the ROA learning. If not passed, we use the same data set as for the barrier learning.
             r_indices = lie_indices[1], lie_indices[1] + S[XR].shape[0]
         else:
             r_indices = lie_indices[0], lie_indices[1]
+        
         init_indices = r_indices[1], r_indices[1] + S[XI].shape[0]
         unsafe_indices = init_indices[1], init_indices[1] + S[XU].shape[0]
         label_order = [XD, XR, XI, XU]
@@ -1579,31 +1572,6 @@ class SafeROA(Certificate):
 
         return {}
 
-    def get_constraints(self, verifier, C, Cdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param C: tuple containing SMT formula of Lyapunov function and barrier function
-        :param Cdot: tuple containing SMT formula of Lyapunov lie derivative and barrier lie derivative
-
-        """
-        V, B = C
-        Vdot, Bdot = Cdot
-        lyap_cs = list(self.ROA.get_constraints(verifier, V, Vdot))
-        barrier_cs = list(self.barrier.get_constraints(verifier, B, Bdot))
-
-        for cs in (*lyap_cs, *barrier_cs):
-            yield cs
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XD, XI, XU]), domain_labels, "Symbolic Domains")
-        if XR in data.keys():
-            _set_assertion(set([XD, XR, XI, XU]), data_labels, "Data Sets")
-        else:
-            _set_assertion(set([XD, XI, XU]), data_labels, "Data Sets")
-
 
 class ReachAvoidRemain(Certificate):
     def __init__(self, domains, config: ScenAppConfig) -> None:
@@ -1612,6 +1580,9 @@ class ReachAvoidRemain(Certificate):
         self.barrier = Barrier._for_goal_final(domains, config)
         self.BORDERS = (XS,)
         self.bias = self.RWS.bias, self.barrier.bias
+        self.D = config.DOMAINS
+        self.T = config.SYSTEM.time_horizon
+        
 
     def learn(
         self,
@@ -1619,7 +1590,12 @@ class ReachAvoidRemain(Certificate):
         optimizer: Optimizer,
         S: dict,
         Sdot: dict,
+        Sind: list,
+        times: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
         f_torch=None,
+        convex = False,
     ) -> dict:
         """
         :param learner: learner object
@@ -1714,40 +1690,6 @@ class ReachAvoidRemain(Certificate):
             optimizer.step()
 
         return {}
-
-    def get_constraints(self, verifier, C, Cdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param C: tuple containing SMT formula of Lyapunov function and barrier function
-        :param Cdot: tuple containing SMT formula of Lyapunov lie derivative and barrier lie derivative
-
-        """
-        V, B = C
-        Vdot, Bdot = Cdot
-        rwa_cs = list(self.RWS.get_constraints(verifier, V, Vdot))
-        barrier_cs = list(self.barrier.get_constraints(verifier, B, Bdot))
-        # The labels for the barrier constraints are not correct, they must be updated as follows
-        # XI -> XG, XU -> ~XF
-        for cs in barrier_cs[:1]:
-            cs[XG] = cs.pop(XI)
-            cs[XNF] = cs.pop(XU)
-        for cs in barrier_cs[1:]:
-            cs[XF] = cs.pop(XD)
-
-        for cs in (
-            *rwa_cs,
-            *barrier_cs,
-        ):
-            yield cs
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(
-            set([XD, XI, XS, XS_BORDER, XG, XF, XNF]), domain_labels, "Symbolic Domains"
-        )
-        _set_assertion(set([XD, XI, XU, XG, XF, XNF]), data_labels, "Data Sets")
 
 
 class DoubleCertificate(Certificate):

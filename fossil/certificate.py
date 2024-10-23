@@ -1288,12 +1288,13 @@ class RSWS(RWS):
         :param beta: the guess value of beta based on the min of V of XG_border
         :param V_d: the value of V at points in the goal set
         :param Vdot_d: the value of the lie derivative of V at points in the goal set"""
-        lie_index = torch.nonzero(V_g <= beta)
+        lie_index = torch.nonzero(V_g >= beta)
         
         relu = torch.nn.ReLU()
         margin = 1e-5
 
         if lie_index.nelement() != 0:
+            import pdb; pdb.set_trace()
             subgrad = not convex
             beta_lie = relu(torch.index_select(Vdot_g, dim=0, index=lie_index[:, 0]) + margin)
             accuracy = (beta_lie <= 0).count_nonzero().item() * 100 / beta_lie.shape[0]

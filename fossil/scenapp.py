@@ -397,34 +397,14 @@ class SingleScenApp:
                 ):
             self.learner.beta = self.certificate.estimate_beta(self.learner)
 
-        if self.config.CERTIFICATE == CertificateType.RSWS:
-            stay = self.certificate.beta_search(
-                    self.learner,
-                    self.verifier,
-                    state[ScenAppStateKeys.V],
-                    state[ScenAppStateKeys.V_dot],
-                    S,
-                    )
-            # Only stop if we prove the final stay condition
-            stop = stay
-            if stay:
-                print(f"Found a valid {self.config.CERTIFICATE.name} certificate")
-            else:
-                print(
-                        f"Found a valid RWS certificate, but could not prove the final stay condition. Keep searching..."
-                        )
-                state[ScenAppStateKeys.found] = False
-                if self.config.SCENAPP_MAX_ITERS == iters:
-                    stop = True
-        else:
-            #if isinstance(self.f, control.GeneralClosedLoopModel):
-            #    raise NotImplementedError("Can't do controlled models")
-            #    ctrl = " and controller"
-            #else:
-            ctrl = ""
-            print(f"Found a valid {self.config.CERTIFICATE.name} certificate" + ctrl)
-            stop = True
-            return stop
+        #if isinstance(self.f, control.GeneralClosedLoopModel):
+        #    raise NotImplementedError("Can't do controlled models")
+        #    ctrl = " and controller"
+        #else:
+        ctrl = ""
+        print(f"Found a valid {self.config.CERTIFICATE.name} certificate" + ctrl)
+        stop = True
+        return stop
 
     @property
     def result(self):

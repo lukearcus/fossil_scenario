@@ -43,7 +43,7 @@ def test_lnn(args):
     state_data = {
         "lie": SD._generate_data(n_state_data)(),
         "init": XI._generate_data(n_state_data)(),
-        "unsafe": SU._generate_data(n_state_data)(),
+        "unsafe": XS._sample_border(n_state_data)(),
         "safe": XS._generate_data(n_state_data)(),  # These are just for the beta search
         "goal_border": XG._sample_border(n_state_data)(),
         "goal": XG._generate_data(n_state_data)(),
@@ -70,7 +70,7 @@ def test_lnn(args):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=25,
+        SCENAPP_MAX_ITERS=1,
         VERBOSE=2 
     )
 

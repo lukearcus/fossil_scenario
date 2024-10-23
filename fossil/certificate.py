@@ -1318,7 +1318,7 @@ class RSWS(RWS):
                 raise NotImplementedError
         else:
             # Do we penalise V > beta in safe set, or  V < beta in goal set?
-            beta_loss = 0
+            beta_loss = torch.Tensor([0])
             supp_beta_loss = -1 
             new_sub_samples = set()
 
@@ -1400,8 +1400,10 @@ class RSWS(RWS):
             loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
 
             beta = learner.compute_minimum(S_dg)[0]
+            #beta_loss, supp_beta_loss, beta_sub_sample = 0, -1, set()
+            # converges without beta loss
             beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
-            loss = loss + beta_loss
+            loss = torch.max(loss,beta_loss)
             if supp_loss != -1:
                 if supp_beta_loss != -1:   
                     supp_loss = supp_loss + supp_beta_loss
@@ -1434,13 +1436,11 @@ class RSWS(RWS):
             optimizer.step()
         V, Vdot, _ = learner.get_all(samples_with_nexts, samples_dot, torch.cat([times[:lie_dot_indices[1]],times[-len(Sdot[XG]):]]))
 
-        (
-            V_d,
-            gradV_d,
-        ) = (V[: lie_dot_indices[1]], Vdot[: lie_dot_indices[1]])
+        gradV_d = Vdot[: lie_dot_indices[1]]
 
         Vstates = learner(samples)
-
+        
+        V_d = Vstates[lie_indices[0] : lie_indices[1]]
         V_i = Vstates[init_indices[0] : init_indices[1]]
         V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
         S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
@@ -1448,12 +1448,12 @@ class RSWS(RWS):
         
         Vdot_g = Vdot[lie_dot_indices[1] :]
         samples_dot_d = samples_dot[: lie_indices[1]]
-
+        
         loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
 
         beta = learner.compute_minimum(S_dg)[0]
         beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
-        loss = loss + beta_loss
+        loss = torch.max(loss, beta_loss)
 
         if loss <= best_loss:
             best_loss = loss
@@ -1463,6 +1463,7 @@ class RSWS(RWS):
 
 
     def beta_search(self, learner, verifier, C, Cdot, S):
+        import pdb; pdb.set_trace()
         return learner.compute_minimum(S_dg)[0]
             
 

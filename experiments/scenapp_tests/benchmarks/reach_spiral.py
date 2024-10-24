@@ -47,7 +47,7 @@ def test_lnn():
 
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
+    activations = fossil.ActivationType.SIGMOID, [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [32] * len(activations)
 
     ###

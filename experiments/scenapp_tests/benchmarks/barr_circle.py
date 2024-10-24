@@ -19,7 +19,7 @@ from fossil.consts import *
 
 def test_lnn(args):
     XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-1, 1], [1, 2])
+    XI = domains.Rectangle([-1, 4], [1, 5])
     XU = domains.Sphere([0,0],0.5)
 
     n_data = 1000
@@ -41,7 +41,7 @@ def test_lnn(args):
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
-    activations = [ActivationType.SIGMOID]#, ActivationType.SIGMOID]
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)
     opts = ScenAppConfig(
@@ -61,7 +61,6 @@ def test_lnn(args):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )
-    import pdb; pdb.set_trace()
     
 
     #PAC = ScenApp(opts)

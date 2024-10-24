@@ -107,6 +107,34 @@ class JetEngBarr(control.DynamicalModel):
             x, y = v[:, 0], v[:, 1]
         return [-y-1.5*x**2-0.5*x**3, x]
 
+class Circle(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 100
+    time = "discrete"
+
+    def f_torch(self, t, v):
+        
+        if len(v.shape) == 1:
+            x1, x2 = v[0], v[1]
+        else:
+            x1, x2 = v[:, 0], v[:, 1]
+
+        return [0.5*x1-x2, 0.5*x2+0.5*x1]
+
+class Spiral(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 100
+    time = "discrete"
+
+    def f_torch(self, t, v):
+        
+        if len(v.shape) == 1:
+            x1, x2 = v[0], v[1]
+        else:
+            x1, x2 = v[:, 0], v[:, 1]
+
+        return [x1-0.5*x2, 0.5*x2+0.5*x1]
+
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of
     # Stochastic Systems via Barrier Certificates

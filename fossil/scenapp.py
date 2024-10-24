@@ -7,6 +7,8 @@ import fossil.consolidator as consolidator
 import fossil.logger as logger
 import fossil.certificate as certificate
 
+from itertools import chain
+
 import torch
 import copy
 import sympy as sp
@@ -422,8 +424,186 @@ class SingleScenApp:
                 # This is a temporary debug check until some better way of passing sets is implemented.
             self.certificate._assert_state(self.domains, self.S)
 
-class DoubleScenApp:
-    pass
+class DoubleScenApp(SingleScenApp):
+    def __init__(self, config: ScenAppConfig):
+        super().__init__(config)
+        self.lyap_learner, self.barr_learner = self.learner
+    
+    def _initialise_certificate(self):
+        custom_certificate = self.config.CUSTOM_CERTIFICATE
+        cert_type = certificate.get_certificate(self.config.CERTIFICATE, custom_certificate)
+        if self.config.CERTIFICATE != CertificateType.RAR:
+            raise ValueError("DoubleScenApp only suppots RAR certificates")
+        return cert_type(self.domains, self.config)
+
+    def _initialise_learner(self):
+        learner_type = learner.get_learner(self.config.TIME_DOMAIN, self.config.CTRLAYER)
+
+        lyap_learner = learner_type(
+            self.config.N_VARS,
+            self.certificate.learn,
+            *self.config.N_HIDDEN_NEURONS,
+            activation=self.config.ACTIVATION,
+            bias=self.certificate.bias[0],
+            config=self.config,
+                            )
+        
+        barr_learner = learner_type(
+            self.config.N_VARS,
+            self.certificate.learn,
+            *self.config.N_HIDDEN_NEURONS_ALT,
+            activation=self.config.ACTIVATION_ALT,
+            bias=self.certificate.bias[1],
+            config=self.config,
+                            )
+
+        lyap_learner._type = CertificateType.RWS.name
+        barr_learner._type = CertificateType.BARRIER.name
+
+        return lyap_learner, barr_learner
+
+    def _initialise_optimizer(self):
+        
+        optimizer = torch.optim.AdamW(
+                chain(
+                    *(l.parameters() for l in self.learner),
+                    ),
+                lr=self.config.LEARNING_RATE,
+                )
+        return optimizer
+    
+    def _initialise_verifier(self):
+        lyap_num_params = sum(p.numel() for p in self.learner[0].parameters() if p.requires_grad)
+        barr_num_params = sum(p.numel() for p in self.learner[1].parameters() if p.requires_grad)
+        num_params = lyap_num_params + barr_num_params
+
+        verifier_type = verifier.get_verifier_type(self.config.VERIFIER)
+        verifier_instance = verifier_type(
+                    self.config.N_VARS,
+                    self.config.BETA,
+                    self.config.N_DATA,
+                    num_params,
+                    self.config.VERBOSE,
+                            )
+        return verifier_instance
+
+    def solve(self) -> Result:
+        converge_tol = 1e-4
+        Sdot = self.S["derivs"]
+        S = self.S["states"]
+        S_inds = self.S["indices"]
+        S_traj = self.S_traj
+        times = self.S["times"]
+        # Initialize CEGIS state
+        state = self.init_state(Sdot, S, S_traj, S_inds, times)
+
+        # Reset timers for components
+        self.lyap_learner.get_timer().reset()
+        
+        state["net_dot"] = self.lyap_learner.nn_dot
+        iters = 0
+        stop = False
+        N_data = self.config.N_DATA
+        n_test_data = self.config.N_TEST_DATA
+        old_loss = float("Inf")
+        old_best = float("Inf")
+        if self.config.CONVEX_NET:
+            state["supps"] = {"active":0,"relaxed":0}
+        else:
+            state["supps"] = set()
+        state["supp_len"] = self.a_priori_supps
+        while not stop:
+            opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
+            opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
+            state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
+            # Legtner component
+            
+            scenapp_log.debug("\033[1m Lyap Learner \033[0m")
+            outputs = self.lyap_learner.get(**state)
+            state = {**state, **outputs}
+            
+            #scenapp_log.debug("\033[1m Barr Learner \033[0m")
+            #outputs = self.barr_learner.get(**state) # Alec doesn't  call barr learner for some reason?
+            #state = {**state, **outputs}
+            
+            if self.config.CONVEX_NET:
+                state["supps"] = outputs["new_supps"]
+            else:
+                state["supps"] = state["supps"].union(outputs["new_supps"])
+            state = self.update_controller(state)
+
+            # Translator component
+            if self.config.CONVEX_NET and torch.abs(state["loss"]-old_loss) < converge_tol:
+                scenapp_log.debug("\033[1m Verifier \033[0m")
+                
+
+                outputs = self.verifier.get(**state)
+                state = {**state, **outputs}
+
+                # Consolidator component # Don't think this is needed/possible for us
+                #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                #outputs = self.consolidator.get(**state)
+                #state = {**state, **outputs}
+                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                stop = self.process_certificate(S, state, iters)
+
+            elif not self.config.CONVEX_NET and state["best_loss"] == 0.0:
+                scenapp_log.debug("\033[1m Verifier \033[0m")
+                
+
+                outputs = self.verifier.get(**state)
+                state = {**state, **outputs}
+
+                # Consolidator component # Don't think this is needed/possible for us
+                #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                #outputs = self.consolidator.get(**state)
+                #state = {**state, **outputs}
+                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                stop = self.process_certificate(S, state, iters)
+
+            elif state[ScenAppStateKeys.verification_timed_out]:
+                scenapp_log.warning("Verification timed out")
+                stop = True
+                state[ScenAppStateKeys.bounds] = None
+            elif (
+                    self.config.SCENAPP_MAX_ITERS <= iters
+                    ):
+                scenapp_log.warning("Out of iterations")
+                stop = True
+                state[ScenAppStateKeys.bounds] = None
+            elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
+                print("Convergence reached, but failed to find valid certificate, discarding samples")
+                self.discard(state)
+                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
+                iters += 1
+                old_loss = state["loss"]
+                old_best = state["best_loss"]
+                scenapp_log.info("Iteration: {}".format(iters))
+
+            elif not (
+                    state[ScenAppStateKeys.found]
+                    or state[ScenAppStateKeys.verification_timed_out]
+                    ):
+                #state = self.process_cex(S, state)
+
+                iters += 1
+                old_loss = state["loss"]
+                old_best = state["best_loss"]
+                scenapp_log.info("Iteration: {}".format(iters))
+
+        state = self.process_timers(state)
+
+        #N_data = sum([S_i.shape[0] for S_i in state[ScenAppStateKeys.S].values()])
+        stats = Stats(
+                iters, N_data, state["components_times"], torch.initial_seed()
+                )
+        a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
+                #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
+        return self._result
+
+
+
 
 class ScenApp:
     def __new__(cls, config: ScenAppConfig) -> Union[DoubleScenApp, SingleScenApp]:

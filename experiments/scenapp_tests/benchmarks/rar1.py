@@ -16,6 +16,8 @@ def test_lnn(args):
     n_vars = 2
 
     system = models.SecondOrderLQR
+    n_state_data = 1000
+    n_data = 1000
 
     XD = domains.Rectangle([-3.5, -3.5], [3.5, 3.5])
     XS = domains.Rectangle([-3, -3], [3, 3])
@@ -30,19 +32,29 @@ def test_lnn(args):
     sets = {
         "lie": XD,
         "init": XI,
+        "unsafe": SU,
         "safe_border": XS,
         "safe": XS,
         "goal": XG,
         "final": XF,
+        "not_final": SNF
     }
-    data = {
-        "lie": XD._generate_data(500),
-        "init": XI._generate_data(500),
-        "unsafe": SU._generate_data(500),
-        "goal": XG._generate_data(500),
-        "final": XF._generate_data(500),
-        "not_final": SNF._generate_data(500),
+    state_data = {
+        "lie": SD._generate_data(n_state_data)(),
+        "init": XI._generate_data(n_state_data)(),
+        "unsafe": SU._generate_data(n_state_data)(),
+        "goal": XG._generate_data(n_state_data)(),
+        "final": XF._generate_data(n_state_data)(),
+        "not_final": SNF._generate_data(n_state_data)(),
         }
+    
+    init_data = XI._generate_data(n_data)()
+
+    all_data = system().generate_trajs(init_data)
+    
+    #derivs = [elem[:,inds[0]] for elem, inds in zip(all_data[2], not_goal_inds)]
+    # sometimes we end up selecting a single state and get a 1D array...
+    data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
     # define NN parameters
     activations = [ActivationType.SQUARE]
@@ -51,21 +63,21 @@ def test_lnn(args):
     activations_alt = [ActivationType.SQUARE]
     n_hidden_neurons_alt = [6] * len(activations_alt)
 
-    opts = CegisConfig(
+    opts = ScenAppConfig(
         DOMAINS=sets,
         DATA=data,
         SYSTEM=system,
         N_VARS=n_vars,
         CERTIFICATE=CertificateType.RAR,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
-        VERIFIER=VerifierType.DREAL,
+        VERIFIER=VerifierType.SCENAPPNONCONVEX,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         ACTIVATION_ALT=activations_alt,
         N_HIDDEN_NEURONS_ALT=n_hidden_neurons_alt,
-        CEGIS_MAX_ITERS=100,
+        SCENAPP_MAX_ITERS=100,
         SYMMETRIC_BELT=False,
-        # VERBOSE=False,
+        VERBOSE=2,
     )
 
     main.run_benchmark(

@@ -519,7 +519,7 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_I>0).count_nonzero().item()/len(V_I)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = .1 
+        gamma = 1 
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         loss = loss+ gamma*(state_con+goal_con)
@@ -820,7 +820,7 @@ class BarrierAlt(Certificate):
         #import pdb; pdb.set_trace()
         
         # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
-        gamma = 0.1 
+        gamma = 1 
         unsafe_margin = 1e-3
         init_loss = gamma*(relu(B_i).mean())
         loss = loss+init_loss

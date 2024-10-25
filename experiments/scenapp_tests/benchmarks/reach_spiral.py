@@ -44,11 +44,10 @@ def test_lnn():
 
     state_data = {fossil.XI: XI._generate_data(n_state_data)(), fossil.XG: XG._generate_data(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
-
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
-    n_hidden_neurons = [32] * len(activations)
+    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
+    n_hidden_neurons = [5] * len(activations)
 
     ###
     #

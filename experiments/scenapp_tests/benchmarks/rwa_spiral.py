@@ -21,7 +21,8 @@ def test_lnn(args):
     batch_size = 1000
 
     system = models.Spiral
-    
+    system.time_horizon = 2500
+
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 5])
     SU = domains.Rectangle([4,-1],[5,1])

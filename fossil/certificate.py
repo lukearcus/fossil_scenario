@@ -1158,7 +1158,6 @@ class RWS(Certificate):
             B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
             B_u = B[i1+i2+i3-idot1-idot2-idot3:]
             
-
             loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
 
             if loss <= best_loss:

@@ -82,6 +82,7 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         VERBOSE=2,
+        SCENAPP_MAX_ITERS=200,
     )
 
     main.run_benchmark(

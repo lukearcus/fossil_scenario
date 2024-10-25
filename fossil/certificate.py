@@ -1055,7 +1055,7 @@ class RWS(Certificate):
             # this might need changing in case there are points in the unsafe or goal set?
             # ensure no goal states in domain data (see rwa_2 for example)
             Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
-            lie_loss = relu(Vdot_selected+req_diff)*10
+            lie_loss = relu(Vdot_selected+req_diff)
             lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
             if subgrad:
@@ -1075,7 +1075,8 @@ class RWS(Certificate):
                         supp_max = torch.max(supp_max, lie_loss[adjusted_inds].max())
                 supp_loss = supp_max
                 new_sub_samples = set([sub_sample])
-                loss = loss + init_loss + unsafe_loss
+                gamma = 1
+                loss = loss + gamma*(init_loss + unsafe_loss)
                 if supp_loss != -1:
                     supp_loss = supp_loss + init_loss + unsafe_loss
             else:

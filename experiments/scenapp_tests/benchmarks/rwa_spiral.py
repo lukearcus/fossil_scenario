@@ -69,8 +69,8 @@ def test_lnn(args):
     # sometimes we end up selecting a single state and get a 1D array...
     data = {"states_only": state_data, "full_data": {"times":times,"states":states,"derivs":derivs}}
     # define NN parameters
-    activations = [ActivationType.SQUARE]
-    n_hidden_neurons = [4] * len(activations)
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
+    n_hidden_neurons = [5] * len(activations)
 
     opts = ScenAppConfig(
         DOMAINS=sets,

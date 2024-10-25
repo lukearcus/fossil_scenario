@@ -38,7 +38,8 @@ def test_lnn(args):
     system = models.Circle
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
-
+    
+    import pdb; pdb.set_trace()
     activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)

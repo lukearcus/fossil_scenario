@@ -109,7 +109,7 @@ class JetEngBarr(control.DynamicalModel):
 
 class Circle(control.DynamicalModel):
     n_vars = 2
-    time_horizon = 100
+    time_horizon = 500
     time = "discrete"
 
     def f_torch(self, t, v):
@@ -119,11 +119,11 @@ class Circle(control.DynamicalModel):
         else:
             x1, x2 = v[:, 0], v[:, 1]
 
-        return [0.5*x1-x2, 0.5*x2+0.5*x1]
+        return [x1-x2, 0.5*x2+0.5*x1]
 
 class Spiral(control.DynamicalModel):
     n_vars = 2
-    time_horizon = 100
+    time_horizon = 500
     time = "discrete"
 
     def f_torch(self, t, v):

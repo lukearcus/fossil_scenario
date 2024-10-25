@@ -47,7 +47,7 @@ def test_lnn():
 
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = fossil.ActivationType.SIGMOID, [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
+    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [32] * len(activations)
 
     ###
@@ -64,7 +64,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=2, 
+        SCENAPP_MAX_ITERS=200, 
         #LLO=True,
         VERBOSE=2,
     )

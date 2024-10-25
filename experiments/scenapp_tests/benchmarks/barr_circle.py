@@ -57,7 +57,7 @@ def test_lnn(args):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=2,
+        SCENAPP_MAX_ITERS=200,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )

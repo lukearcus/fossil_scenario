@@ -18,7 +18,7 @@ from fossil.consts import *
 def test_lnn(args):
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 5])
-    XU = domains.Sphere([0,0],0.5)
+    XU = domains.Rectangle([4,-1],[5,1])
 
     n_data = 1000
     
@@ -35,7 +35,8 @@ def test_lnn(args):
     }
     init_data = XI._generate_data(n_data)()
     
-    system = models.Circle
+    system = models.Spiral
+    system.time_horizon = 50
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
     

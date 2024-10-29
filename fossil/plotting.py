@@ -226,22 +226,34 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
     X, Y = np.meshgrid(x, y)
     XT = torch.tensor(X, dtype=torch.float32)
     YT = torch.tensor(Y, dtype=torch.float32)
-    ZT = certificate.compute_net_gradnet(
-        torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1)
-    )[1]
-    try:
-    
-        Z = ZT.detach().numpy()
-    except AttributeError:
-        Z = ZT.T
-    dx, dy = (
-        model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
-        .detach()
-        .numpy()
-        .T
-    )
-    df = np.stack([dx, dy], axis=1)
-    lie = (df @ Z.T).diagonal()
+    if model.time == "continuous":
+        ZT = certificate.compute_net_gradnet(
+            torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1)
+        )[1]
+        try:
+        
+            Z = ZT.detach().numpy()
+        except AttributeError:
+            Z = ZT.T
+        dx, dy = (
+            model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
+            .detach()
+            .numpy()
+            .T
+        )
+        df = np.stack([dx, dy], axis=1)
+        lie = (df @ Z.T).diagonal()
+    else:
+        dx, dy = (
+            model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
+            .detach()
+        )
+        lie = certificate(
+            torch.cat((dx.reshape(-1, 1), dy.reshape(-1, 1)), dim=1))-                certificate(
+            torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1)
+        )
+        lie = lie.detach().numpy()
+
     lie = lie.reshape(X.shape)
     ax.plot_surface(X, Y, lie, cmap=cm.coolwarm, alpha=0.7, rstride=5, cstride=5)
     ax.contour(

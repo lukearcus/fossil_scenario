@@ -610,6 +610,7 @@ class Practical_Lyapunov(Certificate):
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
 
+
             if self.control:
                 loss = loss + control.cosine_reg(samples, samples_dot)
 

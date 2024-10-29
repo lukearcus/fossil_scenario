@@ -524,6 +524,7 @@ class Practical_Lyapunov(Certificate):
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         gamma = 1
         #init_con = 0
+        #goal_con = 0
         init_con = relu(init_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         state_con = relu(state_loss).mean()
@@ -602,7 +603,7 @@ class Practical_Lyapunov(Certificate):
             V_I = V[i1-idot1:i1+i2-idot1-idot2]
             V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
             V_G = V[i1+i2+i3-idot1-idot2-idot3:]
-            beta = V_SG.min()+V_G.min()/1000
+            beta = V_SG.min()
 
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
@@ -645,7 +646,7 @@ class Practical_Lyapunov(Certificate):
         V_I = V[i1-idot1:i1+i2-idot1-idot2]
         V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
         V_G = V[i1+i2+i3-idot1-idot2-idot3:]
-        beta = V_SG.min()+V_G.min()/1000
+        beta = V_SG.min()
 
         loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
 

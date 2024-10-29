@@ -471,7 +471,7 @@ class Practical_Lyapunov(Certificate):
         init_loss = -V_I
         goal_loss = V_G
         state_loss = -V_D+beta
-        margin = 1e-15 # works
+        margin = 1e-5 # 1e-15 works
         req_diff = (V_I.max()-beta)/self.T
         lie_loss = Vdot+relu(req_diff)
         # Vdot never gets negative...
@@ -1040,7 +1040,7 @@ class RWS(Certificate):
         self.D = config.DOMAINS
         self.T = config.SYSTEM.time_horizon
 
-    def compute_loss(self, V_i, V_u, V_d, V_g, Vdot_d, indices, supp_samples, convex):
+    def compute_loss(self, V_i, V_u, V_d, V_g, Vdot_d, beta, indices, supp_samples, convex):
         margin = 1e-3
         margin_lie = 0.0
         learn_accuracy = (V_i <= -margin).count_nonzero().item() + (
@@ -1052,13 +1052,13 @@ class RWS(Certificate):
 
         subgrad = not convex
 
-        
         lie_index = torch.nonzero(V_d < -margin)
 
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            req_diff = relu((V_i.max()-V_g.min())/self.T)
+            state_loss = relu(-V_d + margin).mean()
+            req_diff = relu((V_i.max()-beta)/self.T)
             # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
 
             # this might need changing in case there are points in the unsafe or goal set?
@@ -1085,9 +1085,9 @@ class RWS(Certificate):
                 supp_loss = supp_max
                 new_sub_samples = set([sub_sample])
                 gamma = 1
-                loss = loss + gamma*(init_loss + unsafe_loss)
+                loss = loss + gamma*(init_loss + unsafe_loss+state_loss)
                 if supp_loss != -1:
-                    supp_loss = supp_loss + init_loss + unsafe_loss
+                    supp_loss = supp_loss + state_loss + init_loss + unsafe_loss
             else:
                 raise NotImplementedError
         else:
@@ -1141,7 +1141,11 @@ class RWS(Certificate):
             idot4 = Sdot[XS_BORDER].shape[0]
         else:
             idot4 = 0
-        label_order = [XD, XI, XG, XS_BORDER]
+        i4 = S[XS].shape[0]
+
+        idot5 = len(Sdot[XG_BORDER])
+
+        label_order = [XD, XI, XG, XS_BORDER, XG_BORDER]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
         # samples = torch.cat((S[XD], S[XI], S[XU]))
 
@@ -1149,7 +1153,7 @@ class RWS(Certificate):
         samples_with_nexts = S[XD][:idot1]
         #samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         #samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3], samples[i1+i2+i3:i1+i2+i3+idot4]])
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1_i2_i3_i4], samples[i1+i2+i3+i4+idot5:]])
         times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
         supp_samples = set()
 
@@ -1165,9 +1169,10 @@ class RWS(Certificate):
             
             B_i = B[i1-idot1 : i1 + i2-idot1-idot2]
             B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
-            B_u = B[i1+i2+i3-idot1-idot2-idot3:]
+            B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+            B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
             
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, beta, Sind, supp_samples, convex)
 
             if loss <= best_loss:
                 best_loss = loss
@@ -1198,8 +1203,11 @@ class RWS(Certificate):
         B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
         B_i = B[i1-idot1:i1+i2-idot2-idot1]
         B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
-        B_u = B[i1+i2+i3-idot1-idot2-idot3:]
-        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, Sind, supp_samples, convex)
+        B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+        B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+
+        beta = B_sg.min()
+        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, beta, Sind, supp_samples, convex)
         
         if loss <= best_loss:
             best_loss = loss
@@ -1417,7 +1425,7 @@ class RSWS(RWS):
             Vdot_g = Vdot[lie_dot_indices[1] :]
             samples_dot_d = samples_dot[: lie_indices[1]]
 
-            loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
 
             beta = learner.compute_minimum(S_dg)[0]
             #beta_loss, supp_beta_loss, beta_sub_sample = 0, -1, set()
@@ -1489,193 +1497,6 @@ class RSWS(RWS):
     def beta_search(self, learner, verifier, C, Cdot, S):
         return learner.compute_minimum(S[XG_BORDER])[0]
             
-
-class ReachAvoidRemain(Certificate):
-    def __init__(self, domains, config: ScenAppConfig) -> None:
-        self.domains = domains
-        self.RWS = RWS(domains, config)
-        self.barrier = BarrierAlt._for_goal_final(domains, config)
-        self.BORDERS = (XS,)
-        self.bias = self.RWS.bias, self.barrier.bias
-        self.D = config.DOMAINS
-        self.T = config.SYSTEM.time_horizon
-        
-
-    def learn(
-        self,
-        learner: tuple[learner.LearnerNN, learner.LearnerNN],
-        optimizer: Optimizer,
-        S: dict,
-        Sdot: dict,
-        Sind: list,
-        times: list,
-        best_loss: float,
-        best_net: learner.LearnerNN,
-        f_torch=None,
-        convex = False,
-    ) -> dict:
-        """
-        :param learner: learner object
-        :param optimizer: torch optimiser
-        :param S: dict of tensors of data
-        :param Sdot: dict of tensors containing f(data)
-        :return: --
-        """
-        assert len(S) == len(Sdot)
-        rws_learner = learner[0]  # lyap_learner
-        barrier_learner = learner[1]  # barrier_learner
-
-        learn_loops = 1000
-        condition_old = False
-        lie_indices = Sdot[XD].shape[0], S[XD].shape[0]
-        lie_dot_indices = 0, lie_indices[0]
-
-        init_indices = lie_indices[1]+Sdot[XI].shape[0], lie_indices[1] + S[XI].shape[0]
-        unsafe_indices = init_indices[1] + len(Sdot[XU]), init_indices[1] + S[XU].shape[0]
-        goal_indices = (
-            unsafe_indices[1] + len(Sdot[XG]),
-            unsafe_indices[1] + S[XG].shape[0],
-        )
-        goal_dot_indices = unsafe_indices[1],goal_indices[0]
-
-        final_indices = goal_indices[1] + len(Sdot[XF]), goal_indices[1] + S[XF].shape[0]
-        final_dot_indices = goal_indices[1], final_indices[0]
-        nonfinal_indices = final_indices[1]+len(Sdot[XNF]), final_indices[1] + S[XNF].shape[0]
-        nonfinal_dot_indices = final_indices[1], nonfinal_indices[0]
-
-        label_order = [XD, XI, XU, XG, XF, XNF]
-        samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
-
-        lie_label_order = [XD, XG, XF, XNF]
-        samples_dot = torch.cat([Sdot[label] for label in lie_label_order])
-
-        samples_with_nexts = torch.cat([samples[:lie_dot_indices[1]], 
-                                        samples[goal_dot_indices[0]:goal_dot_indices[1]], 
-                                        samples[final_dot_indices[0]:final_dot_indices[1]], 
-                                        samples[nonfinal_dot_indices[0]:nonfinal_dot_indices[1]]])
-
-        
-        times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
-        
-        times = torch.cat([times[:lie_dot_indices[1]],times[-(len(Sdot[XG])+len(Sdot[XF])+len(Sdot[XNF])):] ])
-
-        supp_samples = set()
-        for t in range(learn_loops):
-            optimizer.zero_grad()
-
-            V, Vdot, _ = rws_learner.get_all(samples_with_nexts, samples_dot, times)
-            
-            Vstates = rws_learner(samples)
-            V_i = Vstates[init_indices[0] : init_indices[1]]
-            V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
-            V_d = Vstates[lie_indices[0] : lie_indices[1]]
-            V_g = Vstates[goal_indices[0] : goal_indices[1]]
-            gradV_d = Vdot[lie_dot_indices[0] : lie_dot_indices[1]]
-            samples_dot_d = samples_dot[lie_dot_indices[0] : lie_dot_indices[1]]
-
-            rws_loss, rws_supp_loss, rws_acc, rws_sub_sample = self.RWS.compute_loss(
-                V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex
-            )
-
-            B, Bdot, _ = barrier_learner.get_all(samples_with_nexts, samples_dot, times)
-            Bstates = barrier_learner(samples)
-
-            B_i = Bstates[goal_indices[0] : goal_indices[1]]
-            B_u = Bstates[nonfinal_indices[0] : nonfinal_indices[1]]
-
-            # Ideally the final set is very similar to the goal set, so sometimes the belt set is empty
-            # as B is negative over it. So lets use data from the goal and nonfinal sets too (this seems to work well)
-            B_d = Bstates[goal_indices[0] : nonfinal_indices[1]]
-            Bdot_d = Bdot[-(len(Sdot[XG])+len(Sdot[XF])+len(Sdot[XNF])):]
-            b_loss, b_supp_loss, barr_acc, b_sub_sample = self.barrier.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
-
-            loss = rws_loss + b_loss
-            
-            if rws_supp_loss != -1:
-                if b_supp_loss != -1:
-                    supp_loss = rws_supp_loss + b_supp_loss
-                    sub_sample = rws_sub_sample.union(b_sub_sample)
-            else:
-                supp_loss = b_supp_loss
-                sub_sample = b_sub_sample
-            if loss <= best_loss:
-                best_loss = loss
-                best_net = copy.deepcopy(learner)
-
-            barr_acc["acc goal final"] = barr_acc.pop("acc init unsafe")
-
-            accuracy = {**rws_acc, **barr_acc}
-
-            if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
-                log_loss_acc(t, loss, accuracy, rws_learner.verbose)
-
-            if (
-                accuracy["acc init unsafe"] == 100
-                and accuracy["acc lie"] >= 100
-                and accuracy["acc goal final"] >= 100
-                and accuracy["acc belt"] >= 99.9
-            ):
-                condition = True
-            else:
-                condition = False
-            
-            if convex:
-                loss.backward()
-            else:
-                loss.backward(retain_graph=True)
-                lyap_grads = torch.hstack([torch.flatten(param.grad) for param in rws_learner.parameters()])
-                barr_grads = torch.hstack([torch.flatten(param.grad) for param in barrier_learner.parameters()])
-                grads = lyap_grads+ barr_grads
-                if supp_loss != -1:
-                    optimizer.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    supp_grads = torch.zeros_like(grads)
-                    if rws_supp_loss != -1:
-                        supp_grads += torch.hstack([torch.flatten(param.grad) for param in rws_learner.parameters()])
-                    if b_supp_loss != -1:
-                        supp_grads += torch.hstack([torch.flatten(param.grad) for param in barrier_learner.parameters()])
-                    inner = torch.inner(grads, supp_grads)
-                    if inner <= 0:
-                        supp_samples = supp_samples.union(sub_sample)
-                        optimizer.zero_grad()
-                        loss.backward()
-                else:
-                    supp_samples = supp_samples.union(sub_sample)
-            optimizer.step()
-        V, Vdot, _ = rws_learner.get_all(samples_with_nexts, samples_dot, times)
-        
-        Vstates = rws_learner(samples)
-        V_i = Vstates[init_indices[0] : init_indices[1]]
-        V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
-        V_d = Vstates[lie_indices[0] : lie_indices[1]]
-        V_g = Vstates[goal_indices[0] : goal_indices[1]]
-        gradV_d = Vdot[lie_dot_indices[0] : lie_dot_indices[1]]
-        samples_dot_d = samples_dot[lie_dot_indices[0] : lie_dot_indices[1]]
-
-        rws_loss, rws_supp_loss, rws_acc, rws_sub_sample = self.RWS.compute_loss(
-            V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex
-        )
-
-        B, Bdot, _ = barrier_learner.get_all(samples_with_nexts, samples_dot, times)
-        Bstates = barrier_learner(samples)
-
-        B_i = Bstates[goal_indices[0] : goal_indices[1]]
-        B_u = Bstates[nonfinal_indices[0] : nonfinal_indices[1]]
-
-        # Ideally the final set is very similar to the goal set, so sometimes the belt set is empty
-        # as B is negative over it. So lets use data from the goal and nonfinal sets too (this seems to work well)
-        B_d = Bstates[goal_indices[0] : nonfinal_indices[1]]
-        Bdot_d = Bdot[-(len(Sdot[XG])+len(Sdot[XF])+len(Sdot[XNF])):]
-        b_loss, b_supp_loss, barr_acc, b_sub_sample = self.barrier.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
-
-        loss = rws_loss + b_loss
-        
-        if loss <= best_loss:
-            best_loss = loss
-            best_net = copy.deepcopy(learner)
-
-        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps":supp_samples}
-
 
 class DoubleCertificate(Certificate):
     """In Devel class for synthesising any two certificates together"""

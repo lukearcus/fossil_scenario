@@ -522,14 +522,14 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = .5 
+        gamma = 1
         #init_con = 0
         init_con = relu(init_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         state_con = relu(state_loss).mean()
-        loss = loss+ gamma*(state_con+init_con)
+        loss = loss+ gamma*(state_con+init_con+goal_con)
         if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(state_con+init_con)
+            supp_loss = supp_loss + gamma*(state_con+init_con+goal_con)
             #supp_loss = supp_loss + gamma*(state_con+goal_con+init_con)
         #try:
         #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]

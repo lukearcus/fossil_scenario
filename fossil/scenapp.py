@@ -251,9 +251,9 @@ class SingleScenApp:
             state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
         while not stop:
-            opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
-            opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
-            state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
+            #opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
+            #opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
+            #state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
             # Legtner component
             scenapp_log.debug("\033[1m Learner \033[0m")
             outputs = self.learner.get(**state)
@@ -337,7 +337,7 @@ class SingleScenApp:
                 old_loss = state["loss"]
                 old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
-
+            scenapp_log.info("Best loss: {:.10f}".format(old_best))
         state = self.process_timers(state)
 
         #N_data = sum([S_i.shape[0] for S_i in state[ScenAppStateKeys.S].values()])

@@ -18,12 +18,11 @@ from experiments.scenapp_tests.benchmarks import models
 def test_lnn():
     n_data = 1000
     system = models.Spiral 
-    system.time_horizon = 5000
+    system.time_horizon = 100
     #XD = fossil.domains.Sphere([0,0], 1)
-    XD = fossil.domains.Sphere([0, 0], 3)
-    
-    XI = domains.Rectangle([-1, 1], [1, 2])
-    XG = domains.Sphere([0,0],0.5)
+    XD = domains.Rectangle([-5, -5], [5, 5])
+    XI = domains.Rectangle([-1, 4], [1, 5])
+    XG = domains.Sphere([0,0],1)
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

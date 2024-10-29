@@ -472,8 +472,8 @@ class Practical_Lyapunov(Certificate):
         goal_loss = V_G
         state_loss = -V_D+beta
         margin = 1e-5 # 1e-15 works
-        req_diff = (V_I.max()-beta)/self.T
-        lie_loss = Vdot+relu(req_diff)
+        req_diff = ((V_I.max()-beta)/self.T)
+        lie_loss = relu(Vdot+relu(req_diff))
         # Vdot never gets negative...
 
         subgrad = not convex
@@ -602,7 +602,7 @@ class Practical_Lyapunov(Certificate):
             V_I = V[i1-idot1:i1+i2-idot1-idot2]
             V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
             V_G = V[i1+i2+i3-idot1-idot2-idot3:]
-            beta = V_SG.min()
+            beta = V_SG.min()+V_G.min()/1000
 
             loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
@@ -645,7 +645,7 @@ class Practical_Lyapunov(Certificate):
         V_I = V[i1-idot1:i1+i2-idot1-idot2]
         V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
         V_G = V[i1+i2+i3-idot1-idot2-idot3:]
-        beta = V_SG.min()
+        beta = V_SG.min()+V_G.min()/1000
 
         loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
 
@@ -1497,6 +1497,7 @@ class RSWS(RWS):
     def beta_search(self, learner, verifier, C, Cdot, S):
         return learner.compute_minimum(S[XG_BORDER])[0]
             
+
 
 class DoubleCertificate(Certificate):
     """In Devel class for synthesising any two certificates together"""

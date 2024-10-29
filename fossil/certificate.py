@@ -471,9 +471,9 @@ class Practical_Lyapunov(Certificate):
         init_loss = -V_I
         goal_loss = V_G
         state_loss = -V_D+beta
-        margin = 0#1e-5
+        margin = 1e-15
         req_diff = (V_I.max()-beta)/self.T
-        lie_loss = relu(Vdot+req_diff)
+        lie_loss = Vdot+relu(req_diff)
         # Vdot never gets negative...
 
         subgrad = not convex
@@ -522,13 +522,14 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = .1 
-        #init_con = relu(init_loss+margin).mean()
-        #goal_con = relu(goal_loss+margin).mean()
-        state_con = relu(state_loss+margin).mean()
-        loss = loss+ gamma*(state_con)
+        gamma = .5 
+        #init_con = 0
+        init_con = relu(init_loss+margin).mean()
+        goal_con = relu(goal_loss+margin).mean()
+        state_con = relu(state_loss).mean()
+        loss = loss+ gamma*(state_con+init_con)
         if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(state_con)
+            supp_loss = supp_loss + gamma*(state_con+init_con)
             #supp_loss = supp_loss + gamma*(state_con+goal_con+init_con)
         #try:
         #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]

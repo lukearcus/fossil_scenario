@@ -18,6 +18,7 @@ from experiments.scenapp_tests.benchmarks import models
 def test_lnn():
     n_data = 1000
     system = models.Spiral 
+    system.time_horizon = 5000
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = fossil.domains.Sphere([0, 0], 3)
     

@@ -247,6 +247,7 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
         dx, dy = (
             model._f_torch(0, torch.stack([XT.ravel(), YT.ravel()]).T.float())
             .detach()
+            .T
         )
         lie = certificate(
             torch.cat((dx.reshape(-1, 1), dy.reshape(-1, 1)), dim=1))-                certificate(

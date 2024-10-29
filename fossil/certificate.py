@@ -471,7 +471,7 @@ class Practical_Lyapunov(Certificate):
         init_loss = -V_I
         goal_loss = V_G
         state_loss = -V_D+beta
-        margin = 1e-300
+        margin = 0#1e-5
         req_diff = (V_I.max()-beta)/self.T
         lie_loss = relu(Vdot+req_diff)
         # Vdot never gets negative...

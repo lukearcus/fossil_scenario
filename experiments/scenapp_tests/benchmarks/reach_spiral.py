@@ -23,6 +23,8 @@ def test_lnn():
     
     XI = domains.Rectangle([-1, 1], [1, 2])
     XG = domains.Sphere([0,0],0.5)
+
+    SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
             fossil.XG: XG,
@@ -43,7 +45,7 @@ def test_lnn():
     
     n_state_data = 1000
 
-    state_data = {fossil.XD: XD._generate_data(n_state_data)(),
+    state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
                   fossil.XG: XG._generate_data(n_state_data)(),
                   fossil.XG_BORDER: XG._sample_border(n_state_data)()}

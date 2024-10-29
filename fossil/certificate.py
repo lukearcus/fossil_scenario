@@ -445,6 +445,8 @@ class Practical_Lyapunov(Certificate):
             self, 
             V_I: torch.Tensor, 
             V_G: torch.Tensor,
+            V_D: torch.Tensor,
+            beta: torch.Tensor,
             Vdot: torch.Tensor, 
             indices: list,
             supp_samples: set,
@@ -466,10 +468,11 @@ class Practical_Lyapunov(Certificate):
         relu = torch.nn.ReLU()
         # relu = torch.nn.Softplus()
         # compute loss function. if last layer of ones (llo), can drop parts with V
-        state_loss = -V_I
+        init_loss = -V_I
         goal_loss = V_G
-        margin = 1e-5
-        req_diff = (V_I.max()-V_G.min())/self.T
+        state_loss = -V_D+beta
+        margin = 1e-300
+        req_diff = (V_I.max()-beta)/self.T
         lie_loss = relu(Vdot+req_diff)
         # Vdot never gets negative...
 
@@ -516,15 +519,17 @@ class Practical_Lyapunov(Certificate):
             #        relu(-V + margin)
             #    ).max()) # Why times circle?
         goal_accuracy = (V_G<0).count_nonzero().item()/len(V_G)
-        dom_accuracy = (V_I>0).count_nonzero().item()/len(V_I)
+        dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 1 
+        gamma = .1 
+        #init_con = relu(init_loss+margin).mean()
+        #goal_con = relu(goal_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
-        goal_con = relu(goal_loss+margin).mean()
-        loss = loss+ gamma*(state_con+goal_con)
+        loss = loss+ gamma*(state_con)
         if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(state_con+goal_con)
+            supp_loss = supp_loss + gamma*(state_con)
+            #supp_loss = supp_loss + gamma*(state_con+goal_con+init_con)
         #try:
         #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]
         #except IndexError:
@@ -533,7 +538,6 @@ class Practical_Lyapunov(Certificate):
         #    loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
         #    if supp_loss != -1:
         #        supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
-
 
         return loss, supp_loss, accuracy, new_sub_samples
 
@@ -568,16 +572,19 @@ class Practical_Lyapunov(Certificate):
         i2 = S[XI].shape[0]
         idot2 = Sdot[XI].shape[0]
 
-        samples = torch.cat([S[XD], S[XI], S[XG]])
+        i3 = S[XG_BORDER].shape[0]
+        idot3 = len(Sdot[XG_BORDER])
+
+        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG]])
 
         if type(Sdot[XG]) is list:
-            idot3 = 0
+            idot4 = 0
         else:
-            idot3 = Sdot[XG].shape[0]
+            idot4 = Sdot[XG].shape[0]
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:]])
         times = times[XD]
 
         supp_samples = set()
@@ -591,11 +598,12 @@ class Practical_Lyapunov(Certificate):
             #V = torch.cat([V1,V2])
             V = V2
             V_D = V[:i1-idot1]
-            V_I = V[i1-idot1:i1+i2-i1-idot2]
-            V_G = V[i1+i2-idot1-idot2:]
+            V_I = V[i1-idot1:i1+i2-idot1-idot2]
+            V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+            V_G = V[i1+i2+i3-idot1-idot2-idot3:]
+            beta = V_SG.min()
 
-
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -633,12 +641,12 @@ class Practical_Lyapunov(Certificate):
         #V = torch.cat([V1,V2])
         V = V2
         V_D = V[:i1-idot1]
-        V_I = V[i1-idot1:i1+i2-i1-idot2]
-        V_G = V[i1+i2-idot1-idot2:]
+        V_I = V[i1-idot1:i1+i2-idot1-idot2]
+        V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+        V_G = V[i1+i2+i3-idot1-idot2-idot3:]
+        beta = V_SG.min()
 
-
-
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, Vdot, Sind, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
@@ -1049,7 +1057,7 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            req_diff = (V_i.max()-V_g.min())/self.T
+            req_diff = relu((V_i.max()-V_g.min())/self.T)
             # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
 
             # this might need changing in case there are points in the unsafe or goal set?

@@ -26,6 +26,7 @@ def test_lnn():
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
             fossil.XG: XG,
+            fossil.XG_BORDER: XG,
             fossil.XI: XI
                 }
     init_data = XI._generate_data(n_data)()
@@ -42,7 +43,10 @@ def test_lnn():
     
     n_state_data = 1000
 
-    state_data = {fossil.XI: XI._generate_data(n_state_data)(), fossil.XG: XG._generate_data(n_state_data)()}
+    state_data = {fossil.XD: XD._generate_data(n_state_data)(),
+                  fossil.XI: XI._generate_data(n_state_data)(), 
+                  fossil.XG: XG._generate_data(n_state_data)(),
+                  fossil.XG_BORDER: XG._sample_border(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
@@ -68,9 +72,9 @@ def test_lnn():
         VERBOSE=2,
     )
     result = fossil.synthesise(opts)
-    
+
     axes = plotting.benchmark(
-        system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 3], yrange=[-3, 3]
+        system(), result.cert, domains=opts.DOMAINS, xrange=[-3, 3], yrange=[-3, 3], levels=[[result.cert(state_data[fossil.XG_BORDER]).min().item()]]
     )
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)

@@ -473,7 +473,7 @@ class Practical_Lyapunov(Certificate):
         state_loss = -V_D+beta
         margin = 1e-5 # 1e-15 works
         req_diff = ((V_I.max()-beta)/self.T)
-        lie_loss = relu(Vdot+relu(req_diff))
+        lie_loss = relu(Vdot+relu(req_diff)+margin)
         # Vdot never gets negative...
 
         subgrad = not convex

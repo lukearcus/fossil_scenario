@@ -181,7 +181,7 @@ def plot_domains(domains, ax):
 
 
 def certificate_surface(
-    certificate, ax=None, xrange=[-3, 3], yrange=[-3, 3], levels=[0]
+    certificate, ax=None, xrange=[-5, 5], yrange=[-5, 5], levels=[0]
 ):
     """Plot the surface of the certificate.
     Args:

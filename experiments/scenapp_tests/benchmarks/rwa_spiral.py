@@ -49,7 +49,7 @@ def test_lnn(args):
     state_data = {
         certificate.XD: SD._generate_data(n_state_data)(),
         certificate.XI: XI._generate_data(n_state_data)(),
-        certificate.XS_BORDER: SU._sample_border(n_state_data)(),
+        certificate.XS_BORDER: XS._sample_border(n_state_data)(),
         certificate.XG: XG._generate_data(n_state_data)(),
         certificate.XG_BORDER: XG._sample_border(n_state_data)()
     }

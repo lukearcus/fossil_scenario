@@ -967,12 +967,11 @@ class RWS(Certificate):
         self.T = config.SYSTEM.time_horizon
 
     def compute_loss(self, V_i, V_u, V_d, V_g, Vdot_d, beta, indices, supp_samples, convex):
-        margin = 1e-3
+        margin = 1e-5
         margin_lie = 0.0
-        learn_accuracy = (V_i <= -margin).count_nonzero().item() + (
-            V_u >= margin
-        ).count_nonzero().item()
-        percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(V_i) + len(V_u))
+        acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
+        acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
+        acc_domain = (V_d >= beta).count_nonzero().item()*100/len(V_d)
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
@@ -1025,7 +1024,9 @@ class RWS(Certificate):
         
 
         accuracy = {
-            "acc init unsafe": percent_accuracy_init_unsafe,
+            "acc init": acc_init,
+            "acc unsafe": acc_unsafe,
+            "acc domain": acc_domain,
             "acc lie": lie_accuracy,
         }
 
@@ -1140,7 +1141,6 @@ class RWS(Certificate):
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
-            print(supp_samples)
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot, times, states):
@@ -1244,7 +1244,7 @@ class RSWS(RWS):
         :param beta: the guess value of beta based on the min of V of XG_border
         :param V_d: the value of V at points in the goal set
         :param Vdot_d: the value of the lie derivative of V at points in the goal set"""
-        lie_index = torch.nonzero(V_g <= beta-1e-3)
+        lie_index = torch.nonzero(V_g <= beta)
         
         relu = torch.nn.ReLU()
         margin = 1e-5
@@ -1345,6 +1345,7 @@ class RSWS(RWS):
 
             Vstates = learner(samples)
 
+            V_d = Vstates[lie_indices[0]:lie_indices[1]]
             V_i = Vstates[init_indices[0] : init_indices[1]]
             V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
             S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
@@ -1353,9 +1354,9 @@ class RSWS(RWS):
             Vdot_g = Vdot[lie_dot_indices[1] :]
             samples_dot_d = samples_dot[: lie_indices[1]]
 
+            beta = learner.compute_minimum(S_dg)[0]
             loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
 
-            beta = learner.compute_minimum(S_dg)[0]
             #beta_loss, supp_beta_loss, beta_sub_sample = 0, -1, set()
             # converges without beta loss
             beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
@@ -1408,9 +1409,10 @@ class RSWS(RWS):
         Vdot_g = Vdot[lie_dot_indices[1] :]
         samples_dot_d = samples_dot[: lie_indices[1]]
         
-        loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, Sind, supp_samples, convex)
-
         beta = learner.compute_minimum(S_dg)[0]
+        
+        loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
+
         beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
         #loss = torch.max(loss, beta_loss)
         loss = loss + beta_loss

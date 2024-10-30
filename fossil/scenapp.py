@@ -337,7 +337,10 @@ class SingleScenApp:
                 old_loss = state["loss"]
                 old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
-            scenapp_log.info("Best loss: {:.10f}".format(old_best))
+            if type(old_best) is float:
+                scenapp_log.info("Best loss: {:.10f}".format(old_best))
+            else:
+                scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
         state = self.process_timers(state)
 
         #N_data = sum([S_i.shape[0] for S_i in state[ScenAppStateKeys.S].values()])

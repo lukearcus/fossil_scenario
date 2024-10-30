@@ -472,6 +472,14 @@ class SetMinus(Set):
 
     def check_containment(self, x):
         return self.S1.check_containment(x) & ~self.S2.check_containment(x)
+    
+    def sample_border(self, batch_size):
+        warnings.warn(
+            "Assuming that border of S1 and S2 is the union of the two borders. This is not true in general, eg if the sets intersect."
+        )
+        X1 = self.S1.sample_border(int(batch_size / 2))
+        X2 = self.S2.sample_border(int(batch_size / 2))
+        return torch.cat([X1, X2])
 
 
 class Rectangle(Set):

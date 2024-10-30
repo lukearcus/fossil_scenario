@@ -983,7 +983,7 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            state_loss = relu(-V_d + margin).mean()
+            state_loss = relu(-V_d + beta).mean()
             req_diff = relu((V_i.max()-beta)/self.T)
             # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
 
@@ -1067,7 +1067,7 @@ class RWS(Certificate):
             idot4 = Sdot[XS_BORDER].shape[0]
         else:
             idot4 = 0
-        i4 = S[XS].shape[0]
+        i4 = S[XS_BORDER].shape[0]
 
         idot5 = len(Sdot[XG_BORDER])
 
@@ -1079,7 +1079,7 @@ class RWS(Certificate):
         samples_with_nexts = S[XD][:idot1]
         #samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         #samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3], samples[i1+i2+i3:i1+i2+i3+idot4]])
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1_i2_i3_i4], samples[i1+i2+i3+i4+idot5:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4], samples[i1+i2+i3+i4+idot5:]])
         times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
         supp_samples = set()
 
@@ -1093,10 +1093,12 @@ class RWS(Certificate):
             #V, gradV = learner.compute_V_gradV(nn, grad_nn, samples)
             B = learner(states_only)
             
+            B_d = B[:i1-idot1]
             B_i = B[i1-idot1 : i1 + i2-idot1-idot2]
             B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
             B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
             B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+            beta = B_sg.min()
             
             loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, beta, Sind, supp_samples, convex)
 

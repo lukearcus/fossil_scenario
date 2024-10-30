@@ -21,13 +21,13 @@ def test_lnn(args):
     batch_size = 1000
 
     system = models.Spiral
-    system.time_horizon = 2500
+    system.time_horizon = 100
 
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 5])
     SU = domains.Rectangle([4,-1],[5,1])
     
-    XG = domains.Sphere([0,0],0.5)
+    XG = domains.Sphere([0,0],1.0)
 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states????
     #SU = domains.SetMinus(XD, XS)  # Data for unsafe set
@@ -40,25 +40,20 @@ def test_lnn(args):
         certificate.XS_BORDER: XS,
         certificate.XS: XS,
         certificate.XG: XG,
+        certificate.XG_BORDER: XG,
     }
     n_data = 1000
     n_state_data = 10000
 
     # not sure if we should generate data from border of XS? Should be possible for simple borders
     state_data = {
-        certificate.XD: XD._generate_data(n_state_data)(),
+        certificate.XD: SD._generate_data(n_state_data)(),
         certificate.XI: XI._generate_data(n_state_data)(),
         certificate.XS_BORDER: SU._sample_border(n_state_data)(),
         certificate.XG: XG._generate_data(n_state_data)(),
+        certificate.XG_BORDER: XG._sample_border(n_state_data)()
     }
     init_data = XI._generate_data(n_data)()
-    sets = {
-        certificate.XD: XD,
-        certificate.XI: XI,
-        certificate.XS_BORDER: XS,
-        certificate.XS: XS,
-        certificate.XG: XG,
-    }
 
     all_data = system().generate_trajs(init_data)
     not_goal_inds = [torch.where(domains.Complement(XG).check_containment(torch.Tensor(elem.T))) for elem in all_data[1]]

@@ -462,19 +462,14 @@ class Practical_Lyapunov(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        #margin = 0.1 # Need to change this and carry it around for later
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
-        #relu = torch.nn.LeakyReLU(1 / slope.item())
         relu = torch.nn.ReLU()
-        # relu = torch.nn.Softplus()
-        # compute loss function. if last layer of ones (llo), can drop parts with V
         init_loss = -V_I
         goal_loss = V_G
         state_loss = -V_D+beta
-        margin = 1e-5 # 1e-15 works
+        margin = 1e-5
         req_diff = ((V_I.max()-beta)/self.T)
         lie_loss = relu(Vdot+relu(req_diff)+margin)
-        # Vdot never gets negative...
 
         subgrad = not convex
         
@@ -503,43 +498,18 @@ class Practical_Lyapunov(Certificate):
                     state_elems = state_loss[inds]
                 lie_elems = lie_loss[inds]
                 loss += lie_elems.max()
-            #if self.llo:
-            #    learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            #    #loss = (relu(Vdot + margin * circle)).max()
-            #    loss = (relu(Vdot + margin)).max()
-            #else:
-            #    learn_accuracy = 0.5 * (
-            #        (Vdot <= -margin).count_nonzero().item()
-            #        + (V >= margin).count_nonzero().item()
-            #    )
-            #    #loss = torch.max((relu(Vdot + margin * circle)).max() , (
-            #    #    relu(-V + margin * circle)
-            #    #).max()) # Why times circle?
-            #    loss = torch.max((relu(Vdot + margin )).max() , (
-            #        relu(-V + margin)
-            #    ).max()) # Why times circle?
         goal_accuracy = (V_G<0).count_nonzero().item()/len(V_G)
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         gamma = 1
-        #init_con = 0
-        #goal_con = 0
+        # init and goal constraints shouldn't be needed but speed up convergence
         init_con = relu(init_loss+margin).mean()
-        goal_con = relu(goal_loss+margin).mean()
+        goal_con = relu(goal_loss+margin).mean() 
         state_con = relu(state_loss).mean()
         loss = loss+ gamma*(state_con+init_con+goal_con)
         if supp_loss != -1:
             supp_loss = supp_loss + gamma*(state_con+init_con+goal_con)
-            #supp_loss = supp_loss + gamma*(state_con+goal_con+init_con)
-        #try:
-        #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]
-        #except IndexError:
-        #    final_ind = -1
-        #if final_ind < len(lie_loss) - 1:
-        #    loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
-        #    if supp_loss != -1:
-        #        supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
 
         return loss, supp_loss, accuracy, new_sub_samples
 
@@ -597,7 +567,6 @@ class Practical_Lyapunov(Certificate):
 
             V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
             V2 = learner(states_only)
-            #V = torch.cat([V1,V2])
             V = V2
             V_D = V[:i1-idot1]
             V_I = V[i1-idot1:i1+i2-idot1-idot2]
@@ -628,7 +597,6 @@ class Practical_Lyapunov(Certificate):
                     supp_loss.backward(retain_graph=True)
                     supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                     inner = torch.inner(grads, supp_grads)
-                    #print(inner)
                     if inner <= 0:
                         supp_samples = supp_samples.union(sub_sample)
                         optimizer.zero_grad()
@@ -641,7 +609,6 @@ class Practical_Lyapunov(Certificate):
                 learner.make_final_layer_positive()
         V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
         V2 = learner(states_only)
-        #V = torch.cat([V1,V2])
         V = V2
         V_D = V[:i1-idot1]
         V_I = V[i1-idot1:i1+i2-idot1-idot2]
@@ -659,7 +626,7 @@ class Practical_Lyapunov(Certificate):
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, V, Vdot, S, Sdot, times, state_data):
-        req_diff = (V(state_data["init"]).max()-V(state_data["goal"]).min())/self.T
+        req_diff = (V(state_data["init"]).max()-V(state_data["goal_border"]).min())/self.T
         violated = 0
         true_violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
@@ -674,55 +641,12 @@ class Practical_Lyapunov(Certificate):
             pred_0 = V(torch.zeros_like(traj))
             pred_Vdot = Vdot(traj, traj_deriv, time)
             non_goal_inds = torch.where(domains.Complement(self.D[XG]).check_containment(traj))
-            if len(non_goal_inds) == 0: # check this does what I want it to do...
+            if len(non_goal_inds) == 0:
                 true_violated += 1
-            #if any(pred_V < pred_0):
-            #    raise ValueError("Value violation!")
+            # We should check for value violations, but currently don't
             if any(pred_Vdot[non_goal_inds] > -req_diff):
                 violated += 1
         return violated, true_violated
-
-
-    def get_constraints(self, verifier, V, Vdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param V: SMT formula of Lyapunov Function
-        :param Vdot: SMT formula of Lyapunov lie derivative
-        :return: tuple of dictionaries of lyapunov conditons
-        """
-        _Or = verifier.solver_fncts()["Or"]
-        _And = verifier.solver_fncts()["And"]
-        _Not = verifier.solver_fncts()["Not"]
-
-        if self.llo:
-            # V is positive definite by construction
-            lyap_negated = Vdot >= 0
-        else:
-            lyap_negated = _Or(V <= 0, Vdot >= 0)
-
-        not_origin = _Not(_And(*[xi == 0 for xi in verifier.xs]))
-        lyap_negated = _And(lyap_negated, not_origin)
-        lyap_condition = _And(self.domain, lyap_negated)
-        for cs in ({XD: lyap_condition},):
-            yield cs
-
-
-    def estimate_beta(self, net):
-        # This function is unused I think
-        print("Estimating beta!")
-        try:
-            border_D = self.D[XD].sample_border(300)
-            beta, _ = net.compute_minimum(border_D)
-        except NotImplementedError:
-            beta = self.D[XD].generate_data(300)
-        return beta
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XD]), domain_labels, "Symbolic Domains")
-        _set_assertion(set([XD]), data_labels, "Data Sets")
 
 class BarrierAlt(Certificate):
     """

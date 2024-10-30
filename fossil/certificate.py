@@ -506,7 +506,7 @@ class Practical_Lyapunov(Certificate):
         # init and goal constraints shouldn't be needed but speed up convergence
         init_con = relu(init_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean() 
-        state_con = relu(state_loss).mean()
+        state_con = relu(state_loss+margin).mean()
         loss = loss+ gamma*(state_con+init_con+goal_con)
         if supp_loss != -1:
             supp_loss = supp_loss + gamma*(state_con+init_con+goal_con)

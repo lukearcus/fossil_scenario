@@ -61,8 +61,8 @@ def test_lnn(args):
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
 
     # define NN parameters
-    activations = [ActivationType.SQUARE]
-    n_hidden_neurons = [4] * len(activations)
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
+    n_hidden_neurons = [5] * len(activations)
 
     opts = ScenAppConfig(
         DOMAINS=sets,

@@ -24,7 +24,7 @@ def test_lnn(args):
     system.time_horizon = 100
 
     XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-1, 4], [1, 5])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
     SU = domains.Rectangle([4,-1],[5,1])
     
     XG = domains.Sphere([0,0],1.0)

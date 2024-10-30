@@ -26,7 +26,7 @@ def test_lnn(args):
 
     
     XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-1, 4], [1, 5])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
     SU = domains.Rectangle([4,-1],[5,1])
     XU = domains.Rectangle([4,-1],[5,1])
 
@@ -47,7 +47,7 @@ def test_lnn(args):
     state_data = {
         "lie": SD._generate_data(n_state_data)(),
         "init": XI._generate_data(n_state_data)(),
-        "unsafe": SU._sample_border(n_state_data)(),
+        "unsafe": XS._sample_border(n_state_data)(),
         "safe": XS._generate_data(n_state_data)(),  # These are just for the beta search
         "goal_border": XG._sample_border(n_state_data)(),
         "goal": XG._generate_data(n_state_data)(),

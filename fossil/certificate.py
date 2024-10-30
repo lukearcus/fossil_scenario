@@ -1244,7 +1244,7 @@ class RSWS(RWS):
         :param beta: the guess value of beta based on the min of V of XG_border
         :param V_d: the value of V at points in the goal set
         :param Vdot_d: the value of the lie derivative of V at points in the goal set"""
-        lie_index = torch.nonzero(V_g <= beta)
+        lie_index = torch.nonzero(V_g <= V_g_border_min)
         
         relu = torch.nn.ReLU()
 

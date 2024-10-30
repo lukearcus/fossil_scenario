@@ -21,7 +21,7 @@ def test_lnn():
     system.time_horizon = 100
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-1, 4], [1, 5])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
     XG = domains.Sphere([0,0],1)
 
     SD =domains.SetMinus(XD, XG) 

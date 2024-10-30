@@ -971,7 +971,7 @@ class RWS(Certificate):
         margin_lie = 0.0
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
-        acc_domain = (V_d >= beta).count_nonzero().item()*100/len(V_d)
+        acc_domain = (V_d > beta).count_nonzero().item()*100/len(V_d)
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
@@ -982,7 +982,7 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            state_loss = relu(-V_d + beta).mean()
+            state_loss = relu(-V_d + beta+margin).mean()
             req_diff = relu((V_i.max()-beta)/self.T)
             # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
 
@@ -1354,7 +1354,7 @@ class RSWS(RWS):
             Vdot_g = Vdot[lie_dot_indices[1] :]
             samples_dot_d = samples_dot[: lie_indices[1]]
 
-            beta = learner.compute_minimum(S_dg)[0]
+            beta = learner.compute_minimum(S_dg)[0]+V_g.min()/1000
             loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
 
             #beta_loss, supp_beta_loss, beta_sub_sample = 0, -1, set()
@@ -1409,7 +1409,7 @@ class RSWS(RWS):
         Vdot_g = Vdot[lie_dot_indices[1] :]
         samples_dot_d = samples_dot[: lie_indices[1]]
         
-        beta = learner.compute_minimum(S_dg)[0]
+        beta = learner.compute_minimum(S_dg)[0]+V_g.min()/1000
         
         loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
 

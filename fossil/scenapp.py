@@ -386,7 +386,7 @@ class SingleScenApp:
                 self.verifier.get_timer().sum,
                 #self.consolidator.get_timer().sum,
                 ]
-        scenapp_log.info("Learner times: {}".format(self.learner.get_timer()))
+        print("Learner times: {}".format(self.learner.get_timer()))
         #cegis_log.info("Translator times: {}".format(self.translator.get_timer()))
         scenapp_log.info("Verifier times: {}".format(self.verifier.get_timer()))
         #cegis_log.info("Consolidator times: {}".format(self.consolidator.get_timer()))

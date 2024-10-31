@@ -21,7 +21,7 @@ def show():
 
 
 def benchmark(
-    model, certificate, domains={}, levels=[0], xrange=[-3, 3], yrange=[-3, 3]
+    model, certificate, domains={}, levels=[0], xrange=[-5, 5], yrange=[-5, 5]
 ):
     """Helper function to plot all salient plots.
 
@@ -112,7 +112,7 @@ def benchmark_plane(
     return ax
 
 
-def benchmark_3d(certificate, domains={}, levels=[[0]], xrange=[-3, 3], yrange=[-3, 3]):
+def benchmark_3d(certificate, domains={}, levels=[[0]], xrange=[-5, 5], yrange=[-5, 5]):
     """Plot surface of the certificate benchmark.  If the domains are provided, they are plotted as well.
 
     Plots the surface of a 2D learner.

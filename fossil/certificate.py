@@ -313,6 +313,7 @@ class Lyapunov(Certificate):
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
 
+
             if self.control:
                 loss = loss + control.cosine_reg(samples, samples_dot)
 
@@ -578,6 +579,7 @@ class Practical_Lyapunov(Certificate):
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
+                best_net.beta = beta.item()
 
 
             if self.control:
@@ -623,6 +625,7 @@ class Practical_Lyapunov(Certificate):
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
+            best_net.beta = beta.item()
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, V, Vdot, S, Sdot, times, state_data):
@@ -1107,6 +1110,7 @@ class RWS(Certificate):
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
+                best_net.beta = beta.item()
             
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
@@ -1142,6 +1146,7 @@ class RWS(Certificate):
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
+            best_net.beta = beta.item()
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot, times, states):
@@ -1376,6 +1381,7 @@ class RSWS(RWS):
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
+                best_net.beta = beta.item()
 
             if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
                 log_loss_acc(t, loss, accuracy, learner.verbose)
@@ -1424,6 +1430,7 @@ class RSWS(RWS):
         if loss <= best_loss:
             best_loss = loss
             best_net = copy.deepcopy(learner)
+            best_net.beta = beta.item()
 
         return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps":supp_samples}
 

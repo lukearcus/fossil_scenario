@@ -96,6 +96,54 @@ class HighOrd8(control.DynamicalModel):
             - 576 * x0,
         ]
 
+class HighOrd8DT(control.DynamicalModel):
+    n_vars = 8
+    time_horizon = 50
+    time = "discrete"
+    T=0.1
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x0, x1, x2, x3, x4, x5, x6, x7 = (
+                v[0],
+                v[1],
+                v[2],
+                v[3],
+                v[4],
+                v[5],
+                v[6],
+                v[7],
+            )
+        
+        else:
+            x0, x1, x2, x3, x4, x5, x6, x7 = (
+                v[:, 0],
+                v[:, 1],
+                v[:, 2],
+                v[:, 3],
+                v[:, 4],
+                v[:, 5],
+                v[:, 6],
+                v[:, 7],
+            )
+        return [
+            x0+self.T*x1,
+            x1+self.T*x2,
+            x2+self.T*x3,
+            x3+self.T*x4,
+            x4+self.T*x5,
+            x5+self.T*x6,
+            x6+self.T*x7,
+            x7 + self.T*(-20 * x7
+            - 170 * x6
+            - 800 * x5
+            - 2273 * x4
+            - 3980 * x3
+            - 4180 * x2
+            - 2400 * x1
+            - 576 * x0),
+        ]
+
 class JetEngBarr(control.DynamicalModel):
     n_vars = 2
     time_horizon = 5

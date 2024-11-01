@@ -26,11 +26,17 @@ import fossil.domains as domains
 
 
 XD = DomainNames.XD.value
+XD1 = DomainNames.XD1.value
+XD2 = DomainNames.XD2.value
 XI = DomainNames.XI.value
 XU = DomainNames.XU.value
 XS = DomainNames.XS.value
 XG = DomainNames.XG.value
+XG1 = DomainNames.XG1.value
+XG2 = DomainNames.XG2.value
 XG_BORDER = DomainNames.XG_BORDER.value
+XG1_BORDER = DomainNames.XG1_BORDER.value
+XG2_BORDER = DomainNames.XG2_BORDER.value
 XS_BORDER = DomainNames.XS_BORDER.value
 XF = DomainNames.XF.value
 XNF = DomainNames.XNF.value
@@ -619,6 +625,260 @@ class Practical_Lyapunov(Certificate):
         beta = V_SG.min()
 
         loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
+
+        if self.control:
+            loss = loss + control.cosine_reg(samples, samples_dot)
+        if loss <= best_loss:
+            best_loss = loss
+            best_net = copy.deepcopy(learner)
+            best_net.beta = beta.item()
+        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
+
+    def get_violations(self, V, Vdot, S, Sdot, times, state_data):
+        req_diff = (V(state_data["init"]).max()-V(state_data["goal_border"]).min())/self.T
+        violated = 0
+        true_violated = 0
+        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
+            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
+            
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+            time = time[valid_inds]
+    
+            pred_V = V(traj)
+            pred_0 = V(torch.zeros_like(traj))
+            pred_Vdot = Vdot(traj, traj_deriv, time)
+            non_goal_inds = torch.where(domains.Complement(self.D[XG]).check_containment(traj))
+            if len(non_goal_inds) == 0:
+                true_violated += 1
+            # We should check for value violations, but currently don't
+            if any(pred_Vdot[non_goal_inds] > -req_diff):
+                violated += 1
+        return violated, true_violated
+
+class Sequential_Reach(Certificate):
+    """
+    Certificies stability for CT and DT models
+    bool LLO: last layer of ones in network
+    XD: Symbolic formula of domain
+    XG: Goal region (around origin)
+    """
+
+    bias = False
+
+    def __init__(self, domains, config: ScenAppConfig) -> None:
+        self.domain = domains[XD]
+        self.llo = config.LLO
+        self.control = config.CTRLAYER is not None
+        self.D = config.DOMAINS
+        self.beta = None
+        self.T1 = config.SYSTEM.T1
+        self.T2 = config.SYSTEM.T2
+        self.T = self.T1+self.T2
+
+    def compute_loss(
+            self, 
+            V_I: torch.Tensor, 
+            V_G1: torch.Tensor,
+            V_D1: torch.Tensor,
+            V_G2: torch.Tensor,
+            V_D2: torch.Tensor,
+            alpha: torch.Tensor,
+            beta: torch.Tensor,
+            Vdot1: torch.Tensor, 
+            Vdot2: torch.Tensor, 
+            indices: list,
+            supp_samples: set,
+            convex: bool
+    ) -> tuple[torch.Tensor, dict]:
+        """_summary_
+
+        Args:
+            V (torch.Tensor): Lyapunov samples over domain
+            Vdot (torch.Tensor): Lyapunov derivative samples over domain
+            circle (torch.Tensor): Circle
+
+        Returns:
+            tuple[torch.Tensor, float]: loss and accuracy
+        """
+        relu = torch.nn.ReLU()
+        init_loss = -V_I
+        goal1_loss = V_G1
+        goal2_loss = V_G2
+        state1_loss = -V_D1+alpha
+        state2_loss = -V_D2+beta
+        margin = 1e-5
+        req_diff1 = ((V_I.max()-alpha)/self.T1)
+        req_diff2 = ((alpha-beta)/self.T2)
+        lie2_loss = relu(Vdot2+relu(req_diff2))
+        
+        lie1_index = torch.nonzero(V_D1 > alpha)
+         
+
+        subgrad = not convex
+        
+        if subgrad:
+            supp_max = torch.tensor([-1.])
+            
+            Vdot_selected = torch.index_select(Vdot1, dim=0, index=lie1_index[:, 0])
+            lie1_loss = relu(Vdot_selected+relu(req_diff1))
+            
+            lie1_max = lie1_loss.max()
+            ind_lie1_max = lie1_loss.argmax()
+            lie2_max = lie2_loss.max()
+            ind_lie2_max = lie2_loss.argmax()
+            loss = torch.max(lie1_max, lie2_max)
+            if loss == lie1_max:
+                ind_lie_max = ind_lie1_max
+                indexer = indices["lie1"]
+            else:
+                ind_lie_max = ind_lie2_max
+                indexer = indices["lie2"]
+            sub_sample = -1
+            for i, elem in enumerate(indexer):
+                if ind_lie_max in elem:
+                    sub_sample = i
+                    break
+            for ind in supp_samples:
+                inds1 = indices["lie1"][ind]
+                inds2 = indices["lie2"][ind]
+                supp_max = torch.max(supp_max, lie1_loss[inds1].max())
+                supp_max = torch.max(supp_max, lie2_loss[inds2].max())
+            supp_loss = supp_max
+            new_sub_samples = set([sub_sample])
+        else:
+            raise NotImplementedError
+        goal_accuracy = (V_G1<0+V_G2<0).count_nonzero().item()/(len(V_G1)+len(V_G2))
+        dom_accuracy = (V_D1>alpha+V_D2>beta).count_nonzero().item()/(len(V_D1)+len(V_D2))
+        lie_accuracy = (Vdot1 <= -req_diff1 + Vdot2<=-req_diff2).count_nonzero().item()/(len(Vdot1)+len(Vdot2))
+        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
+        gamma = 1
+        # init and goal constraints shouldn't be needed but speed up convergence
+        init_con = relu(init_loss+margin).mean()
+        goal1_con = relu(goal1_loss+margin).mean() 
+        state1_con = relu(state1_loss+margin).mean()
+        goal2_con = relu(goal2_loss+margin).mean() 
+        state2_con = relu(state2_loss+margin).mean()
+        loss = loss+ gamma*(state1_con+init_con+goal1_con+state2_con+goal2_con)
+        if supp_loss != -1:
+            supp_loss = supp_loss + gamma*(state1_con+init_con+goal1_con+state2_con+goal2_con)
+        return loss, supp_loss, accuracy, new_sub_samples
+
+    def learn(
+        self,
+        learner: learner.LearnerNN,
+        optimizer: Optimizer,
+        S: list,
+        Sdot: list,
+        Sind: list,
+        times: list,
+        best_loss: float,
+        best_net: learner.LearnerNN,
+        f_torch=None,
+        convex=False
+    ) -> dict:
+        """
+        :param learner: learner object
+        :param optimizer: torch optimiser
+        :param S: dict of tensors of data
+        :param Sdot: dict of tensors containing f(data)
+        :return: --
+        """
+
+        batch_size = len(S[XD])
+        learn_loops = 1000
+        
+        D1_dot_index = 0, Sdot[XD1].shape[0]
+        D1_index = Sdot[XD1].shape[0], S[XD1].shape[0]
+
+        D2_dot_index = D1_dot_index[1], D1_dot_index[0]+Sdot[XD2].shape[0]
+        D2_index = D2_dot_index[1], D2_dot_index[1]+S[XD2].shape[0]
+        
+        I_index = D2_index[1]+Sdot[XI].shape[0], D2_index[1]+S[XI].shape[0]
+        
+        G1Border_index = I_index[1]+len(Sdot[XG1_BORDER]), I_index[1]+S[XG1_BORDER].shape[0]
+        
+        G2Border_index = G1Border_index[1]+len(Sdot[XG2_BORDER]), G1Border_index[1]+S[XG2_BORDER].shape[0]
+        
+        G1_index = G1Border_index[1]+len(Sdot[XG1]), G1Border_index[1]+S[XG1].shape[0]
+        
+        G2_index = G1_index[1]+len(Sdot[XG2]), XG1_index[1]+S[XG2].shape[0]
+
+        samples = torch.cat([S[XD1], S[XD2], S[XI], S[XG1_BORDER], S[XG2_BORDER],  S[XG1], S[XG2]])
+
+        samples_dot = torch.cat([Sdot[XD1], Sdot[XD2]])
+
+        samples_with_nexts = torch.cat([samples[D1_dot_index[0]:D1_dot_index[1]], samples[D2_dot_index[0]:D2_dot_index[1]]])
+        times = torch.cat([times[XD1], times[XD2]])
+
+        supp_samples = set()
+        for t in range(learn_loops):
+            optimizer.zero_grad()
+            if self.control:
+                samples_dot = f_torch(samples)
+
+            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
+            V2 = learner(samples)
+            V = V2
+            V_D1 = V[D1_index[0]:D1_index[1]]
+            V_D2 = V[D2_index[0]:D2_index[1]]
+            V_I = V[I_index[0]:I_index[1]]
+            V_SG1 = V[G1Border_index[0]:G1Border_index[1]]
+            V_SG2 = V[G2Border_index[0]:G2Border_index[1]]
+            V_G1 = V[G1_index[0]:G1_index[1]]
+            V_G2 = V[G2_index[0]:G2_index[1]]
+            alpha = V_SG1.min()
+            beta = V_SG2.min()
+
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_G2, V_D1, V_D2, alpha, beta, Vdot, Sind, supp_samples, convex)
+            if loss <= best_loss:
+                best_loss = loss
+                best_net = copy.deepcopy(learner)
+                best_net.beta = beta.item()
+
+
+            if self.control:
+                loss = loss + control.cosine_reg(samples, samples_dot)
+
+            if t % 100 == 0 or t == learn_loops - 1:
+                log_loss_acc(t, loss, learn_accuracy, learner.verbose)
+            
+            if convex:
+                loss.backward()
+            else:
+                loss.backward(retain_graph=True)
+                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                # Code below is for non-convex
+                if supp_loss != -1:
+                    optimizer.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    inner = torch.inner(grads, supp_grads)
+                    if inner <= 0:
+                        supp_samples = supp_samples.union(sub_sample)
+                        optimizer.zero_grad()
+                        loss.backward()
+                else:
+                    supp_samples = supp_samples.union(sub_sample)
+            optimizer.step()
+
+            if learner._take_abs:
+                learner.make_final_layer_positive()
+        V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+        V2 = learner(samples)
+        V = V2
+        V_D1 = V[D1_index[0]:D1_index[1]]
+        V_D2 = V[D2_index[0]:D2_index[1]]
+        V_I = V[I_index[0]:I_index[1]]
+        V_SG1 = V[G1Border_index[0]:G1Border_index[1]]
+        V_SG2 = V[G2Border_index[0]:G2Border_index[1]]
+        V_G1 = V[G1_index[0]:G1_index[1]]
+        V_G2 = V[G2_index[0]:G2_index[1]]
+        alpha = V_SG1.min()
+        beta = V_SG2.min()
+
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_G2, V_D1, V_D2, alpha, beta, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
@@ -1484,6 +1744,8 @@ class AutoSets:
             return self.auto_lyap()
         elif self.certificate == CertificateType.PRACTICALLYAPUNOV:
             return self.auto_practical_lyap()
+        elif self.certificate == CertificateType.SEQUENTIALREACH:
+            return self.auto_sequential_reach()
         elif self.certificate == CertificateType.BARRIERALT:
             self.auto_barrier_alt(self.sets)
         elif self.certificate == CertificateType.RWS:
@@ -1506,6 +1768,8 @@ def get_certificate(
         return Lyapunov
     elif certificate == CertificateType.PRACTICALLYAPUNOV:
         return Practical_Lyapunov
+    elif certificate == CertificateType.SEQUENTIALREACH:
+        return Sequential_Reach
     elif certificate == CertificateType.BARRIERALT:
         return BarrierAlt
     elif certificate in (CertificateType.RWS, CertificateType.RWA):

@@ -81,10 +81,16 @@ class PrimerMode(Enum):
 
 class DomainNames(Enum):
     XD = "lie"
+    XD1 = "lie1"
+    XD2 = "lie2"
     XU = "unsafe"
     XI = "init"
     XG = "goal"
+    XG1 = "goal1"
+    XG2 = "goal2"
     XG_BORDER = "goal_border"
+    XG1_BORDER = "goal_border1"
+    XG2_BORDER = "goal_border2"
     XF = "final"
     XS = "safe"
     XS_BORDER = "safe_border"
@@ -104,6 +110,7 @@ class CertificateType(Enum):
     BARRIERALT = auto()
     LYAPUNOV = auto()
     PRACTICALLYAPUNOV = auto()
+    SEQUENTIALREACH=auto()
     ROA = auto()
     RWA = auto()
     RSWA = auto()

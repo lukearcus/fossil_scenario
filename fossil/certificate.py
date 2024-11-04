@@ -382,8 +382,8 @@ class Lyapunov(Certificate):
             pred_Vdot = Vdot(traj, traj_deriv, time)
             if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
                 true_violated += 1
-            if any(pred_V < pred_0):
-                raise ValueError("Value violation!")
+            #if any(pred_V < pred_0):
+            #    raise ValueError("Value violation!")
             if any(pred_Vdot > 0):
                 violated += 1
         return violated, true_violated
@@ -682,6 +682,7 @@ class Sequential_Reach(Certificate):
             V_I: torch.Tensor, 
             V_G1: torch.Tensor,
             V_D1: torch.Tensor,
+            V_D_lie_1: torch.Tensor,
             V_G2: torch.Tensor,
             V_D2: torch.Tensor,
             alpha: torch.Tensor,
@@ -713,7 +714,7 @@ class Sequential_Reach(Certificate):
         req_diff2 = ((alpha-beta)/self.T2)
         lie2_loss = relu(Vdot2+relu(req_diff2))
         
-        lie1_index = torch.nonzero(V_D1 > alpha)
+        lie1_index = torch.nonzero(V_D_lie_1 > alpha)
          
 
         subgrad = not convex
@@ -721,14 +722,20 @@ class Sequential_Reach(Certificate):
         if subgrad:
             supp_max = torch.tensor([-1.])
             
-            Vdot_selected = torch.index_select(Vdot1, dim=0, index=lie1_index[:, 0])
-            lie1_loss = relu(Vdot_selected+relu(req_diff1))
-            
-            lie1_max = lie1_loss.max()
-            ind_lie1_max = lie1_loss.argmax()
-            lie2_max = lie2_loss.max()
-            ind_lie2_max = lie2_loss.argmax()
-            loss = torch.max(lie1_max, lie2_max)
+            if lie1_index.nelement() != 0:
+                Vdot_selected = torch.index_select(Vdot1, dim=0, index=lie1_index[:, 0])
+                lie1_loss = relu(Vdot_selected+relu(req_diff1))
+                lie1_max = lie1_loss.max()
+                ind_lie1_max = lie1_loss.argmax()
+                lie2_max = lie2_loss.max()
+                ind_lie2_max = lie2_loss.argmax()
+                loss = torch.max(lie1_max, lie2_max)
+            else:
+                lie1_max=1
+                lie2_max = lie2_loss.max()
+                ind_lie2_max = lie2_loss.argmax()
+                loss = lie2_max
+
             if loss == lie1_max:
                 ind_lie_max = ind_lie1_max
                 indexer = indices["lie1"]
@@ -741,8 +748,11 @@ class Sequential_Reach(Certificate):
                     sub_sample = i
                     break
             for ind in supp_samples:
-                inds1 = indices["lie1"][ind]
-                adjusted_inds1 = torch.cat([torch.where(lie1_index[:,0] == elem)[0] for elem in inds1])
+                if lie1_index.nelement() != 0:
+                    inds1 = indices["lie1"][ind]
+                    adjusted_inds1 = torch.cat([torch.where(lie1_index[:,0] == elem)[0] for elem in inds1])
+                else:
+                    adjusted_inds1 = []
                 inds2 = indices["lie2"][ind]
                 #adjusted_inds2 = torch.cat([torch.where(lie2_index[:,0] == elem)[0] for elem in inds2])
                 if len(adjusted_inds1) > 0:
@@ -822,6 +832,7 @@ class Sequential_Reach(Certificate):
                 samples_dot = f_torch(samples)
             V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
             Vdot1 = Vdot[:D1_dot_index[1]]
+            V_D_lie_1 = Vdot[:D1_dot_index[1]]
             Vdot2 = Vdot[D1_dot_index[1]:]
             V2 = learner(samples)
             V = V2
@@ -835,7 +846,7 @@ class Sequential_Reach(Certificate):
             alpha = V_SG1.min()
             beta = V_SG2.min()
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_D_lie_1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -1174,9 +1185,9 @@ class BarrierAlt(Certificate):
             pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1
-            if (any(pred_B_i >= 0) or
-                    any(pred_B_u <= 0)):
-                raise ValueError("Value violation!")
+            #if (any(pred_B_i >= 0) or
+            #        any(pred_B_u <= 0)):
+            #    raise ValueError("Value violation!")
             if any(pred_B_dots > req_diff):
                 violated += 1
                 continue

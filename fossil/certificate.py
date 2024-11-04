@@ -881,6 +881,8 @@ class Sequential_Reach(Certificate):
             if learner._take_abs:
                 learner.make_final_layer_positive()
         V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+        V_D_lie_1 = Vdot[:D1_dot_index[1]]
+
         Vdot1 = Vdot[:D1_dot_index[1]]
         Vdot2 = Vdot[D1_dot_index[1]:]
         V2 = learner(samples)
@@ -895,8 +897,8 @@ class Sequential_Reach(Certificate):
         alpha = V_SG1.min()
         beta = V_SG2.min()
 
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
 
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_D_lie_1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)
         if loss <= best_loss:

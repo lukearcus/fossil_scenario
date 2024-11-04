@@ -1257,7 +1257,10 @@ class RWS(Certificate):
 
             # this might need changing in case there are points in the unsafe or goal set?
             # ensure no goal states in domain data (see rwa_2 for example)
-            Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
+            try:
+                Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
+            except IndexError:
+                import pdb; pdb.set_trace()
             lie_loss = relu(Vdot_selected+req_diff)
             lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )

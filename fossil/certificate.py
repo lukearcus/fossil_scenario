@@ -667,8 +667,8 @@ class Sequential_Reach(Certificate):
 
     bias = False
 
-    def __init__(self, domains, config: ScenAppConfig) -> None:
-        self.domain = domains[XD]
+    def __init__(self, doms, config: ScenAppConfig) -> None:
+        #self.domain = domains.Union(doms[XD1], doms[XD2])
         self.llo = config.LLO
         self.control = config.CTRLAYER is not None
         self.D = config.DOMAINS
@@ -742,16 +742,20 @@ class Sequential_Reach(Certificate):
                     break
             for ind in supp_samples:
                 inds1 = indices["lie1"][ind]
+                adjusted_inds1 = torch.cat([torch.where(lie1_index[:,0] == elem)[0] for elem in inds1])
                 inds2 = indices["lie2"][ind]
-                supp_max = torch.max(supp_max, lie1_loss[inds1].max())
-                supp_max = torch.max(supp_max, lie2_loss[inds2].max())
+                #adjusted_inds2 = torch.cat([torch.where(lie2_index[:,0] == elem)[0] for elem in inds2])
+                if len(adjusted_inds1) > 0:
+                    supp_max = torch.max(supp_max, lie1_loss[adjusted_inds1].max())
+                if len(inds2) > 0:
+                    supp_max = torch.max(supp_max, lie2_loss[inds2].max())
             supp_loss = supp_max
             new_sub_samples = set([sub_sample])
         else:
             raise NotImplementedError
-        goal_accuracy = (V_G1<0+V_G2<0).count_nonzero().item()/(len(V_G1)+len(V_G2))
-        dom_accuracy = (V_D1>alpha+V_D2>beta).count_nonzero().item()/(len(V_D1)+len(V_D2))
-        lie_accuracy = (Vdot1 <= -req_diff1 + Vdot2<=-req_diff2).count_nonzero().item()/(len(Vdot1)+len(Vdot2))
+        goal_accuracy = ((V_G1<0).count_nonzero().item()+(V_G2<0).count_nonzero().item())/(len(V_G1)+len(V_G2))
+        dom_accuracy = ((V_D1>alpha).count_nonzero().item()+(V_D2>beta).count_nonzero().item())/(len(V_D1)+len(V_D2))
+        lie_accuracy = ((Vdot1 <= -req_diff1).count_nonzero().item() + (Vdot2<=-req_diff2).count_nonzero().item()) /(len(Vdot1)+len(Vdot2))
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
@@ -786,13 +790,12 @@ class Sequential_Reach(Certificate):
         :return: --
         """
 
-        batch_size = len(S[XD])
         learn_loops = 1000
         
         D1_dot_index = 0, Sdot[XD1].shape[0]
         D1_index = Sdot[XD1].shape[0], S[XD1].shape[0]
 
-        D2_dot_index = D1_dot_index[1], D1_dot_index[0]+Sdot[XD2].shape[0]
+        D2_dot_index = D1_index[1], D1_index[1]+Sdot[XD2].shape[0]
         D2_index = D2_dot_index[1], D2_dot_index[1]+S[XD2].shape[0]
         
         I_index = D2_index[1]+Sdot[XI].shape[0], D2_index[1]+S[XI].shape[0]
@@ -803,7 +806,7 @@ class Sequential_Reach(Certificate):
         
         G1_index = G1Border_index[1]+len(Sdot[XG1]), G1Border_index[1]+S[XG1].shape[0]
         
-        G2_index = G1_index[1]+len(Sdot[XG2]), XG1_index[1]+S[XG2].shape[0]
+        G2_index = G1_index[1]+len(Sdot[XG2]), G1_index[1]+S[XG2].shape[0]
 
         samples = torch.cat([S[XD1], S[XD2], S[XI], S[XG1_BORDER], S[XG2_BORDER],  S[XG1], S[XG2]])
 
@@ -817,8 +820,9 @@ class Sequential_Reach(Certificate):
             optimizer.zero_grad()
             if self.control:
                 samples_dot = f_torch(samples)
-
             V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
+            Vdot1 = Vdot[:D1_dot_index[1]]
+            Vdot2 = Vdot[D1_dot_index[1]:]
             V2 = learner(samples)
             V = V2
             V_D1 = V[D1_index[0]:D1_index[1]]
@@ -831,7 +835,7 @@ class Sequential_Reach(Certificate):
             alpha = V_SG1.min()
             beta = V_SG2.min()
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_G2, V_D1, V_D2, alpha, beta, Vdot, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -866,6 +870,8 @@ class Sequential_Reach(Certificate):
             if learner._take_abs:
                 learner.make_final_layer_positive()
         V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
+        Vdot1 = Vdot[:D1_dot_index[1]]
+        Vdot2 = Vdot[D1_dot_index[1]:]
         V2 = learner(samples)
         V = V2
         V_D1 = V[D1_index[0]:D1_index[1]]
@@ -878,7 +884,7 @@ class Sequential_Reach(Certificate):
         alpha = V_SG1.min()
         beta = V_SG2.min()
 
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_G2, V_D1, V_D2, alpha, beta, Vdot, Sind, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G1, V_D1, V_G2, V_D2, alpha, beta, Vdot1, Vdot2, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)

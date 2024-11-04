@@ -27,8 +27,8 @@ def test_lnn(args):
     
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    SU = domains.Rectangle([4,-1],[5,1])
-    XU = domains.Rectangle([4,-1],[5,1])
+    SU = domains.Rectangle([-5,-1],[-4,1])
+    XU = domains.Rectangle([-5,-1],[-4,1])
 
     XG = domains.Sphere([0,0],1.0)
 

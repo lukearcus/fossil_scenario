@@ -1235,12 +1235,13 @@ class RWS(Certificate):
         self.D = config.DOMAINS
         self.T = config.SYSTEM.time_horizon
 
-    def compute_loss(self, V_i, V_u, V_d, V_g, Vdot_d, beta, indices, supp_samples, convex):
+    def compute_loss(self, V_i, V_u, V_d, V_d_states, V_g, Vdot_d, beta, indices, supp_samples, convex):
+        # V_d must match Vdot_d
         margin = 1e-5
         margin_lie = 0.0
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
-        acc_domain = (V_d > beta).count_nonzero().item()*100/len(V_d)
+        acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d)
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
@@ -1251,16 +1252,13 @@ class RWS(Certificate):
         if lie_index.nelement() != 0:
             init_loss = relu(V_i + margin).mean()
             unsafe_loss = relu(-V_u + margin).mean()
-            state_loss = relu(-V_d + beta+margin).mean()
+            state_loss = relu(-V_d_states + beta+margin).mean()
             req_diff = relu((V_i.max()-beta)/self.T)
             # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
 
             # this might need changing in case there are points in the unsafe or goal set?
             # ensure no goal states in domain data (see rwa_2 for example)
-            try:
-                Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
-            except IndexError:
-                import pdb; pdb.set_trace()
+            Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
             lie_loss = relu(Vdot_selected+req_diff)
             lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
@@ -1367,14 +1365,14 @@ class RWS(Certificate):
             #V, gradV = learner.compute_V_gradV(nn, grad_nn, samples)
             B = learner(states_only)
             
-            B_d = B[:i1-idot1]
+            B_d_states = B[:i1-idot1]
             B_i = B[i1-idot1 : i1 + i2-idot1-idot2]
             B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
             B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
             B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
             beta = B_sg.min()
             
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, beta, Sind, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
 
             if loss <= best_loss:
                 best_loss = loss
@@ -1404,13 +1402,15 @@ class RWS(Certificate):
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
         B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
+        B = learner(states_only)
+        B_d_states = B[:i1-idot1]
         B_i = B[i1-idot1:i1+i2-idot2-idot1]
         B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
         B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
 
         beta = B_sg.min()
-        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_g, Bdot_d, beta, Sind, supp_samples, convex)
+        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
         
         if loss <= best_loss:
             best_loss = loss
@@ -1425,11 +1425,11 @@ class RWS(Certificate):
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
             traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
 
-            valid_inds = torch.where(self.D[XD].check_containment(traj))
-            
-            traj = traj[valid_inds]
-            traj_deriv = traj_deriv[valid_inds]
-            time = time[valid_inds]
+            #valid_inds = torch.where(self.D[XD].check_containment(traj))
+            #
+            #traj = traj[valid_inds]
+            #traj_deriv = traj_deriv[valid_inds]
+            #time = time[valid_inds]
 
             initial_inds = torch.where(self.D[XI].check_containment(traj))
             
@@ -1621,7 +1621,7 @@ class RSWS(RWS):
 
             Vstates = learner(samples)
 
-            V_d = Vstates[lie_indices[0]:lie_indices[1]]
+            V_d_states = Vstates[lie_indices[0]:lie_indices[1]]
             V_i = Vstates[init_indices[0] : init_indices[1]]
             V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
             S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
@@ -1631,12 +1631,12 @@ class RSWS(RWS):
             samples_dot_d = samples_dot[: lie_indices[1]]
 
             beta = learner.compute_minimum(S_dg)[0]+V_g.min()/100
-            loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
+            loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_d_states, V_g, gradV_d, beta, Sind, supp_samples, convex)
 
             beta2 = learner.compute_minimum(S_dg)[0]
             #beta_loss, supp_beta_loss, beta_sub_sample = 0, -1, set()
             # converges without beta loss
-            beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, beta2, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
+            beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, beta2, V_g, Vdot_g, V_d_states, Sind, supp_samples, convex)
             loss = loss + beta_loss
             #loss = torch.max(loss,beta_loss)
             if supp_loss != -1:
@@ -1673,12 +1673,15 @@ class RSWS(RWS):
                     supp_samples = supp_samples.union(sub_sample)
             optimizer.step()
         V, Vdot, _ = learner.get_all(samples_with_nexts, samples_dot, torch.cat([times[:lie_dot_indices[1]],times[-len(Sdot[XG]):]]))
+        (
+            V_d,
+            gradV_d,
+        ) = (V[: lie_dot_indices[1]], Vdot[: lie_dot_indices[1]])
 
-        gradV_d = Vdot[: lie_dot_indices[1]]
 
         Vstates = learner(samples)
         
-        V_d = Vstates[lie_indices[0] : lie_indices[1]]
+        V_d_states = Vstates[lie_indices[0] : lie_indices[1]]
         V_i = Vstates[init_indices[0] : init_indices[1]]
         V_u = Vstates[unsafe_indices[0] : unsafe_indices[1]]
         S_dg = samples[goal_border_indices[0] : goal_border_indices[1]]
@@ -1689,10 +1692,10 @@ class RSWS(RWS):
         
         beta = learner.compute_minimum(S_dg)[0]+V_g.min()/100
         
-        loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_g, gradV_d, beta, Sind, supp_samples, convex)
+        loss, supp_loss, accuracy, sub_sample  = self.compute_loss(V_i, V_u, V_d, V_d_states, V_g, gradV_d, beta, Sind, supp_samples, convex)
 
         beta2 = learner.compute_minimum(S_dg)[0]
-        beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, beta2, V_g, Vdot_g, V_d, Sind, supp_samples, convex)
+        beta_loss, supp_beta_loss, beta_sub_sample = self.compute_beta_loss(beta, beta2, V_g, Vdot_g, V_d_states, Sind, supp_samples, convex)
         #loss = torch.max(loss, beta_loss)
         loss = loss + beta_loss
 
@@ -1706,6 +1709,42 @@ class RSWS(RWS):
 
     def beta_search(self, learner, verifier, C, Cdot, S):
         return learner.compute_minimum(S[XG_BORDER])[0]
+    
+    def get_violations(self, B, Bdot, S, Sdot, times, states):
+        req_diff = (B(states["init"]).max()-B(states["goal"]).min())/self.T
+        true_violated = 0
+        violated = 0
+        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
+            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
+
+            #valid_inds = torch.where(self.D[XD].check_containment(traj))
+            #
+            #traj = traj[valid_inds]
+            #traj_deriv = traj_deriv[valid_inds]
+            #time = time[valid_inds]
+
+            initial_inds = torch.where(self.D[XI].check_containment(traj))
+            
+            # getting too many violations, need to investigate
+
+            goal_inds = torch.where(self.D[XG].check_containment(traj))
+
+
+            V_d = B(traj)
+
+            pred_B_dots = Bdot(traj, traj_deriv, time)
+            
+            goal_inds = torch.where(self.D[XG].check_containment(traj))[0]
+            first_goal_ind = goal_inds[0]
+            if not all(self.D[XS].check_containment(traj)) or not all(self.D[XG].check_containment(traj[first_goal_ind:])):
+                true_violated += 1
+            lie_inds = torch.nonzero(V_d <= 0)
+            if any(self.D[XG].check_containment(traj)):
+                lie_inds = [ind.item() for ind in lie_inds if ind not in goal_inds]
+            if any(pred_B_dots[lie_inds] > req_diff):
+                violated += 1
+                continue
+        return violated, true_violated
             
 
 

@@ -36,10 +36,9 @@ def test_lnn(args):
     init_data = XI._generate_data(n_data)()
     
     system = models.Spiral
-    system.time_horizon = 50
+    system.time_horizon = 100
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
-    
     activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)

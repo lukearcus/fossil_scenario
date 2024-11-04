@@ -181,7 +181,7 @@ class Spiral(control.DynamicalModel):
         else:
             x1, x2 = v[:, 0], v[:, 1]
 
-        return [x1-0.5*x2, 0.5*x2+0.5*x1]
+        return [x1-0.05*x2, 0.95*x2+0.05*x1]
 
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of

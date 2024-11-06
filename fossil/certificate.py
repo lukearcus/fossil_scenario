@@ -453,6 +453,7 @@ class Practical_Lyapunov(Certificate):
             V_I: torch.Tensor, 
             V_G: torch.Tensor,
             V_D: torch.Tensor,
+            V_SD: torch.Tensor,
             beta: torch.Tensor,
             Vdot: torch.Tensor, 
             indices: list,
@@ -471,7 +472,8 @@ class Practical_Lyapunov(Certificate):
         """
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
         relu = torch.nn.ReLU()
-        init_loss = -V_I
+        #init_loss = -V_I+beta
+        border_loss = -V_SD
         goal_loss = V_G
         state_loss = -V_D+beta
         margin = 1e-5
@@ -511,12 +513,16 @@ class Practical_Lyapunov(Certificate):
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
-        init_con = relu(init_loss+margin).mean()
+        
+        #init_con = relu(init_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean() 
+        init_con =0
+        #goal_con = 0
+        border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
-        loss = loss+ gamma*(state_con+init_con+goal_con)
+        loss = loss+ gamma*(state_con+border_con+init_con+goal_con)
         if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(state_con+init_con+goal_con)
+            supp_loss = supp_loss + gamma*(state_con+border_con+init_con+goal_con)
 
         return loss, supp_loss, accuracy, new_sub_samples
 
@@ -554,16 +560,17 @@ class Practical_Lyapunov(Certificate):
         i3 = S[XG_BORDER].shape[0]
         idot3 = len(Sdot[XG_BORDER])
 
-        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG]])
+        i4 = S[XG].shape[0]
+        idot4 = len(Sdot[XG])
 
-        if type(Sdot[XG]) is list:
-            idot4 = 0
-        else:
-            idot4 = Sdot[XG].shape[0]
+        idot5 = len(Sdot[XS_BORDER])
+
+        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG], S[XS_BORDER]])
+
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4], samples[i1+i2+i3+i4+idot5:]])
         times = times[XD]
 
         supp_samples = set()
@@ -578,10 +585,11 @@ class Practical_Lyapunov(Certificate):
             V_D = V[:i1-idot1]
             V_I = V[i1-idot1:i1+i2-idot1-idot2]
             V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
-            V_G = V[i1+i2+i3-idot1-idot2-idot3:]
+            V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+            V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
             beta = V_SG.min()
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, beta, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -621,10 +629,11 @@ class Practical_Lyapunov(Certificate):
         V_D = V[:i1-idot1]
         V_I = V[i1-idot1:i1+i2-idot1-idot2]
         V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
-        V_G = V[i1+i2+i3-idot1-idot2-idot3:]
+        V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+        V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
         beta = V_SG.min()
 
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, beta, Vdot, Sind, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, beta, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)

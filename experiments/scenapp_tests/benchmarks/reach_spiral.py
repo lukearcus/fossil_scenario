@@ -29,6 +29,7 @@ def test_lnn():
     dom = {fossil.XD: XD,
             fossil.XG: XG,
             fossil.XG_BORDER: XG,
+            fossil.XS_BORDER: XD,
             fossil.XI: XI
                 }
     init_data = XI._generate_data(n_data)()
@@ -48,7 +49,8 @@ def test_lnn():
     state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
                   fossil.XG: XG._generate_data(n_state_data)(),
-                  fossil.XG_BORDER: XG._sample_border(n_state_data)()}
+                  fossil.XG_BORDER: XG._sample_border(n_state_data)(),
+                  fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]

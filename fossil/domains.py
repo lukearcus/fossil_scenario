@@ -15,6 +15,8 @@ from matplotlib import pyplot as plt
 
 from fossil import verifier
 
+torch.manual_seed(0)
+
 inf = 1e300
 inf_bounds = [-inf, inf]
 

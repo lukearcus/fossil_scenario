@@ -18,9 +18,9 @@ def test_lnn(args):
         certificate.XU: XU,
     }
     state_data = {
-        certificate.XD: XD._generate_data(500)(),
-        certificate.XI: XI._generate_data(500)(),
-        certificate.XU: XU._generate_data(500)(),
+        certificate.XD: XD._generate_data(5000)(),
+        certificate.XI: XI._generate_data(5000)(),
+        certificate.XU: XU._generate_data(5000)(),
     }
     init_data = XI._generate_data(n_data)()
 

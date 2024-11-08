@@ -1,9 +1,0 @@
-Change Lyapunov to practical Lyapunov/Reachability
-for reachability ensure derivative less than maximum divided by time horizon
-
-For paper could have asymptotic stability then for practicality have practical Lyapunov
-Could do asymptotic if horizon goes to infinity
-
-Can allow barrier to be slightly positive - look at abolfazl's
-
-Think more on this

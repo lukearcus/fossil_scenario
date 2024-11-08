@@ -106,7 +106,7 @@ class DynamicalModel:
                 # use difference to calculate derivative... not very satisfying but seems to be the best option?
             else:
                 for elem in x_0:
-                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem))#, t_eval = np.linspace(0., time_horizon, 1000)))
+                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem, t_eval = np.linspace(0., time_horizon, 500)))
                 state_trajs = [traj["y"] for traj in trajs]
                 times = [traj["t"] for traj in trajs]
                 nexts = [traj[:, 1:] for traj in state_trajs]

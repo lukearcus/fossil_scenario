@@ -12,6 +12,7 @@ from itertools import chain
 import torch
 import copy
 import sympy as sp
+from scipy import stats
 
 from scipy.stats import beta as betaF
 
@@ -223,6 +224,66 @@ class SingleScenApp:
         state[ScenAppStateKeys.times] = self.S["times"]
 
 
+    def est_disc_gap(self, state):
+        t_max = max([elem.max() for elem in state[ScenAppStateKeys.times].values() if type(elem) is not list])
+        state_data = np.hstack(state[ScenAppStateKeys.S_traj])
+        next_data = np.hstack(state[ScenAppStateKeys.S_traj_dot])
+        times = np.hstack(self.S_traj["times"])
+
+        valid_inds = torch.where(self.config.DOMAINS["lie"].check_containment(torch.Tensor(state_data.T)))
+        state_data = state_data[:,valid_inds[0]]
+        next_data = next_data[:,valid_inds[0]]
+        times = times[valid_inds[0]]
+        inds = np.arange(0, len(valid_inds[0]))
+
+        M_f = 0
+        M_v = 0
+    
+        M = 10
+        N = 1000
+        alpha = 0.1
+        psi_f = []
+        psi_v = []
+        for i in range(M):
+            max_s_f = 0
+            max_s_v = 0
+            for j in range(N):
+                poss_inds = [[]]
+                while len(poss_inds[0]) <= 1:
+                    ind  =np.random.choice(inds)
+                    x = state_data[:,[ind]]
+                    poss_inds = np.where(np.linalg.norm(state_data-state_data[:,[ind]],axis=0)<alpha)
+                y_ind = ind
+                while y_ind == ind:
+                    y_ind = np.random.choice(poss_inds[0])
+                y = state_data[:,[y_ind]]
+                _, grad = state[ScenAppStateKeys.best_net].compute_net_gradnet(torch.Tensor(np.hstack([x,y]).T))  
+                s_v = np.linalg.norm(grad[0].detach().numpy()-grad[1].detach().numpy())/np.linalg.norm(x-y)
+                
+                x_tau = next_data[:, [ind]]
+                y_tau = next_data[:, [y_ind]]
+                tau = np.min([times[ind], times[y_ind]])
+                #y_tau = system().generate_trajs(y, tau)[1][0][:,-1]
+                if self.config.TIME_DOMAIN == TimeDomain.CONTINUOUS: 
+                    s_f = np.linalg.norm((x_tau-x-y_tau+y)/tau)/np.linalg.norm(x-y)
+                else:
+                    s_f = np.linalg.norm(x_tau-y_tau)/np.linalg.norm(x-y)
+                max_s_f = max(s_f,max_s_f)
+                max_s_v = max(s_v,max_s_v)
+                M_f = max(M_f, np.linalg.norm((y_tau-y)/times[y_ind]))
+                M_f = max(M_f, np.linalg.norm((x_tau-x)/times[ind]))
+
+                M_v = max(M_v, np.linalg.norm(grad[0].detach().numpy()))
+                M_v = max(M_v, np.linalg.norm(grad[1].detach().numpy()))
+            psi_f.append(-max_s_f)
+            psi_v.append(-max_s_v)
+        _, _, L_f, _ = stats.exponweib.fit(psi_f)
+        L_f = -L_f
+        _, _, L_v, _ = stats.exponweib.fit(psi_v)
+        L_v = -L_v
+        delta = (t_max/2)*M_f*(M_v*L_f+M_f*L_v)
+        return delta
+
     def solve(self) -> Result:
         converge_tol = 1e-4
         Sdot = self.S["derivs"]
@@ -294,20 +355,49 @@ class SingleScenApp:
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
 
-            elif not self.config.CONVEX_NET and state["best_loss"] == 0.0:
-                scenapp_log.debug("\033[1m Verifier \033[0m")
+            elif not self.config.CONVEX_NET and state["best_loss"] <= 0.0:
                 
+                calc_disc_gap = True
+                if calc_disc_gap:
+                    scenapp_log.debug("negative best loss")
+                    # estimate L_f etc. here?
+                    delta = self.est_disc_gap(state)
+                    if state["best_loss"] > - delta:
+                        iters += 1
+                        old_loss = state["loss"]
+                        old_best = state["best_loss"]
+                        scenapp_log.info("Required delta: {:.5f}".format(delta))
+                        scenapp_log.info("Iteration: {}".format(iters))
+                    else:
+                        scenapp_log.info("Required delta: {:.5f}".format(delta))
+                        scenapp_log.info("Best loss: {:.5f}".format(state["best_loss"]))
+                        scenapp_log.debug("\033[1m Verifier \033[0m")
+                        
 
-                outputs = self.verifier.get(**state)
-                state = {**state, **outputs}
+                        outputs = self.verifier.get(**state)
+                        state = {**state, **outputs}
 
-                # Consolidator component # Don't think this is needed/possible for us
-                #scenapp_log.debug("\033[1m Consolidator \033[0m")
-                #outputs = self.consolidator.get(**state)
-                #state = {**state, **outputs}
-                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
-                stop = self.process_certificate(S, state, iters)
+                        # Consolidator component # Don't think this is needed/possible for us
+                        #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                        #outputs = self.consolidator.get(**state)
+                        #state = {**state, **outputs}
+                        print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                        stop = self.process_certificate(S, state, iters)
 
+                else:
+                    scenapp_log.debug("\033[1m Verifier \033[0m")
+                    
+
+                    outputs = self.verifier.get(**state)
+                    state = {**state, **outputs}
+
+                    # Consolidator component # Don't think this is needed/possible for us
+                    #scenapp_log.debug("\033[1m Consolidator \033[0m")
+                    #outputs = self.consolidator.get(**state)
+                    #state = {**state, **outputs}
+                    print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                    stop = self.process_certificate(S, state, iters)
+            
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
                 stop = True

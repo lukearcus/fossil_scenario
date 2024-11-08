@@ -10,7 +10,7 @@ def test_lnn(args):
     XI = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
     XU = domains.Rectangle([0.7, 0.7], [1, 1])
 
-    n_data = 10000
+    n_data = 10000 
     
     sets = {
         certificate.XD: XD,
@@ -27,7 +27,6 @@ def test_lnn(args):
     system = models.JetEngBarr
     all_data = system().generate_trajs(init_data)
     data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
-
     activations = [ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
     hidden_neurons = [5] * len(activations)

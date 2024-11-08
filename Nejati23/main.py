@@ -43,18 +43,21 @@ def Jet_engine(N):
     tau = 1e-5
     delta = 1.2438e-4
     k = 4+1+1 #q1-4, gamma, and eta
-    k = 5 #
+    k = 5 #don't count eta
 
     eps = betaincinv(k, N-k+1, 1-beta)
 
     T = 1 # ignore this
-    mu = -0.0 # Not sure what to set this to
+    mu = -0.01 # Not sure what to set this to
     
     XD = domains.Rectangle([0.1, 0.1], [1, 1])
     XI = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
     XU = domains.Rectangle([0.7, 0.7], [1, 1])
-    init_dom_data = XI._generate_data(500)()
-    unsafe_dom_data = XU._generate_data(500)()
+    
+    print("Generating data")
+    N_state = 1000
+    init_dom_data = XI._generate_data(N_state)()
+    unsafe_dom_data = XU._generate_data(N_state)()
     
     init_data = XD._generate_data(N)()
 
@@ -63,6 +66,9 @@ def Jet_engine(N):
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
     next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
+    print("Data generation complete")
+    print("Building constraints")
+
     A_mat = cp.Variable((2,2), symmetric=True)
     B_mat = cp.Variable((2,1))
     C_mat = cp.Variable(1)
@@ -76,6 +82,13 @@ def Jet_engine(N):
 
     gamma = cp.Variable(1)
     constraints.append(gamma + c*T - lambd - mu <= eta)
+    
+    #for elem in init_dom_data:
+    #    constraints.append(elem@A_mat@elem+elem@B_mat+C_mat-gamma<=eta)
+    #for elem in unsafe_dom_data:
+    #    constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
+    #for elem, next_s in zip(state_data, next_states):
+    #    constraints.append((next_s@A_mat@next_s+next_s@B_mat-(elem@A_mat@elem+elem@B_mat))/tau-c+delta <= eta)
 
     for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
@@ -91,6 +104,7 @@ def Jet_engine(N):
     #constraints.append(-(cp.diag(state_data@A_mat@state_data.T)+(state_data@B_mat).flatten() 
     #                    - cp.diag(next_states@A_mat@next_states.T)-(next_states@B_mat).flatten())/tau-c+delta <= eta)
 
+    print("Problem formulated, solving...")
     prob = cp.Problem(objective, constraints)
     prob.solve()
     print(eta.value)
@@ -123,16 +137,9 @@ def High_D_test(N):
 
     n_data = N 
     
-    init_dom_data = XI._generate_data(500)()
-    unsafe_dom_data = XU._generate_data(500)()
-
-    init_data = XD._generate_data(n_data)()
 
     system = models.Barr4D
     
-    all_data = system().generate_trajs(init_data, tau)
-    state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
-    next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
     alpha = 0.01
     N_overline = 1000
@@ -171,7 +178,6 @@ def High_D_test(N):
     L = M_B*L_f+M_f*L_B
     delta = 0.5*tau*L*M_f
 
-
     lambd = 3.1
     beta = 1e-1
     k = 10+1 #q1-4, gamma, don't count eta
@@ -180,9 +186,18 @@ def High_D_test(N):
     eta = -0.0155
     eps = ((-eta/L_g)**4)*(np.pi**2)/(2**13)
     beta = betainc(k, N-k+1, eps)
+    #calc beta for fixed eta
     print("Maximum confidence level: {:.30f}".format(beta))
     
-    #calc beta for fixed eta
+    init_dom_data = XI._generate_data(500)()
+    unsafe_dom_data = XU._generate_data(500)()
+
+    init_data = XD._generate_data(n_data)()
+    
+    all_data = system().generate_trajs(init_data, tau)
+    state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
+    next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
+    
     eps = betaincinv(k, N-k+1, 1-beta)
         
     gap = L_g*(((2**13)/(np.pi**2)*eps)**.25)

@@ -42,6 +42,12 @@ def test_lnn():
     
     states = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[1], not_goal_inds) ]
     derivs = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[2], not_goal_inds) ]
+    
+    # don't want to remove goals for if we stop at V<beta
+    #times = all_data[0]
+    #states = all_data[1]
+    #derivs = all_data[2]
+
     data = {"times":times,"states":states,"derivs":derivs}
     
     n_state_data = 1000

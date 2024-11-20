@@ -454,6 +454,7 @@ class Practical_Lyapunov(Certificate):
             V_G: torch.Tensor,
             V_D: torch.Tensor,
             V_SD: torch.Tensor,
+            V_D_lie: torch.Tensor,
             beta: torch.Tensor,
             Vdot: torch.Tensor, 
             indices: list,
@@ -472,32 +473,64 @@ class Practical_Lyapunov(Certificate):
         """
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
         relu = torch.nn.ReLU()
-        #init_loss = -V_I+beta
+        init_loss = V_I
         border_loss = -V_SD
         goal_loss = V_G
         state_loss = -V_D+beta
         margin = 1e-5
         req_diff = ((V_I.max()-beta)/self.T)
+        req_diff = req_diff.detach()
         lie_loss = relu(Vdot+relu(req_diff)+margin)
 
-        subgrad = not convex
+        # Code below for trying to get samples before V<beta
+        #Vdot_selected = []
+        #selected_inds = []
+        #curr_ind = 0
+        #for inds in indices["lie"]:
+        #    try:
+        #        final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0]
+        #    except IndexError:
+        #        final_ind = inds[-1]+1
+        #    selected = range(inds[0],final_ind)
+        #    selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+        #    curr_ind += len(selected)
+        #    Vdot_selected.append(Vdot[selected])
+        #Vdot_selected = torch.hstack(Vdot_selected)
+        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+        #lie_loss = relu(Vdot_selected+relu(req_diff))
         
+        #valid_Vdot = True
+        #if len(lie_loss) == 0:
+        #    loss = 0
+        #    valid_Vdot = False
+        valid_Vdot = True
+        selected_inds = indices["lie"]
+
+        subgrad = not convex
+
         if subgrad:
-            supp_max = torch.tensor([-1.])
-            lie_max = lie_loss.max()
-            ind_lie_max = lie_loss.argmax()
-            loss = lie_max
-            sub_sample = -1
-            for i, elem in enumerate(indices["lie"]):
-                if ind_lie_max in elem:
-                    sub_sample = i
-                    break
-            for ind in supp_samples:
-                inds = indices["lie"][ind]
-                supp_max = torch.max(supp_max, lie_loss[inds].max())
-            supp_loss = supp_max
-            new_sub_samples = set([sub_sample])
+            if valid_Vdot:
+                supp_max = torch.tensor([-1.])
+                lie_max = lie_loss.max()
+                ind_lie_max = lie_loss.argmax()
+                loss = lie_max
+                sub_sample = -1
+                for i, elem in enumerate(selected_inds):
+                    if ind_lie_max in elem:
+                        sub_sample = i
+                        break
+                for ind in supp_samples:
+                    inds = selected_inds[ind]
+                    if len(inds) > 0:
+                        supp_max = torch.max(supp_max, lie_loss[inds].max())
+                supp_loss = supp_max
+                new_sub_samples = set([sub_sample])
+            else:
+                supp_loss = 0
+                new_sub_samples = set()
         else:
+            raise NotImplementedError
+            # code below works but is now obsolete
             loss = 0
             for inds in indices["lie"]:
                 curr_max = torch.tensor(0.)
@@ -514,9 +547,9 @@ class Practical_Lyapunov(Certificate):
         gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
         
-        #init_con = relu(init_loss+margin).mean()
+        init_con = relu(init_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean() 
-        init_con =0
+        #init_con =0
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
@@ -589,7 +622,7 @@ class Practical_Lyapunov(Certificate):
             V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
             beta = V_SG.min()
 
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, beta, Vdot, Sind, supp_samples, convex)
+            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
             if loss <= best_loss:
                 best_loss = loss
                 best_net = copy.deepcopy(learner)
@@ -633,7 +666,7 @@ class Practical_Lyapunov(Certificate):
         V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
         beta = V_SG.min()
 
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, beta, Vdot, Sind, supp_samples, convex)
+        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
 
         if self.control:
             loss = loss + control.cosine_reg(samples, samples_dot)

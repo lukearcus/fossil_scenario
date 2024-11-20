@@ -357,7 +357,8 @@ class SingleScenApp:
 
             elif not self.config.CONVEX_NET and state["best_loss"] <= 0.0:
                 
-                calc_disc_gap = True
+                #calc_disc_gap = True
+                calc_disc_gap = False
                 if calc_disc_gap:
                     scenapp_log.debug("negative best loss")
                     # estimate L_f etc. here?

@@ -474,37 +474,41 @@ class Practical_Lyapunov(Certificate):
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
         relu = torch.nn.ReLU()
         init_loss = V_I
+        #init_loss2 = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G
+        goal_loss = V_G#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         state_loss = -V_D+beta
+        
         margin = 1e-5
         req_diff = ((V_I.max()-beta)/self.T)
-        req_diff = req_diff.detach()
+        #req_diff = req_diff.detach() # should this be detached?
         lie_loss = relu(Vdot+relu(req_diff)+margin)
 
         # Code below for trying to get samples before V<beta
-        #Vdot_selected = []
-        #selected_inds = []
-        #curr_ind = 0
-        #for inds in indices["lie"]:
-        #    try:
-        #        final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0]
-        #    except IndexError:
-        #        final_ind = inds[-1]+1
-        #    selected = range(inds[0],final_ind)
-        #    selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
-        #    curr_ind += len(selected)
-        #    Vdot_selected.append(Vdot[selected])
-        #Vdot_selected = torch.hstack(Vdot_selected)
-        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-        #lie_loss = relu(Vdot_selected+relu(req_diff))
+        Vdot_selected = []
+        selected_inds = []
+        curr_ind = 0
+        for inds in indices["lie"]:
+            try:
+                final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
+            except IndexError:
+                final_ind = inds[-1]+1
+            selected = range(inds[0],final_ind)
+            selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+            curr_ind += len(selected)
+            Vdot_selected.append(Vdot[selected])
+        Vdot_selected = torch.hstack(Vdot_selected)
+        Vdot_selected = Vdot_selected.detach() # try detaching this?
+        lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+        lie_loss = relu(Vdot_selected+relu(req_diff))
+        
+        valid_Vdot = True
+        if len(lie_loss) == 0:
+            loss = 0
+            valid_Vdot = False
         
         #valid_Vdot = True
-        #if len(lie_loss) == 0:
-        #    loss = 0
-        #    valid_Vdot = False
-        valid_Vdot = True
-        selected_inds = indices["lie"]
+        #selected_inds = indices["lie"]
 
         subgrad = not convex
 
@@ -547,12 +551,16 @@ class Practical_Lyapunov(Certificate):
         gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
         
-        init_con = relu(init_loss+margin).mean()
-        goal_con = relu(goal_loss+margin).mean() 
+        init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
         #init_con =0
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
-        state_con = relu(state_loss+margin).mean()
+        state_con = 100*relu(state_loss+margin).mean()
+        goal_con = relu(goal_loss+margin).mean()
+        #if supp_loss + state_con+border_con+init_con > 0:
+        #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
+        #else:
+        #    goal_con = 0
         loss = loss+ gamma*(state_con+border_con+init_con+goal_con)
         if supp_loss != -1:
             supp_loss = supp_loss + gamma*(state_con+border_con+init_con+goal_con)
@@ -634,7 +642,7 @@ class Practical_Lyapunov(Certificate):
 
             if t % 100 == 0 or t == learn_loops - 1:
                 log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-            
+                #import pdb; pdb.set_trace()    
             if convex:
                 loss.backward()
             else:

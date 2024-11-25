@@ -175,13 +175,13 @@ class Spiral(control.DynamicalModel):
     time = "discrete"
 
     def f_torch(self, t, v):
-        
+        T=0.05
         if len(v.shape) == 1:
             x1, x2 = v[0], v[1]
         else:
             x1, x2 = v[:, 0], v[:, 1]
 
-        return [x1-0.05*x2, 0.95*x2+0.05*x1]
+        return [x1-T*x2, x2+T*(x1-x2)]
 
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of

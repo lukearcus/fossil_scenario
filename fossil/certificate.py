@@ -548,7 +548,7 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot_selected <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 10000
+        gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
         
         init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
@@ -556,7 +556,7 @@ class Practical_Lyapunov(Certificate):
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
         state_con = 10*relu(state_loss+margin).mean()
-        goal_con = relu(goal_loss+margin).mean()
+        goal_con = 100*relu(goal_loss+margin).mean()
         #if supp_loss + state_con+border_con+init_con > 0:
         #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
         #else:

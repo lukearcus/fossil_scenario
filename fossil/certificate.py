@@ -555,15 +555,21 @@ class Practical_Lyapunov(Certificate):
         #init_con =0
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
-        state_con = 10*relu(state_loss+margin).mean()
+        state_con = relu(state_loss+margin).mean()
         goal_con = 100*relu(goal_loss+margin).mean()
         #if supp_loss + state_con+border_con+init_con > 0:
         #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
         #else:
         #    goal_con = 0
-        loss = loss+ gamma*(state_con+border_con+init_con+goal_con)
-        if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(state_con+border_con+init_con+goal_con)
+        psi_delta = loss
+        psi_s = state_con+border_con+init_con+goal_con
+        if psi_s == 0:
+            loss = psi_delta+ gamma*(psi_s)
+            if supp_loss != -1:
+                supp_loss = supp_loss + gamma*(psi_s)
+        else:
+            loss = psi_s
+            supp_loss = -1 
 
         return loss, supp_loss, accuracy, new_sub_samples
 

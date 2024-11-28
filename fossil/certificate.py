@@ -548,7 +548,7 @@ class Practical_Lyapunov(Certificate):
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         lie_accuracy = (Vdot_selected <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 10
+        gamma = 10000
         # init and goal constraints shouldn't be needed but speed up convergence
         
         init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()

@@ -476,13 +476,13 @@ class Practical_Lyapunov(Certificate):
         init_loss = V_I
         #init_loss2 = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G+V_I.min()#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         state_loss = -V_D+beta
         
         margin = 1e-5
         req_diff = ((V_I.max()-beta)/self.T)
         #req_diff = req_diff.detach() # should this be detached?
-        lie_loss = relu(Vdot+relu(req_diff)+margin)
+        #lie_loss = relu(Vdot+relu(req_diff)+margin)
 
         # Code below for trying to get samples before V<beta
         Vdot_selected = []
@@ -498,8 +498,8 @@ class Practical_Lyapunov(Certificate):
             curr_ind += len(selected)
             Vdot_selected.append(Vdot[selected])
         Vdot_selected = torch.hstack(Vdot_selected)
-        Vdot_selected = Vdot_selected.detach() # try detaching this?
-        lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+        #Vdot_selected = Vdot_selected.detach() # try detaching this?
+        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
         lie_loss = relu(Vdot_selected+relu(req_diff))
         
         valid_Vdot = True
@@ -544,18 +544,18 @@ class Practical_Lyapunov(Certificate):
                     state_elems = state_loss[inds]
                 lie_elems = lie_loss[inds]
                 loss += lie_elems.max()
-        goal_accuracy = (V_G<0).count_nonzero().item()/len(V_G)
+        goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
-        lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
+        lie_accuracy = (Vdot_selected <= -req_diff).count_nonzero().item()/len(Vdot)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 1
+        gamma = 100
         # init and goal constraints shouldn't be needed but speed up convergence
         
         init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
         #init_con =0
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
-        state_con = 100*relu(state_loss+margin).mean()
+        state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
         #if supp_loss + state_con+border_con+init_con > 0:
         #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added

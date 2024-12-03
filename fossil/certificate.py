@@ -471,12 +471,14 @@ class Practical_Lyapunov(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
+
+        # cannot get a sub level set within the goal region for some reason???????????
         slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
         relu = torch.nn.ReLU()
         init_loss = V_I
         #init_loss2 = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G+V_I.min()#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         state_loss = -V_D+beta
         
         margin = 1e-5
@@ -556,20 +558,23 @@ class Practical_Lyapunov(Certificate):
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
-        goal_con = 100*relu(goal_loss+margin).mean()
+        goal_con = relu(goal_loss+margin).mean()
         #if supp_loss + state_con+border_con+init_con > 0:
         #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
         #else:
         #    goal_con = 0
         psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con
-        if psi_s == 0:
-            loss = psi_delta+ gamma*(psi_s)
-            if supp_loss != -1:
-                supp_loss = supp_loss + gamma*(psi_s)
-        else:
-            loss = psi_s
-            supp_loss = -1 
+        loss = psi_delta+ gamma*(psi_s)
+        if supp_loss != -1:
+            supp_loss = supp_loss + gamma*(psi_s)
+        #if psi_s == 0:
+        #    loss = psi_delta+ gamma*(psi_s)
+        #    if supp_loss != -1:
+        #        supp_loss = supp_loss + gamma*(psi_s)
+        #else:
+        #    loss = psi_s
+        #    supp_loss = -1 
 
         return loss, supp_loss, accuracy, new_sub_samples
 

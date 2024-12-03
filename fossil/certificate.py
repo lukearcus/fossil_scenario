@@ -565,9 +565,12 @@ class Practical_Lyapunov(Certificate):
         #    goal_con = 0
         psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con
-        loss = psi_delta+ gamma*(psi_s)
-        if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(psi_s)
+        #loss = psi_delta+ gamma*(psi_s)
+        #if supp_loss != -1:
+        #    supp_loss = supp_loss + gamma*(psi_s)
+        
+        loss = psi_s
+        supp_loss = psi_s
         #if psi_s == 0:
         #    loss = psi_delta+ gamma*(psi_s)
         #    if supp_loss != -1:

@@ -100,10 +100,11 @@ def test_lnn(args):
         PAC = ScenApp(opts)
         result = PAC.solve()
         eps_P2L.append(result.res)
+
         eps_post.append(result.a_post_res)
 
-    plt.plot(N_vals, eps_P2L, label="Risk calculated using training data")
-    plt.plot(N_vals, eps_post, label="Risk calculated from additional data")
+    plt.plot(N_vals, eps_P2L, label="Risk calculated using certificate")
+    plt.plot(N_vals, eps_post, label="Risk calculated directly")
     plt.title("Risk Curves for Varying N")
     plt.xlabel("N")
     plt.ylabel("Risk")

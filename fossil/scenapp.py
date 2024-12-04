@@ -182,6 +182,7 @@ class SingleScenApp:
         data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
         num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], data["full_data"]["times"], state_data)
         k = num_violations
+        k = true_violations # use this for direct property validation
         beta_bar = self.config.BETA[0]/n_data
         N = n_data
         d = 1

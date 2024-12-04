@@ -78,7 +78,7 @@ def test_lnn():
         #VERIFIER=fossil.VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=20, 
+        SCENAPP_MAX_ITERS=20,
         #LLO=True,
         VERBOSE=2,
     )

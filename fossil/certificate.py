@@ -476,10 +476,11 @@ class Practical_Lyapunov(Certificate):
         # cannot get a sub level set within the goal region for some reason???????????
         
         relu = torch.nn.ReLU()
+        
         init_loss = V_I
         #init_loss = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G-beta#-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G#-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         state_loss = -V_D+beta
         
         margin = 1e-5
@@ -567,8 +568,8 @@ class Practical_Lyapunov(Certificate):
         psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con
         loss = psi_delta+ gamma*(psi_s)
-        #if supp_loss != -1:
-        #    supp_loss = supp_loss + gamma*(psi_s)
+        if supp_loss != -1:
+            supp_loss = supp_loss + gamma*(psi_s)
         
         #loss = psi_s
         #supp_loss = psi_s # test if we can learn just the value requirements (should be easy)

@@ -171,11 +171,11 @@ class Circle(control.DynamicalModel):
 
 class Spiral(control.DynamicalModel):
     n_vars = 2
-    time_horizon = 1000
+    time_horizon = 50
     time = "discrete"
 
     def f_torch(self, t, v):
-        T=0.05
+        T=0.5
         if len(v.shape) == 1:
             x1, x2 = v[0], v[1]
         else:

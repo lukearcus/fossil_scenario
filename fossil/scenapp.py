@@ -187,7 +187,7 @@ class SingleScenApp:
         N = n_data
         d = 1
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
-        print("A posteriori scenario approach risk: {:.5f}".format(eps))
+        print("Direct Property scenario approach risk: {:.5f}".format(eps))
         print("Certificate violation rate: {:.3f}".format(num_violations/n_data))
         print("Property violation rate: {:.3f}".format(true_violations/n_data))
         return eps

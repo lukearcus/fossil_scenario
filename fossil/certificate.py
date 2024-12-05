@@ -565,6 +565,10 @@ class Practical_Lyapunov(Certificate):
         #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
         #else:
         #    goal_con = 0
+
+        loss = 0 # zero losses to only consider state constraints
+        supp_loss = 0
+
         psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con
         loss = psi_delta+ gamma*(psi_s)

@@ -489,30 +489,30 @@ class Practical_Lyapunov(Certificate):
         lie_loss = relu(Vdot+relu(req_diff)+margin)
 
         # Code below for trying to get samples before V<beta
-        #Vdot_selected = []
-        #selected_inds = []
-        #curr_ind = 0
-        #for inds in indices["lie"]:
-        #    try:
-        #        final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
-        #    except IndexError:
-        #        final_ind = inds[-1]+1
-        #    selected = range(inds[0],final_ind)
-        #    selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
-        #    curr_ind += len(selected)
-        #    Vdot_selected.append(Vdot[selected])
-        #Vdot_selected = torch.hstack(Vdot_selected)
-        ##Vdot_selected = Vdot_selected.detach() # try detaching this?
-        ##lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-        #lie_loss = relu(Vdot_selected+relu(req_diff))
-        #
-        #valid_Vdot = True
-        #if len(lie_loss) == 0:
-        #    loss = 0
-        #    valid_Vdot = False
+        Vdot_selected = []
+        selected_inds = []
+        curr_ind = 0
+        for inds in indices["lie"]:
+            try:
+                final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
+            except IndexError:
+                final_ind = inds[-1]+1
+            selected = range(inds[0],final_ind)
+            selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+            curr_ind += len(selected)
+            Vdot_selected.append(Vdot[selected])
+        Vdot_selected = torch.hstack(Vdot_selected)
+        #Vdot_selected = Vdot_selected.detach() # try detaching this?
+        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+        lie_loss = relu(Vdot_selected+relu(req_diff))
         
         valid_Vdot = True
-        selected_inds = indices["lie"]
+        if len(lie_loss) == 0:
+            loss = 0
+            valid_Vdot = False
+        
+        #valid_Vdot = True
+        #selected_inds = indices["lie"]
 
         subgrad = not convex
 
@@ -566,8 +566,8 @@ class Practical_Lyapunov(Certificate):
         #else:
         #    goal_con = 0
 
-        loss = 0 # zero losses to only consider state constraints
-        supp_loss = 0
+        #loss = 0 # zero losses to only consider state constraints
+        #supp_loss = 0
 
         psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con

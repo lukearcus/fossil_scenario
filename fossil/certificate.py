@@ -566,14 +566,17 @@ class Practical_Lyapunov(Certificate):
                         state_elems = state_loss[inds]
                     lie_elems = lie_loss[inds]
                     loss += lie_elems.max()
+            goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
+            dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
+            lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
+            accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         else:
             supp_loss = 0
             loss = 0
             new_sub_samples = set()
         goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
-        lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
-        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
+        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100}
         gamma = 1
         # init and goal constraints shouldn't be needed but speed up convergence
         

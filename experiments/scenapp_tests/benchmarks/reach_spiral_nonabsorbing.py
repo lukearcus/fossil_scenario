@@ -22,7 +22,7 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    XG = domains.Rectangle([-4, 0], [-1.4, 1])
+    XG = domains.Rectangle([-4, 0], [-2, 0.5])
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

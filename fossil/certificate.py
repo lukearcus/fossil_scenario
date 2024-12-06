@@ -484,78 +484,9 @@ class Practical_Lyapunov(Certificate):
         state_loss = -V_D+beta
         
         margin = 1e-5
-        req_diff = ((V_I.max()-beta)/self.T)
-        #req_diff = req_diff.detach() # should this be detached?
-        #lie_loss = relu(Vdot+relu(req_diff)+margin)
-
-        # Code below for trying to get samples before V<beta
-        Vdot_selected = []
-        selected_inds = []
-        curr_ind = 0
-        for inds in indices["lie"]:
-            try:
-                final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
-            except IndexError:
-                final_ind = inds[-1]+1
-            selected = range(inds[0],final_ind)
-            selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
-            curr_ind += len(selected)
-            Vdot_selected.append(Vdot[selected])
-        Vdot_selected = torch.hstack(Vdot_selected)
-        #Vdot_selected = Vdot_selected.detach() # try detaching this?
-        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-        lie_loss = relu(Vdot_selected+relu(req_diff))
-        
-        valid_Vdot = True
-        if len(lie_loss) == 0:
-            loss = 0
-            valid_Vdot = False
-        
-        #valid_Vdot = True
-        #selected_inds = indices["lie"]
-
-        subgrad = not convex
-
-        if subgrad:
-            if valid_Vdot:
-                supp_max = torch.tensor([-1.])
-                lie_max = lie_loss.max()
-                ind_lie_max = lie_loss.argmax()
-                loss = lie_max
-                sub_sample = -1
-                for i, elem in enumerate(selected_inds):
-                    if ind_lie_max in elem:
-                        sub_sample = i
-                        break
-                for ind in supp_samples:
-                    inds = selected_inds[ind]
-                    if len(inds) > 0:
-                        supp_max = torch.max(supp_max, lie_loss[inds].max())
-                supp_loss = supp_max
-                new_sub_samples = set([sub_sample])
-            else:
-                supp_loss = 0
-                new_sub_samples = set()
-        else:
-            raise NotImplementedError
-            # code below works but is now obsolete
-            loss = 0
-            for inds in indices["lie"]:
-                curr_max = torch.tensor(0.)
-                if self.llo:
-                    state_elems = torch.tensor(0.)
-                else:
-                    state_elems = state_loss[inds]
-                lie_elems = lie_loss[inds]
-                loss += lie_elems.max()
-        goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
-        dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
-        lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
-        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
-        gamma = 1
-        # init and goal constraints shouldn't be needed but speed up convergence
         
         init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
+        
         #init_con =0
         #goal_con = 0
         border_con = relu(border_loss+margin).mean()
@@ -569,9 +500,84 @@ class Practical_Lyapunov(Certificate):
         #loss = 0 # zero losses to only consider state constraints
         #supp_loss = 0
 
-        psi_delta = loss
         psi_s = state_con+border_con+init_con+goal_con
-        loss = psi_delta+ gamma*(psi_s)
+        if psi_s == 0:
+            req_diff = ((V_I.max()-beta)/self.T)
+            #req_diff = req_diff.detach() # should this be detached?
+            #lie_loss = relu(Vdot+relu(req_diff)+margin)
+
+            # Code below for trying to get samples before V<beta
+            Vdot_selected = []
+            selected_inds = []
+            curr_ind = 0
+            for inds in indices["lie"]:
+                try:
+                    final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
+                except IndexError:
+                    final_ind = inds[-1]+1
+                selected = range(inds[0],final_ind)
+                selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+                curr_ind += len(selected)
+                Vdot_selected.append(Vdot[selected])
+            Vdot_selected = torch.hstack(Vdot_selected)
+            #Vdot_selected = Vdot_selected.detach() # try detaching this?
+            #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+            lie_loss = relu(Vdot_selected+relu(req_diff))
+            
+            valid_Vdot = True
+            if len(lie_loss) == 0:
+                loss = 0
+                valid_Vdot = False
+            
+            #valid_Vdot = True
+            #selected_inds = indices["lie"]
+
+            subgrad = not convex
+
+            if subgrad:
+                if valid_Vdot:
+                    supp_max = torch.tensor([-1.])
+                    lie_max = lie_loss.max()
+                    ind_lie_max = lie_loss.argmax()
+                    loss = lie_max
+                    sub_sample = -1
+                    for i, elem in enumerate(selected_inds):
+                        if ind_lie_max in elem:
+                            sub_sample = i
+                            break
+                    for ind in supp_samples:
+                        inds = selected_inds[ind]
+                        if len(inds) > 0:
+                            supp_max = torch.max(supp_max, lie_loss[inds].max())
+                    supp_loss = supp_max
+                    new_sub_samples = set([sub_sample])
+                else:
+                    supp_loss = 0
+                    new_sub_samples = set()
+            else:
+                raise NotImplementedError
+                # code below works but is now obsolete
+                loss = 0
+                for inds in indices["lie"]:
+                    curr_max = torch.tensor(0.)
+                    if self.llo:
+                        state_elems = torch.tensor(0.)
+                    else:
+                        state_elems = state_loss[inds]
+                    lie_elems = lie_loss[inds]
+                    loss += lie_elems.max()
+        else:
+            supp_loss = 0
+            loss = 0
+            new_sub_samples = set()
+        goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
+        dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
+        lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
+        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
+        gamma = 1
+        # init and goal constraints shouldn't be needed but speed up convergence
+        
+        loss = loss+ gamma*(psi_s)
         if supp_loss != -1:
             supp_loss = supp_loss + gamma*(psi_s)
         

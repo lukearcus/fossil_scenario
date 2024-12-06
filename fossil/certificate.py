@@ -486,7 +486,7 @@ class Practical_Lyapunov(Certificate):
         margin = 1e-5
         req_diff = ((V_I.max()-beta)/self.T)
         #req_diff = req_diff.detach() # should this be detached?
-        lie_loss = relu(Vdot+relu(req_diff)+margin)
+        #lie_loss = relu(Vdot+relu(req_diff)+margin)
 
         # Code below for trying to get samples before V<beta
         Vdot_selected = []
@@ -1330,52 +1330,91 @@ class RWS(Certificate):
 
         subgrad = not convex
 
-        lie_index = torch.nonzero(V_d < -margin)
+        #lie_index = torch.nonzero(V_d < -margin)
+        Vdot_selected = []
+        selected_inds = []
+        curr_ind = 0
+        for inds in indices["lie"]:
+            try:
+                final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] # Keep finding beta with early indices...
+            except IndexError:
+                final_ind = inds[-1]+1
+            selected = range(inds[0],final_ind)
+            selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+            curr_ind += len(selected)
+            Vdot_selected.append(Vdot_d[selected])
+        Vdot_selected = torch.hstack(Vdot_selected)
+        #Vdot_selected = Vdot_selected.detach() # try detaching this?
+        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+        
+        #Need a req_diff for adter k_G
+        req_diff = relu((V_i.max()-beta)/self.T)
+        # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
+        lie_loss = relu(Vdot_selected+req_diff)
+        
+        req_diff_2 = relu((V_u.min()-beta)/self.T)
 
-        if lie_index.nelement() != 0:
-            init_loss = relu(V_i + margin).mean()
-            unsafe_loss = relu(-V_u + margin).mean()
-            state_loss = relu(-V_d_states + beta+margin).mean()
-            req_diff = relu((V_i.max()-beta)/self.T)
-            # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
+        barr_lie_loss=relu(Vdot_d-req_diff_2)
+
+        valid_Vdot = True
+        if len(lie_loss) == 0:
+            lie_accuracy = 0.0
+            loss = 0.0
+            # plus 0.1 so this doesn't accidentally lead to loss = 0
+            supp_loss = -1
+            valid_Vdot = False
+
+        if valid_Vdot:
 
             # this might need changing in case there are points in the unsafe or goal set?
             # ensure no goal states in domain data (see rwa_2 for example)
-            Vdot_selected = torch.index_select(Vdot_d, dim=0, index=lie_index[:, 0])
-            lie_loss = relu(Vdot_selected+req_diff)
             lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
             if subgrad:
                 supp_max = torch.tensor([-1.0])
                 lie_max = lie_loss.max()
-                ind_lie_max = lie_loss.argmax()
-                loss = lie_max
-                sub_sample = -1
-                for i, elem in enumerate(indices["lie"]):
-                    if lie_index[ind_lie_max,0] in elem:
-                        sub_sample = i
-                        break
-                for ind in supp_samples:
-                    lie_inds = indices["lie"][ind]
-                    adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
-                    if len(adjusted_inds) > 0:
-                        supp_max = torch.max(supp_max, lie_loss[adjusted_inds].max())
+                barr_lie_max = barr_lie_loss.max()
+                if lie_max > barr_lie_max:
+                    ind_lie_max = lie_loss.argmax()
+                    loss = lie_max
+                    sub_sample = -1
+                    for i, elem in enumerate(selected_inds):
+                        if ind_lie_max in elem:
+                            sub_sample = i
+                            break
+                    for ind in supp_samples:
+                        lie_inds = selected_inds[ind]
+                        #adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
+                        if len(lie_inds) > 0:
+                            supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
+                else:
+                    ind_lie_max = barr_lie_loss.argmax()
+                    loss = barr_lie_max
+                    sub_sample = -1
+                    for i, elem in enumerate(indices["lie"]):
+                        if ind_lie_max in elem:
+                            sub_sample=i
+                            break
+                    for ind in supp_samples:
+                        lie_inds = indices["lie"][ind]
+                        if len(lie_inds) > 0:
+                            supp_max = torch.max(supp_max, barr_lie_loss[lie_inds].max())
                 supp_loss = supp_max
                 new_sub_samples = set([sub_sample])
-                gamma = 1
-                loss = loss + gamma*(init_loss + unsafe_loss+state_loss)
-                if supp_loss != -1:
-                    supp_loss = supp_loss + state_loss + init_loss + unsafe_loss
             else:
                 raise NotImplementedError
         else:
-            # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
-            lie_accuracy = 0.0
-            loss = relu(V_i + margin).mean()+0.1 
-            # plus 0.1 so this doesn't accidentally lead to loss = 0
-            supp_loss = -1
+            supp_loss = 0 
             new_sub_samples = set()
+            # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
+        init_loss = relu(V_i + margin).mean()
+        unsafe_loss = relu(-V_u + margin).mean()
+        state_loss = relu(-V_d_states + beta+margin).mean()
         
+        gamma = 1
+        loss = loss + gamma*(init_loss + unsafe_loss+state_loss)
+        if supp_loss != -1:
+            supp_loss = supp_loss + state_loss + init_loss + unsafe_loss
 
         accuracy = {
             "acc init": acc_init,

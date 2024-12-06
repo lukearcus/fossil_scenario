@@ -56,10 +56,15 @@ def test_lnn(args):
     init_data = XI._generate_data(n_data)()
 
     all_data = system().generate_trajs(init_data)
-    not_goal_inds = [torch.where(domains.Complement(XG).check_containment(torch.Tensor(elem.T))) for elem in all_data[1]]
-    times = [torch.Tensor(elem)[inds[0]] for elem, inds in zip(all_data[0], not_goal_inds)]
-    states = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[1], not_goal_inds) ]
-    derivs = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[2], not_goal_inds) ]
+    
+    times = all_data[0]
+    states = all_data[1]
+    derivs = all_data[2]
+    
+    #not_goal_inds = [torch.where(domains.Complement(XG).check_containment(torch.Tensor(elem.T))) for elem in all_data[1]]
+    #times = [torch.Tensor(elem)[inds[0]] for elem, inds in zip(all_data[0], not_goal_inds)]
+    #states = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[1], not_goal_inds) ]
+    #derivs = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[2], not_goal_inds) ]
     #derivs = [elem[:,inds[0]] for elem, inds in zip(all_data[2], not_goal_inds)]
     # sometimes we end up selecting a single state and get a 1D array...
     data = {"states_only": state_data, "full_data": {"times":times,"states":states,"derivs":derivs}}

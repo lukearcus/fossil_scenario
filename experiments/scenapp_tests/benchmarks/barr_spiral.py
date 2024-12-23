@@ -16,8 +16,8 @@ from fossil.consts import *
 
 
 def test_lnn(args):
-    XD = domains.Rectangle([-5, -5], [5, 4.5])
-    XI = domains.Rectangle([-1, 4], [1, 5])
+    XD = domains.Rectangle([-5, -5], [5, 5])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
     XU = domains.Rectangle([-5,-1],[-4.5,1])
 
     n_data = 1000

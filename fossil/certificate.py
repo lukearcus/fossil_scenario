@@ -1059,12 +1059,7 @@ class BarrierAlt(Certificate):
 
         req_diff = (B_u.min() - B_i.max())/self.T
         lie_margin = 1e-5
-        if (B_i <= 0).count_nonzero().item() + (
-            B_u > 0
-            ).count_nonzero().item() == len(B_u)+len(B_i):
-            lie_loss = Bdot_d-req_diff
-        else:
-            lie_loss = relu(Bdot_d-req_diff)
+        lie_loss = relu(Bdot_d-req_diff)
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < req_diff).count_nonzero()).item() / Bdot_d.shape[0]

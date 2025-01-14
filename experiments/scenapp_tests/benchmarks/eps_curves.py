@@ -16,6 +16,33 @@ from experiments.scenapp_tests.benchmarks import models
 from fossil.consts import *
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from functools import partial
+
+def solve(system, sets, n_data, activations, hidden_neurons, data):
+
+    opts = ScenAppConfig(
+        N_VARS=2,
+        SYSTEM=system,
+        DOMAINS=sets,
+        DATA=data,
+        N_DATA=n_data,
+        N_TEST_DATA=n_data,
+        CERTIFICATE=CertificateType.BARRIERALT,
+        TIME_DOMAIN=TimeDomain.DISCRETE,
+        #VERIFIER=VerifierType.DREAL,
+        ACTIVATION=activations,
+        N_HIDDEN_NEURONS=hidden_neurons,
+        SYMMETRIC_BELT=True,
+        VERBOSE=0,
+        SCENAPP_MAX_ITERS=2500,
+        VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        #CONVEX_NET=True,
+    )
+    
+
+    PAC = ScenApp(opts)
+    result = PAC.solve()
+    return result.res, result.a_post_res
 
 def test_lnn(args):
     XD = domains.Rectangle([-5, -5], [5, 5])
@@ -23,6 +50,13 @@ def test_lnn(args):
     XU = domains.Rectangle([-5,-2],[-4,2])
 
     n_data = 150
+    
+    eps_P2L = []
+    eps_post = []
+    min_samples = 100
+    max_samples = n_data
+    step = 10
+    num_runs = 3 
     
     sets = {
         certificate.XD: XD,
@@ -35,53 +69,26 @@ def test_lnn(args):
         certificate.XI: XI._generate_data(n_state_data)(),
         certificate.XU: XU._generate_data(n_state_data)(),
     }
-    init_data = XI._generate_data(n_data)()
+    
+    init_data = [XI._generate_data(n_data)() for i in range(num_runs)]
 
     system = models.Spiral
     system.time_horizon = 100
-    all_data = system().generate_trajs(init_data)
+    all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
 
-    eps_P2L = []
-    eps_post = []
-    min_samples = 100
-    max_samples = n_data
-    step = 5
     N_vals = list(range(min_samples, max_samples, step))
-    num_runs = 5
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
+    #activations = [ActivationType.RELU]
+    hidden_neurons = [5] * len(activations)
     for i in tqdm(N_vals):
         eps_P2L_run = []
         eps_post_run = []
-        for j in range(num_runs):
-            data = {"states_only": state_data, "full_data": {"times":all_data[0][:i],"states":all_data[1][:i],"derivs":all_data[2][:i]}}
-
-            #activations = [ActivationType.SIGMOID]
-            activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
-            #activations = [ActivationType.RELU]
-            hidden_neurons = [5] * len(activations)
-            opts = ScenAppConfig(
-                N_VARS=2,
-                SYSTEM=system,
-                DOMAINS=sets,
-                DATA=data,
-                N_DATA=i,
-                N_TEST_DATA=i,
-                CERTIFICATE=CertificateType.BARRIERALT,
-                TIME_DOMAIN=TimeDomain.DISCRETE,
-                #VERIFIER=VerifierType.DREAL,
-                ACTIVATION=activations,
-                N_HIDDEN_NEURONS=hidden_neurons,
-                SYMMETRIC_BELT=True,
-                VERBOSE=2,
-                SCENAPP_MAX_ITERS=2500,
-                VERIFIER=VerifierType.SCENAPPNONCONVEX,
-                #CONVEX_NET=True,
-            )
-            
-
-            PAC = ScenApp(opts)
-            result = PAC.solve()
-            eps_P2L_run.append(result.res)
-            eps_post_run.append(result.a_post_res)
+        part_solve = partial(solve, system, sets, i, activations, hidden_neurons)
+        data = [{"states_only": state_data, "full_data": {"times":all_datum[0][:i],"states":all_datum[1][:i],"derivs":all_datum[2][:i]}} for all_datum in all_data]
+        with Pool(processes=num_runs) as pool:
+            res, a_post_res = pool.map(part_solve, data)
+            eps_P2L_run.append(res)
+            eps_post_run.append(a_post_res)
         
         eps_P2L.append(eps_P2L_run)
 
@@ -103,7 +110,7 @@ def test_lnn(args):
 
     all_err = np.vstack((bottom_err, top_err))
 
-    ax.errorbar(x_vals, mean_times, yerr=all_err, marker="x", linestyle="--", capsize=4, label="Risk calculated with certificate (Theorem 1)")
+    ax.errorbar(x_vals, mean_P2L, yerr=all_err, marker="x", linestyle="--", capsize=4, label="Risk calculated with certificate (Theorem 1)")
     
     eps_post = np.array(eps_post).T
     
@@ -115,7 +122,7 @@ def test_lnn(args):
 
     all_err = np.vstack((bottom_err, top_err))
 
-    ax.errorbar(x_vals, mean_times, yerr=all_err, marker="x", linestyle="--", capsize=4, label="Risk calculated directly (Proposition 5)")
+    ax.errorbar(x_vals, mean_post, yerr=all_err, marker="x", linestyle="--", capsize=4, label="Risk calculated directly (Proposition 5)")
     
     plt.title("Risk Curves for Varying N")
     plt.xlabel("N")

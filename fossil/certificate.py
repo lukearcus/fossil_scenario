@@ -1058,7 +1058,7 @@ class BarrierAlt(Certificate):
         relu = torch.nn.ReLU()
 
         req_diff = (B_u.min() - B_i.max())/self.T
-        lie_margin = 1e-3
+        lie_margin = 1e-5
         if (B_i <= 0).count_nonzero().item() + (
             B_u > 0
             ).count_nonzero().item() == len(B_u)+len(B_i):
@@ -1067,66 +1067,67 @@ class BarrierAlt(Certificate):
             lie_loss = relu(Bdot_d-req_diff)
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
-            100 * ((Bdot_d < 0).count_nonzero()).item() / Bdot_d.shape[0]
+            100 * ((Bdot_d < req_diff).count_nonzero()).item() / Bdot_d.shape[0]
         )
         subgrad = not convex
         # subgradient descent
+        
+        unsafe_margin = 1e-5
+        init_loss = (relu(B_i).mean())
+        unsafe_loss = relu(-B_u+unsafe_margin).mean()
+        psi_s = init_loss + unsafe_loss
+        if psi_s == 0:
+        #if True:
+            if subgrad:
+                supp_max = torch.tensor([-1.0])
+                lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
+                ind_lie_max = lie_loss.argmax()
+                loss = lie_max
+                sub_sample = -1
+                for i, elem in enumerate(indices["lie"]):
+                    if ind_lie_max in elem:
+                        sub_sample = i
+                        break
+                for ind in supp_samples:
+                    lie_inds = indices["lie"][ind]
+                    if len(lie_inds) > 0:
+                        supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
+                    #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
+                supp_loss = supp_max
+                new_sub_samples = set([sub_sample])
+            else:    
+                # relaxed constraints below
+                supp_loss = -1
+                loss = 0
+                sub_samples = {"active":0,"relaxed":0}
+                i = 0
+                for inds_lie in indices["lie"]:
+                    curr_max = torch.tensor(-1.0)
+                    elems_lie = lie_loss[inds_lie]
+                    if len(elems_lie) > 0 :
+                        curr_max = torch.max(curr_max, elems_lie.max())
+                    if curr_max > 0:
+                        loss += curr_max
+                        sub_samples["relaxed"] += 1
+                    elif curr_max > -0.01: #Some wiggle room for what counts as active
+                        sub_samples["active"] += 1
+                    i += 1
+                new_sub_samples = sub_samples
+            loss = loss + psi_s
+            if supp_loss != -1:
+                supp_loss = supp_loss + psi_s
+            
+            # this bit adds on the additional samples of just states
 
-        if subgrad:
-            supp_max = torch.tensor([-1.0])
-            lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
-            ind_lie_max = lie_loss.argmax()
-            loss = lie_max
-            sub_sample = -1
-            for i, elem in enumerate(indices["lie"]):
-                if ind_lie_max in elem:
-                    sub_sample = i
-                    break
-            for ind in supp_samples:
-                lie_inds = indices["lie"][ind]
-                if len(lie_inds) > 0:
-                    supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
-                #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
-            supp_loss = supp_max
-            new_sub_samples = set([sub_sample])
-        else:    
-            # relaxed constraints below
-            supp_loss = -1
-            loss = 0
-            sub_samples = {"active":0,"relaxed":0}
-            i = 0
-            for inds_lie in indices["lie"]:
-                curr_max = torch.tensor(-1.0)
-                elems_lie = lie_loss[inds_lie]
-                if len(elems_lie) > 0 :
-                    curr_max = torch.max(curr_max, elems_lie.max())
-                if curr_max > 0:
-                    loss += curr_max
-                    sub_samples["relaxed"] += 1
-                elif curr_max > -0.01: #Some wiggle room for what counts as active
-                    sub_samples["active"] += 1
-                i += 1
-            new_sub_samples = sub_samples
-
-        
-        # this bit adds on the additional samples of just states
-
-        # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
-        # Don't worry, state data is all added to the end of the data
-        #import pdb; pdb.set_trace()
-        
-        # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
-        gamma = 1 
-        unsafe_margin = 1e-3
-        init_loss = gamma*(relu(B_i).mean())
-        loss = loss+init_loss
-        unsafe_loss = gamma*relu(-B_u+unsafe_margin).mean()
-        loss = loss+ unsafe_loss
-        if supp_loss != -1:
-            supp_loss = supp_loss + init_loss
-            supp_loss = supp_loss + unsafe_loss
-        
-        
+            # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
+            # Don't worry, state data is all added to the end of the data
+            #import pdb; pdb.set_trace()
+            
+            # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
+        else:
+            loss = psi_s
+            supp_loss = psi_s
+            new_sub_samples = set()
 
         #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
@@ -1343,87 +1344,90 @@ class RWS(Certificate):
         Vdot_selected = []
         selected_inds = []
         curr_ind = 0
-        for inds in indices["lie"]:
-            try:
-                final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] # Keep finding beta with early indices...
-            except IndexError:
-                final_ind = inds[-1]+1
-            selected = range(inds[0],final_ind)
-            selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
-            curr_ind += len(selected)
-            Vdot_selected.append(Vdot_d[selected])
-        Vdot_selected = torch.hstack(Vdot_selected)
-        #Vdot_selected = Vdot_selected.detach() # try detaching this?
-        #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
         
-        #Need a req_diff for adter k_G
-        req_diff = relu((V_i.max()-beta)/self.T)
-        # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
-        lie_loss = relu(Vdot_selected+req_diff)
-        
-        req_diff_2 = relu((V_u.min()-beta)/self.T)
-
-        barr_lie_loss=relu(Vdot_d-req_diff_2)
-
-        valid_Vdot = True
-        if len(lie_loss) == 0:
-            lie_accuracy = 0.0
-            loss = 0.0
-            # plus 0.1 so this doesn't accidentally lead to loss = 0
-            supp_loss = -1
-            valid_Vdot = False
-
-        if valid_Vdot:
-
-            # this might need changing in case there are points in the unsafe or goal set?
-            # ensure no goal states in domain data (see rwa_2 for example)
-            lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
-            )
-            if subgrad:
-                supp_max = torch.tensor([-1.0])
-                lie_max = lie_loss.max()
-                barr_lie_max = barr_lie_loss.max()
-                if lie_max > barr_lie_max:
-                    ind_lie_max = lie_loss.argmax()
-                    loss = lie_max
-                    sub_sample = -1
-                    for i, elem in enumerate(selected_inds):
-                        if ind_lie_max in elem:
-                            sub_sample = i
-                            break
-                    for ind in supp_samples:
-                        lie_inds = selected_inds[ind]
-                        #adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
-                        if len(lie_inds) > 0:
-                            supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
-                else:
-                    ind_lie_max = barr_lie_loss.argmax()
-                    loss = barr_lie_max
-                    sub_sample = -1
-                    for i, elem in enumerate(indices["lie"]):
-                        if ind_lie_max in elem:
-                            sub_sample=i
-                            break
-                    for ind in supp_samples:
-                        lie_inds = indices["lie"][ind]
-                        if len(lie_inds) > 0:
-                            supp_max = torch.max(supp_max, barr_lie_loss[lie_inds].max())
-                supp_loss = supp_max
-                new_sub_samples = set([sub_sample])
-            else:
-                raise NotImplementedError
-        else:
-            supp_loss = 0 
-            new_sub_samples = set()
-            # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
         
-        gamma = 1
-        loss = loss + gamma*(init_loss + unsafe_loss+state_loss)
-        if supp_loss != -1:
-            supp_loss = supp_loss + state_loss + init_loss + unsafe_loss
+        psi_s = init_loss+unsafe_loss+state_loss
+        if psi_s == 0:
+            for inds in indices["lie"]:
+                try:
+                    final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] # Keep finding beta with early indices...
+                except IndexError:
+                    final_ind = inds[-1]+1
+                selected = range(inds[0],final_ind)
+                selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+                curr_ind += len(selected)
+                Vdot_selected.append(Vdot_d[selected])
+            Vdot_selected = torch.hstack(Vdot_selected)
+            #Vdot_selected = Vdot_selected.detach() # try detaching this?
+            #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+            
+            #Need a req_diff for adter k_G
+            req_diff = relu((V_i.max()-beta)/self.T)
+            # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
+            lie_loss = relu(Vdot_selected+req_diff)
+            
+            req_diff_2 = relu((V_u.min()-beta)/self.T)
+
+            barr_lie_loss=relu(Vdot_d-req_diff_2)
+
+            valid_Vdot = True
+            if len(lie_loss) == 0:
+                lie_accuracy = 0.0
+                loss = 0.0
+                # plus 0.1 so this doesn't accidentally lead to loss = 0
+                supp_loss = -1
+                valid_Vdot = False
+
+            if valid_Vdot:
+
+                # this might need changing in case there are points in the unsafe or goal set?
+                # ensure no goal states in domain data (see rwa_2 for example)
+                lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
+                )
+                if subgrad:
+                    supp_max = torch.tensor([-1.0])
+                    lie_max = lie_loss.max()
+                    barr_lie_max = barr_lie_loss.max()
+                    if lie_max > barr_lie_max:
+                        ind_lie_max = lie_loss.argmax()
+                        loss = lie_max
+                        sub_sample = -1
+                        for i, elem in enumerate(selected_inds):
+                            if ind_lie_max in elem:
+                                sub_sample = i
+                                break
+                        for ind in supp_samples:
+                            lie_inds = selected_inds[ind]
+                            #adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
+                            if len(lie_inds) > 0:
+                                supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
+                    else:
+                        ind_lie_max = barr_lie_loss.argmax()
+                        loss = barr_lie_max
+                        sub_sample = -1
+                        for i, elem in enumerate(indices["lie"]):
+                            if ind_lie_max in elem:
+                                sub_sample=i
+                                break
+                        for ind in supp_samples:
+                            lie_inds = indices["lie"][ind]
+                            if len(lie_inds) > 0:
+                                supp_max = torch.max(supp_max, barr_lie_loss[lie_inds].max())
+                    supp_loss = supp_max
+                    new_sub_samples = set([sub_sample])
+                else:
+                    raise NotImplementedError
+            else:
+                supp_loss = 0 
+                new_sub_samples = set()
+                # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
+        else:
+            loss = psi_s
+            supp_loss = psi_s
+            new_sub_samples = set()
 
         accuracy = {
             "acc init": acc_init,

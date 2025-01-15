@@ -8,6 +8,7 @@ import fossil.logger as logger
 import fossil.certificate as certificate
 
 from itertools import chain
+from time import perf_counter
 
 import torch
 import copy
@@ -411,7 +412,7 @@ class SingleScenApp:
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
-                print("Convergence reached, but failed to find valid certificate, discarding samples")
+                scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
@@ -439,7 +440,9 @@ class SingleScenApp:
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
+        pre_post = perf_counter()
         a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        print("Direct property guarantee time: {:.5f}s".format(perf_counter()-pre_post))
         self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
@@ -667,7 +670,7 @@ class DoubleScenApp(SingleScenApp):
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
-                print("Convergence reached, but failed to find valid certificate, discarding samples")
+                scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
@@ -692,7 +695,10 @@ class DoubleScenApp(SingleScenApp):
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
+        pre_post = perf_counter()
         a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        post_time = perf_counter()-pre_post
+        print("Direct risk calculation time: {:.5f}s".format(post_time))
         self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result

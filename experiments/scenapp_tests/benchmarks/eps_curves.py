@@ -17,6 +17,7 @@ from fossil.consts import *
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from functools import partial
+from multiprocessing import Pool
 
 def solve(system, sets, n_data, activations, hidden_neurons, data):
 
@@ -56,7 +57,7 @@ def test_lnn(args):
     min_samples = 100
     max_samples = n_data
     step = 10
-    num_runs = 3 
+    num_runs = 5 
     
     sets = {
         certificate.XD: XD,
@@ -86,13 +87,9 @@ def test_lnn(args):
         part_solve = partial(solve, system, sets, i, activations, hidden_neurons)
         data = [{"states_only": state_data, "full_data": {"times":all_datum[0][:i],"states":all_datum[1][:i],"derivs":all_datum[2][:i]}} for all_datum in all_data]
         with Pool(processes=num_runs) as pool:
-            res, a_post_res = pool.map(part_solve, data)
-            eps_P2L_run.append(res)
-            eps_post_run.append(a_post_res)
-        
-        eps_P2L.append(eps_P2L_run)
-
-        eps_post.append(eps_post_run)
+            res = pool.map(part_solve, data)
+        eps_P2L.append([j[0] for j in res])
+        eps_post.append([j[1] for j in res])
 
     fig, ax = plt.subplots()
     x_vals = np.array(range(min_samples, max_samples, step)) 

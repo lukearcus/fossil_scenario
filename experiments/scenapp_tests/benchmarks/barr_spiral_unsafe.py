@@ -49,6 +49,7 @@ def test_lnn(args):
         DOMAINS=sets,
         DATA=data,
         N_DATA=n_data,
+        N_TEST_DATA=n_data,
         CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,

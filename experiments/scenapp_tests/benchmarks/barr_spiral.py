@@ -78,6 +78,24 @@ def test_lnn(args):
     with Pool(processes=num_runs) as pool:
         res = pool.map(part_solve, data)
     
+    opts = ScenAppConfig(
+        N_VARS=2,
+        SYSTEM=system,
+        DOMAINS=sets,
+        DATA=data[-1],
+        N_DATA=n_data,
+        N_TEST_DATA=n_data,
+        CERTIFICATE=CertificateType.BARRIERALT,
+        TIME_DOMAIN=TimeDomain.DISCRETE,
+        #VERIFIER=VerifierType.DREAL,
+        ACTIVATION=activations,
+        N_HIDDEN_NEURONS=hidden_neurons,
+        SYMMETRIC_BELT=True,
+        VERBOSE=0,
+        SCENAPP_MAX_ITERS=2500,
+        VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        #CONVEX_NET=True,
+    )
     axes = plotting.benchmark(
         system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )

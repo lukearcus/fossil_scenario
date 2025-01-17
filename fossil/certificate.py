@@ -522,7 +522,7 @@ class Practical_Lyapunov(Certificate):
             Vdot_selected = torch.hstack(Vdot_selected)
             #Vdot_selected = Vdot_selected.detach() # try detaching this?
             #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-            lie_loss = relu(Vdot_selected+relu(req_diff))
+            lie_loss = relu(Vdot_selected+relu(req_diff+margin))
             
             valid_Vdot = True
             if len(lie_loss) == 0:
@@ -571,18 +571,12 @@ class Practical_Lyapunov(Certificate):
             lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
             accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
         else:
-            supp_loss = 0
-            loss = 0
+            supp_loss = psi_s 
+            loss = psi_s
             new_sub_samples = set()
         goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
         dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
         accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100}
-        gamma = 1
-        # init and goal constraints shouldn't be needed but speed up convergence
-        
-        loss = loss+ gamma*(psi_s)
-        if supp_loss != -1:
-            supp_loss = supp_loss + gamma*(psi_s)
         
         #loss = psi_s
         #supp_loss = psi_s # test if we can learn just the value requirements (should be easy)

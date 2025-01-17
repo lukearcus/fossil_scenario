@@ -48,9 +48,9 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 def test_lnn(args):
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    XU = domains.Rectangle([-5,-2],[-4,2])
+    XU = domains.Rectangle([-5,-1],[-4.5,1])
 
-    n_data = 150
+    n_data = 1000
     
     eps_P2L = []
     eps_post = []
@@ -116,6 +116,8 @@ def test_lnn(args):
     mean_post = np.mean(eps_post, axis=0)
     top_err = max_post-mean_post
     bottom_err = mean_post-min_post
+    top_err = np.zeros_like(mean_post)
+    bottom_err = np.zeros_like(mean_post)
 
     all_err = np.vstack((bottom_err, top_err))
 

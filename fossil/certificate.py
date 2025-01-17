@@ -515,6 +515,7 @@ class Practical_Lyapunov(Certificate):
                     final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
                 except IndexError:
                     final_ind = inds[-1]+1
+                import pdb; pdb.set_trace()
                 selected = range(inds[0],final_ind)
                 selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
                 curr_ind += len(selected)

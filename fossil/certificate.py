@@ -480,7 +480,7 @@ class Practical_Lyapunov(Certificate):
         init_loss = V_I
         #init_loss = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G#-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         state_loss = -V_D+beta
         
         margin = 1e-5

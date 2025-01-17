@@ -63,7 +63,7 @@ def test_lnn():
             fossil.XI: XI
                 }
     
-    n_state_data = 1000
+    n_state_data = 10000
 
     state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 

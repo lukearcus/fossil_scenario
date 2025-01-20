@@ -82,9 +82,9 @@ def test_lnn():
     all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
     part_solve = partial(solve, system, dom, n_data, activations, n_hidden_neurons)
-    res = [part_solve(data[0])]
-    #with Pool(processes=num_runs) as pool:
-    #    res = pool.map(part_solve, data)
+    #res = [part_solve(data[0])]
+    with Pool(processes=num_runs) as pool:
+        res = pool.map(part_solve, data)
     
     opts = ScenAppConfig(
         N_VARS=2,

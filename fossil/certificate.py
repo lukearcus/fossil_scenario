@@ -448,6 +448,60 @@ class Practical_Lyapunov(Certificate):
         self.D = config.DOMAINS
         self.beta = None
         self.T = config.SYSTEM.time_horizon
+    
+    def compute_state_loss(
+            self, 
+            V_I: torch.Tensor, 
+            V_G: torch.Tensor,
+            V_D: torch.Tensor,
+            V_SD: torch.Tensor,
+            V_D_lie: torch.Tensor,
+            beta: torch.Tensor,
+            Vdot: torch.Tensor, 
+            indices: list,
+            supp_samples: set,
+            convex: bool
+    ) -> tuple[torch.Tensor, dict]:
+        """_summary_
+
+        Args:
+            V (torch.Tensor): Lyapunov samples over domain
+            Vdot (torch.Tensor): Lyapunov derivative samples over domain
+            circle (torch.Tensor): Circle
+
+        Returns:
+            tuple[torch.Tensor, float]: loss and accuracy
+        """
+
+        # cannot get a sub level set within the goal region for some reason???????????
+        
+        relu = torch.nn.ReLU()
+        
+        init_loss = V_I
+        #init_loss = -V_I+beta
+        border_loss = -V_SD
+        goal_loss = V_G-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        state_loss = -V_D+beta
+        
+        margin = 1e-5
+        
+        init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
+        
+        #init_con =0
+        #goal_con = 0
+        border_con = relu(border_loss+margin).mean()
+        state_con = relu(state_loss+margin).mean()
+        goal_con = relu(goal_loss+margin).mean()
+        #if supp_loss + state_con+border_con+init_con > 0:
+        #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
+        #else:
+        #    goal_con = 0
+
+        #loss = 0 # zero losses to only consider state constraints
+        #supp_loss = 0
+
+        psi_s = state_con+border_con+init_con+goal_con
+        return psi_s
 
     def compute_loss(
             self, 
@@ -501,7 +555,8 @@ class Practical_Lyapunov(Certificate):
         #supp_loss = 0
 
         psi_s = state_con+border_con+init_con+goal_con
-        if psi_s == 0:
+        if True:
+        #if psi_s == 0:
             req_diff = ((V_I.max()-beta)/self.T)
             #req_diff = req_diff.detach() # should this be detached?
             #lie_loss = relu(Vdot+relu(req_diff)+margin)
@@ -515,7 +570,6 @@ class Practical_Lyapunov(Certificate):
                     final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
                 except IndexError:
                     final_ind = inds[-1]+1
-                import pdb; pdb.set_trace()
                 selected = range(inds[0],final_ind)
                 selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
                 curr_ind += len(selected)
@@ -523,7 +577,7 @@ class Practical_Lyapunov(Certificate):
             Vdot_selected = torch.hstack(Vdot_selected)
             #Vdot_selected = Vdot_selected.detach() # try detaching this?
             #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-            lie_loss = relu(Vdot_selected+relu(req_diff+margin))
+            lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
             
             valid_Vdot = True
             if len(lie_loss) == 0:
@@ -567,17 +621,23 @@ class Practical_Lyapunov(Certificate):
                         state_elems = state_loss[inds]
                     lie_elems = lie_loss[inds]
                     loss += lie_elems.max()
+            loss = loss + psi_s
+            if supp_loss != -1:
+                supp_loss = supp_loss + psi_s
             goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
             dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
-            lie_accuracy = (Vdot <= -req_diff).count_nonzero().item()/len(Vdot)
-            accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc": lie_accuracy*100}
+            if len(Vdot_selected) > 0:
+                lie_accuracy = (Vdot_selected <= -req_diff).count_nonzero().item()/len(Vdot_selected)
+            else:
+                lie_accuracy = 0
+            accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100, "lie_acc" :lie_accuracy*100}
         else:
             supp_loss = psi_s 
             loss = psi_s
             new_sub_samples = set()
-        goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
-        dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
-        accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100}
+            goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
+            dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
+            accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100}
         
         #loss = psi_s
         #supp_loss = psi_s # test if we can learn just the value requirements (should be easy)
@@ -632,6 +692,8 @@ class Practical_Lyapunov(Certificate):
         times = times[XD]
 
         supp_samples = set()
+        state_sol = False
+
         for t in range(learn_loops):
             optimizer.zero_grad()
             if self.control:
@@ -649,40 +711,48 @@ class Practical_Lyapunov(Certificate):
 
 
             #import pdb; pdb.set_trace()
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
-            if loss <= best_loss:
-                best_loss = loss
-                best_net = copy.deepcopy(learner)
-                best_net.beta = beta.item()
+            if state_sol:
+                loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
+                if loss <= best_loss:
+                    best_loss = loss
+                    best_net = copy.deepcopy(learner)
+                    best_net.beta = beta.item()
 
+                if self.control:
+                    loss = loss + control.cosine_reg(samples, samples_dot)
 
-            if self.control:
-                loss = loss + control.cosine_reg(samples, samples_dot)
-
-            if t % 100 == 0 or t == learn_loops - 1:
-                log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-                #import pdb; pdb.set_trace()    
-            if convex:
-                loss.backward()
-            else:
-                loss.backward(retain_graph=True)
-                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                # Code below is for non-convex
-                if supp_loss != -1:
-                    optimizer.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    inner = torch.inner(grads, supp_grads)
-                    if inner <= 0:
-                        supp_samples = supp_samples.union(sub_sample)
-                        optimizer.zero_grad()
-                        loss.backward()
+                if t % 100 == 0 or t == learn_loops - 1:
+                    log_loss_acc(t, loss, learn_accuracy, learner.verbose)
+                    #import pdb; pdb.set_trace()    
+                if convex:
+                    loss.backward()
                 else:
-                    supp_samples = supp_samples.union(sub_sample)
-            optimizer.step()
+                    loss.backward(retain_graph=True)
+                    grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    # Code below is for non-convex
+                    if supp_loss != -1:
+                        optimizer.zero_grad()
+                        supp_loss.backward(retain_graph=True)
+                        supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                        inner = torch.inner(grads, supp_grads)
+                        if inner <= 0:
+                            supp_samples = supp_samples.union(sub_sample)
+                            optimizer.zero_grad()
+                            loss.backward()
+                    else:
+                        supp_samples = supp_samples.union(sub_sample)
+                optimizer.step()
 
-            if learner._take_abs:
-                learner.make_final_layer_positive()
+                if learner._take_abs:
+                    learner.make_final_layer_positive()
+            else:
+                loss = self.compute_state_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
+                if loss == 0:
+                    state_sol = True
+                else:
+                    loss.backward()
+                    optimizer.step()
+                
         V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
         V2 = learner(states_only)
         V = V2
@@ -1341,6 +1411,7 @@ class RWS(Certificate):
         
         psi_s = init_loss+unsafe_loss+state_loss
         if psi_s == 0:
+        #if True:
             for inds in indices["lie"]:
                 try:
                     final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] # Keep finding beta with early indices...
@@ -1414,6 +1485,9 @@ class RWS(Certificate):
                 supp_loss = 0 
                 new_sub_samples = set()
                 # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
+            loss = loss+psi_s
+            if supp_loss != -1:
+                supp_loss = supp_loss + psi_s
         else:
             loss = psi_s
             supp_loss = psi_s

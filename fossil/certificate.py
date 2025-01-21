@@ -1089,6 +1089,25 @@ class BarrierAlt(Certificate):
         self.D = config.DOMAINS
         self.T=config.SYSTEM.time_horizon
 
+    def compute_state_loss(
+        self,
+        B_i: torch.Tensor,
+        B_u: torch.Tensor,
+        B_d: torch.Tensor,
+        Bdot_d: torch.Tensor,
+        indices: list,
+        supp_samples: set,
+        convex: bool,
+    ) -> tuple[torch.Tensor, dict]:
+        relu = torch.nn.ReLU()
+        
+        unsafe_margin = 1e-5
+        init_loss = (relu(B_i).mean())
+        unsafe_loss = relu(-B_u+unsafe_margin).mean()
+        psi_s = init_loss + unsafe_loss
+        return psi_s 
+
+
     def compute_loss(
         self,
         B_i: torch.Tensor,
@@ -1237,6 +1256,7 @@ class BarrierAlt(Certificate):
         # samples_dot = torch.cat([s for s in Sdot.values()])
         samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         supp_samples = set()
+        state_sol = False
         for t in range(learn_loops):
             optimizer.zero_grad()
 
@@ -1255,39 +1275,49 @@ class BarrierAlt(Certificate):
             )
             B_i = B2[i1-idot1:i1+i2-idot2-idot1]
             B_u = B2[i1+i2-idot1-idot2:]
-            loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
-            
-            if loss <= best_loss:
-                best_loss = loss
-                best_net = copy.deepcopy(learner)
-            # loss = loss + (100-percent_accuracy)
+            if state_sol:
+                loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+                
+                if loss <= best_loss:
+                    best_loss = loss
+                    best_net = copy.deepcopy(learner)
+                # loss = loss + (100-percent_accuracy)
 
-            if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
-                log_loss_acc(t, loss, accuracy, learner.verbose)
+                if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
+                    log_loss_acc(t, loss, accuracy, learner.verbose)
 
-            # if learn_accuracy / batch_size > 0.99:
-            #     for k in range(batch_size):
-            #         if Vdot[k] > -margin:
-            #             print("Vdot" + str(S[k].tolist()) + " = " + str(Vdot[k].tolist()))
-            if convex:
-                loss.backward()
-            else:
-                loss.backward(retain_graph=True)
-                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                # Code below is for non-convex
-                if supp_loss != -1:
-                    optimizer.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    inner = torch.inner(grads, supp_grads)
-                    #print(inner)
-                    if inner <= 0:
-                        supp_samples = supp_samples.union(sub_sample)
-                        optimizer.zero_grad()
-                        loss.backward()
+                # if learn_accuracy / batch_size > 0.99:
+                #     for k in range(batch_size):
+                #         if Vdot[k] > -margin:
+                #             print("Vdot" + str(S[k].tolist()) + " = " + str(Vdot[k].tolist()))
+                if convex:
+                    loss.backward()
                 else:
-                    supp_samples = supp_samples.union(sub_sample)
-            optimizer.step()
+                    loss.backward(retain_graph=True)
+                    grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    # Code below is for non-convex
+                    if supp_loss != -1:
+                        optimizer.zero_grad()
+                        supp_loss.backward(retain_graph=True)
+                        supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                        inner = torch.inner(grads, supp_grads)
+                        #print(inner)
+                        if inner <= 0:
+                            supp_samples = supp_samples.union(sub_sample)
+                            optimizer.zero_grad()
+                            loss.backward()
+                    else:
+                        supp_samples = supp_samples.union(sub_sample)
+                optimizer.step()
+            else:
+                loss = self.compute_state_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+                if loss == 0:
+                    state_sol=True
+                else:
+                    loss.backward()
+                    optimizer.step()
+
+
         B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
         B2 = learner(states_only)
         (

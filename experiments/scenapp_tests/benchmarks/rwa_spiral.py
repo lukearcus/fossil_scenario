@@ -11,7 +11,27 @@ from fossil import domains
 from fossil import certificate
 from fossil import main, control
 from fossil.consts import *
+from functools import partial
+from multiprocessing import Pool
+from fossil.scenapp import ScenApp, Result
 
+def solve(system, sets, n_data, activations, hidden_neurons, data):
+    opts = ScenAppConfig(
+        DOMAINS=sets,
+        DATA=data,
+        SYSTEM=system,
+        N_VARS=2,
+        CERTIFICATE=CertificateType.RWS,
+        TIME_DOMAIN=TimeDomain.DISCRETE,
+        VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        ACTIVATION=activations,
+        N_HIDDEN_NEURONS=hidden_neurons,
+        VERBOSE=0,
+        SCENAPP_MAX_ITERS=2000,
+    )
+    PAC = ScenApp(opts)
+    result = PAC.solve()
+    return result
 
 def test_lnn(args):
     ###########################################
@@ -53,46 +73,51 @@ def test_lnn(args):
         certificate.XG: XG._generate_data(n_state_data)(),
         certificate.XG_BORDER: XG._sample_border(n_state_data)()
     }
-    init_data = XI._generate_data(n_data)()
+    num_runs = 5
+    init_data = [XI._generate_data(n_data)() for i in range(num_runs)]
 
-    all_data = system().generate_trajs(init_data)
+    all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
     
-    times = all_data[0]
-    states = all_data[1]
-    derivs = all_data[2]
-    
-    #not_goal_inds = [torch.where(domains.Complement(XG).check_containment(torch.Tensor(elem.T))) for elem in all_data[1]]
-    #times = [torch.Tensor(elem)[inds[0]] for elem, inds in zip(all_data[0], not_goal_inds)]
-    #states = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[1], not_goal_inds) ]
-    #derivs = [elem[:,inds[0]] if len(inds[0]) > 1 else elem[:,inds[0],np.newaxis] if len(inds[0]) == 1 else np.empty([2,0]) for elem, inds in zip(all_data[2], not_goal_inds) ]
-    #derivs = [elem[:,inds[0]] for elem, inds in zip(all_data[2], not_goal_inds)]
-    # sometimes we end up selecting a single state and get a 1D array...
-    data = {"states_only": state_data, "full_data": {"times":times,"states":states,"derivs":derivs}}
+    data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
     # define NN parameters
     activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
     n_hidden_neurons = [5] * len(activations)
 
+    #main.run_benchmark(
+    #    opts,
+    #    record=args.record,
+    #    plot=args.plot,
+    #    concurrent=args.concurrent,
+    #    repeat=args.repeat,
+    #)
+    
+    part_solve = partial(solve, system, sets, n_data, activations, n_hidden_neurons)
+    with Pool(processes=num_runs) as pool:
+        res = pool.map(part_solve, data)
+    
     opts = ScenAppConfig(
-        DOMAINS=sets,
-        DATA=data,
+        N_VARS=2,
         SYSTEM=system,
-        N_VARS=n_vars,
+        DOMAINS=dom,
+        DATA=data[-1],
+        N_DATA=n_data,
+        N_TEST_DATA=n_data,
         CERTIFICATE=CertificateType.RWS,
         TIME_DOMAIN=TimeDomain.DISCRETE,
-        VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        VERBOSE=2,
-        SCENAPP_MAX_ITERS=200,
+        SYMMETRIC_BELT=True,
+        VERBOSE=0,
+        SCENAPP_MAX_ITERS=2500,
+        VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        #CONVEX_NET=True,
     )
-
-    main.run_benchmark(
-        opts,
-        record=args.record,
-        plot=args.plot,
-        concurrent=args.concurrent,
-        repeat=args.repeat,
+    axes = plotting.benchmark(
+        system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
+    for ax, name in axes:
+        plotting.save_plot_with_tags(ax, opts, name)
 
 
 if __name__ == "__main__":

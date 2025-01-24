@@ -8,6 +8,7 @@
 # pylint: disable=not-callable
 from experiments.scenapp_tests.benchmarks import models
 from fossil import domains
+from fossil import plotting
 from fossil import certificate
 from fossil import main, control
 from fossil.consts import *

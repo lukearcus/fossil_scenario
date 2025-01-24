@@ -1437,8 +1437,9 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
+        goal_loss = relu(V_g-V_i.min()).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         
-        psi_s = init_loss+unsafe_loss+state_loss
+        psi_s = init_loss+unsafe_loss+state_loss+goal_loss
         return psi_s
 
     def compute_loss(self, V_i, V_u, V_d, V_d_states, V_g, Vdot_d, beta, indices, supp_samples, convex):
@@ -1461,8 +1462,10 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
+        goal_loss = relu(V_g-V_i.min()).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         
-        psi_s = init_loss+unsafe_loss+state_loss
+        psi_s = init_loss+unsafe_loss+state_loss+goal_loss
+        
         if True:
             for inds in indices["lie"]:
                 try:

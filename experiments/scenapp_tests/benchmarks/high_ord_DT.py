@@ -3,8 +3,14 @@ from experiments.scenapp_tests.benchmarks import models
 from fossil import domains
 from fossil import certificate
 from fossil import main, control
+from fossil.scenapp import ScenApp, Result
 from fossil.consts import *
+from multiprocessing import Pool
 
+def solve(opts):
+    PAC = ScenApp(opts)
+    result = PAC.solve()
+    return result
 
 def test_lnn(args):
     batch_size = 3000
@@ -25,6 +31,7 @@ def test_lnn(args):
         # certificate.XG: XG,
     }
     n_data = 1000
+    num_runs = 5
     n_state_data = 500 
     sets = {
         certificate.XD: XD,
@@ -36,19 +43,21 @@ def test_lnn(args):
         certificate.XI: XI._generate_data(n_state_data)(),
         certificate.XU: XU._generate_data(n_state_data)(),
     }
-    init_data = XI._generate_data(n_data)()
+    init_data = [XI._generate_data(n_data)() for i in range(num_runs)]
 
     system = f 
-    all_data = system().generate_trajs(init_data)
-    data = {"states_only": state_data, "full_data": {"times":all_data[0],"states":all_data[1],"derivs":all_data[2]}}
+    all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
+    data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
 
     # define NN parameters
     activations = [ActivationType.LINEAR, ActivationType.SIGMOID]
     n_hidden_neurons = [10] * len(activations)
 
-    opts = ScenAppConfig(
+    opts = [ScenAppConfig(
         DOMAINS=sets,
-        DATA=data,
+        DATA=datum,
+        N_DATA=n_data,
+        N_TEST_DATA=n_data,
         SYSTEM=f,
         N_VARS=n_vars,
         CERTIFICATE=CertificateType.BARRIERALT,
@@ -57,15 +66,19 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
         SYMMETRIC_BELT=True,
-    )
+    ) for datum in data]
 
-    main.run_benchmark(
-        opts,
-        record=args.record,
-        plot=args.plot,
-        concurrent=args.concurrent,
-        repeat=args.repeat,
-    )
+    
+    with Pool(processes=num_runs) as pool:
+        res = pool.map(solve, opts)
+    
+    #main.run_benchmark(
+    #    opts,
+    #    record=args.record,
+    #    plot=args.plot,
+    #    concurrent=args.concurrent,
+    #    repeat=args.repeat,
+    #)
 
     
 

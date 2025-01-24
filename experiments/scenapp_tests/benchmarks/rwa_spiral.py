@@ -19,6 +19,8 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
     opts = ScenAppConfig(
         DOMAINS=sets,
         DATA=data,
+        N_DATA=n_data,
+        N_TEST_DATA=n_data,
         SYSTEM=system,
         N_VARS=2,
         CERTIFICATE=CertificateType.RWS,
@@ -26,8 +28,8 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
-        VERBOSE=0,
-        SCENAPP_MAX_ITERS=2000,
+        VERBOSE=2,
+        SCENAPP_MAX_ITERS=2,
     )
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -80,8 +82,8 @@ def test_lnn(args):
     
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
     # define NN parameters
-    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
-    n_hidden_neurons = [5] * len(activations)
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID, ActivationType.SIGMOID]
+    n_hidden_neurons = [10] * len(activations)
 
     #main.run_benchmark(
     #    opts,
@@ -92,13 +94,14 @@ def test_lnn(args):
     #)
     
     part_solve = partial(solve, system, sets, n_data, activations, n_hidden_neurons)
-    with Pool(processes=num_runs) as pool:
-        res = pool.map(part_solve, data)
+    res = [part_solve(data[0])]
+    #with Pool(processes=num_runs) as pool:
+    #    res = pool.map(part_solve, data)
     
     opts = ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,
-        DOMAINS=dom,
+        DOMAINS=sets,
         DATA=data[-1],
         N_DATA=n_data,
         N_TEST_DATA=n_data,

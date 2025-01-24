@@ -36,7 +36,6 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )
-    
 
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -75,9 +74,10 @@ def test_lnn(args):
     all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
     part_solve = partial(solve, system, sets, n_data, activations, hidden_neurons)
-    with Pool(processes=num_runs) as pool:
-        res = pool.map(part_solve, data)
-    
+    #with Pool(processes=num_runs) as pool:
+    #    res = pool.map(part_solve, data)
+    res = [part_solve(data[0])]
+
     opts = ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,

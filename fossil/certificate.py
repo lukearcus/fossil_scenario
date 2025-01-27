@@ -1423,7 +1423,7 @@ class RWS(Certificate):
         margin_lie = 0.0
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
-        acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d)
+        acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d_states)
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
@@ -1437,10 +1437,15 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
-        goal_loss = relu(V_g-V_i.min()).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = relu(V_g-V_i.min()+margin).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         
         psi_s = init_loss+unsafe_loss+state_loss+goal_loss
-        return psi_s
+        accuracy = {
+        "acc init": acc_init,
+        "acc unsafe": acc_unsafe,
+        "acc domain": acc_domain,
+        }
+        return psi_s, accuracy
 
     def compute_loss(self, V_i, V_u, V_d, V_d_states, V_g, Vdot_d, beta, indices, supp_samples, convex):
         # V_d must match Vdot_d
@@ -1448,7 +1453,7 @@ class RWS(Certificate):
         margin_lie = 0.0
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
-        acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d)
+        acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d_states)
         slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
@@ -1462,7 +1467,7 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
-        goal_loss = relu(V_g-V_i.min()).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = relu(V_g-V_i.min()+margin).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
         
         psi_s = init_loss+unsafe_loss+state_loss+goal_loss
         
@@ -1661,9 +1666,14 @@ class RWS(Certificate):
                         supp_samples = supp_samples.union(sub_sample)
                 optimizer.step()
             else:
-                state_loss = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
-                state_loss.backward()
-                optimizer.step()
+                state_loss, accuracy = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
+                if state_loss == 0:
+                    state_sol = True
+                else:
+                    state_loss.backward()
+                    optimizer.step()
+                    if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
+                        log_loss_acc(t, state_loss, accuracy, learner.verbose)
         B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
         B = learner(states_only)
         B_d_states = B[:i1-idot1]

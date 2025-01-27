@@ -30,7 +30,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         VERBOSE=0,
-        SCENAPP_MAX_ITERS=2000,
+        SCENAPP_MAX_ITERS=2500,
     )
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -94,7 +94,7 @@ def test_lnn(args):
     #    repeat=args.repeat,
     #)
     
-    #part_solve = partial(solve, system, sets, n_data, activations, n_hidden_neurons)
+    part_solve = partial(solve, system, sets, n_data, activations, n_hidden_neurons)
     #res = [part_solve(data[0])]
     with Pool(processes=num_runs) as pool:
         res = pool.map(part_solve, data)

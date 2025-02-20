@@ -8,7 +8,7 @@ import fossil.logger as logger
 import fossil.certificate as certificate
 
 from itertools import chain
-from time import perf_counter
+from time import perf_counter, clock_gettime
 
 import torch
 import copy
@@ -174,6 +174,7 @@ class SingleScenApp:
 
     def a_post_verify(self, cert, cert_deriv, n_data):
         state_data = self.config.DATA["states_only"]
+        torch.manual_seed(clock_gettime(0))      #allows different samples when running in parallel
         try:
             test_data = self.config.DOMAINS["init"]._generate_data(n_data)()
         except KeyError:
@@ -359,8 +360,8 @@ class SingleScenApp:
 
             elif not self.config.CONVEX_NET and state["best_loss"] <= 0.0:
                 
-                #calc_disc_gap = True
-                calc_disc_gap = False
+                calc_disc_gap = True
+                #calc_disc_gap = False
                 if calc_disc_gap:
                     scenapp_log.debug("negative best loss")
                     # estimate L_f etc. here?

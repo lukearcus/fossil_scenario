@@ -1143,7 +1143,7 @@ class BarrierAlt(Certificate):
 
         req_diff = (B_u.min() - B_i.max())/self.T
         lie_margin = 1e-5
-        lie_loss = relu(Bdot_d-req_diff)
+        lie_loss = Bdot_d-req_diff
         # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < req_diff).count_nonzero()).item() / Bdot_d.shape[0]
@@ -1155,8 +1155,7 @@ class BarrierAlt(Certificate):
         init_loss = (relu(B_i).mean())
         unsafe_loss = relu(-B_u+unsafe_margin).mean()
         psi_s = init_loss + unsafe_loss
-        if psi_s == 0:
-        #if True:
+        if True:
             if subgrad:
                 supp_max = torch.tensor([-1.0])
                 lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...

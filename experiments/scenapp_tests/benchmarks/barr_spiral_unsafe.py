@@ -80,7 +80,8 @@ def test_lnn(args):
     #    repeat=args.repeat,
     with Pool(processes=num_runs) as pool:
         res = pool.map(solve, opts)
-    
+    #res = [solve(opt) for opt in opts]
+
     opts = ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,

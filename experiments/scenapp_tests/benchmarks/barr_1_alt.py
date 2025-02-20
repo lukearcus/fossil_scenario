@@ -65,7 +65,7 @@ def test_lnn(args):
         certificate.XI: XI,
         certificate.XU: XU,
     }
-    n_state_data = 1000
+    n_state_data = 10000
     state_data = {
         certificate.XD: XD._generate_data(n_state_data)(),
         certificate.XI: XI._generate_data(n_state_data)(),

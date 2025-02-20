@@ -1161,6 +1161,8 @@ class BarrierAlt(Certificate):
                 lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
                 ind_lie_max = lie_loss.argmax()
                 loss = lie_max
+                if psi_s > 0:
+                    loss = relu(loss)
                 sub_sample = -1
                 for i, elem in enumerate(indices["lie"]):
                     if ind_lie_max in elem:

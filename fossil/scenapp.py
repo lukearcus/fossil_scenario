@@ -196,9 +196,11 @@ class SingleScenApp:
 
 
     def discard(self, state):
+        
         # Discard all samples that were of support for last run...
         # Could discard just the current worst case for better guarantees but worse performance
         # Could probably do this by just discarding last support sample...
+        
         traj_data = self.config.DATA["full_data"]
         if not self.config.CONVEX_NET:
             if len(state["discarded"]) == 0:
@@ -210,6 +212,9 @@ class SingleScenApp:
                     actual_ind = self.remaining_inds[new_disc]
                     state["discarded"].add(actual_ind)
                     to_remove.add(actual_ind)
+                if to_remove == self.remaining_inds:
+                    print("removed all samples, maintaining final support samples")
+                    return
                 self.remaining_inds=list(set(self.remaining_inds)-to_remove)
 
             #state["discarded"] = state["discarded"].union(state["supps"])
@@ -225,9 +230,11 @@ class SingleScenApp:
         state[ScenAppStateKeys.S_traj_dot] =  self.S_traj["derivs"]
         state[ScenAppStateKeys.S_inds] =  self.S["indices"]
         state[ScenAppStateKeys.times] = self.S["times"]
-
+        return
 
     def est_disc_gap(self, state):
+        # Would be better off adding this to the loss function, but this works OK.
+
         t_max = max([elem.max() for elem in state[ScenAppStateKeys.times].values() if type(elem) is not list])
         state_data = np.hstack(state[ScenAppStateKeys.S_traj])
         next_data = np.hstack(state[ScenAppStateKeys.S_traj_dot])
@@ -284,7 +291,7 @@ class SingleScenApp:
         L_f = -L_f
         _, _, L_v, _ = stats.exponweib.fit(psi_v)
         L_v = -L_v
-        delta = (t_max/2)*M_f*(M_v*L_f+M_f*L_v)
+        delta = (t_max)*M_f*(M_v*L_f+M_f*L_v)
         return delta
 
     def solve(self) -> Result:

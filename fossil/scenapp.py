@@ -44,13 +44,8 @@ class SingleScenApp:
             self.a_priori_supps = sum([param.numel() for param in self.learner.parameters()]) # Take this and add any violations for convex
         else:
             self.a_priori_supps = None
-        self.verifier = self._initialise_verifier() # Need to write my own verifier
-        #self.verifier = self._scenapp_verifier
-        self.optimizer = self._initialise_optimizer() # Currently not working
-        #self.consolidator = self._initialise_consolidator() # Not sure what this 
-        #self.translator_type, self.translator = self._initialise_translator()
-        #self._result = None
-        #self._assert_state()
+        self.verifier = self._initialise_verifier() 
+        self.optimizer = self._initialise_optimizer() 
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
@@ -58,7 +53,6 @@ class SingleScenApp:
         x = verifier.get_verifier_type(self.config.VERIFIER).new_vars(
             self.config.N_VARS
             )
-        #x = [sp.symbols("x"+str(i)) for i in range(self.config.N_VARS)]
         x_map = {str(x): x for x in x}
         domains = {
                     label: domain.generate_boundary(x)
@@ -112,7 +106,6 @@ class SingleScenApp:
 
 
     def _initialise_data(self, traj_data, state_data):
-        #traj_data = {key: [torch.tensor(elem.T, dtype=torch.float32 ) for elem in self.config.DATA[key]] for key in self.config.DATA} 
         lumped_data = {key: torch.tensor(np.hstack(traj_data[key]), dtype=torch.float32 ) for key in traj_data} 
 
         traj_inds = [] 
@@ -125,7 +118,6 @@ class SingleScenApp:
             traj_inds.append((curr_ind, curr_ind+elem_len))
             curr_ind += elem_len
 
-        #domained_data = {key: [] for key in self.config.DOMAINS}
         domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}}
         for key in self.config.DOMAINS:
             domain = self.config.DOMAINS[key]
@@ -146,7 +138,6 @@ class SingleScenApp:
                     domained_data["derivs"][key].append(lumped_data["derivs"][:,ind])
                     domained_data["times"][key].append(lumped_data["times"][ind])
                     
-                #domained_data[key] = [elem for elem in lumped_data["states"] if domain.check_containment(elem)]
             if len(domained_data["states"][key]) > 0:
                 if key in state_data:
                     domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
@@ -157,7 +148,6 @@ class SingleScenApp:
             else:
                 domained_data["states"][key] = state_data[key]
         
-        #scenapp_log.debug("Data: {}".format(self.config.DATA))
         return domained_data, traj_data
 
 
@@ -216,8 +206,6 @@ class SingleScenApp:
                     print("removed all samples, maintaining final support samples")
                     return
                 self.remaining_inds=list(set(self.remaining_inds)-to_remove)
-
-            #state["discarded"] = state["discarded"].union(state["supps"])
             state["supps"] = set()
         new_traj_inds = [i for i in range(len(traj_data["states"])) if i not in state["discarded"]]
         new_traj_data = {}
@@ -273,7 +261,6 @@ class SingleScenApp:
                 x_tau = next_data[:, [ind]]
                 y_tau = next_data[:, [y_ind]]
                 tau = np.min([times[ind], times[y_ind]])
-                #y_tau = system().generate_trajs(y, tau)[1][0][:,-1]
                 if self.config.TIME_DOMAIN == TimeDomain.CONTINUOUS: 
                     s_f = np.linalg.norm((x_tau-x-y_tau+y)/tau)/np.linalg.norm(x-y)
                 else:
@@ -306,9 +293,6 @@ class SingleScenApp:
 
         # Reset timers for components
         self.learner.get_timer().reset()
-        #self.translator.get_timer().reset()
-        #self.verifier.get_timer().reset()
-        #self.consolidator.get_timer().reset()
         state["net_dot"] = self.learner.nn_dot
         iters = 0
         stop = False
@@ -322,10 +306,6 @@ class SingleScenApp:
             state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
         while not stop:
-            #opt_state_dict = state[ScenAppStateKeys.optimizer].state_dict()
-            #opt_state_dict["param_groups"][0]["lr"] = 1/(iters+1)
-            #state[ScenAppStateKeys.optimizer].load_state_dict(opt_state_dict)
-            # Legtner component
             scenapp_log.debug("\033[1m Learner \033[0m")
             outputs = self.learner.get(**state)
             state = {**state, **outputs}
@@ -334,34 +314,13 @@ class SingleScenApp:
                 state["supps"] = outputs["new_supps"]
             else:
                 state["supps"] = state["supps"].union(outputs["new_supps"])
-                #state["supp_len"] = len(state["supps"])
-            #print("len supps: {}".format(state["supp_len"]))
-            # Update xdot with new controller if necessary
             state = self.update_controller(state)
-
-            # Translator component
-            #scenapp_log.debug("\033[1m Translator \033[0m")
-            #outputs = self.translator.get(**state)
-            #state = {**state, **outputs}
-
-            # Verifier component
-            #print(state["loss"]) # Finding loss = 0, not certain why... Maybe just learning a flat lyapunov?
-
-            #if state[ScenAppStateKeys.bounds] <= self.config.EPS: # Check for convergence in loss instead...
-            #    stop = self.process_certificate(S, state, iters)
-
-            #if torch.abs(state["loss"]-old_loss) < converge_tol or state["best_loss"] == 0:
             if self.config.CONVEX_NET and torch.abs(state["loss"]-old_loss) < converge_tol:
                 scenapp_log.debug("\033[1m Verifier \033[0m")
                 
 
                 outputs = self.verifier.get(**state)
                 state = {**state, **outputs}
-
-                # Consolidator component # Don't think this is needed/possible for us
-                #scenapp_log.debug("\033[1m Consolidator \033[0m")
-                #outputs = self.consolidator.get(**state)
-                #state = {**state, **outputs}
                 print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                 stop = self.process_certificate(S, state, iters)
 
@@ -371,7 +330,6 @@ class SingleScenApp:
                 #calc_disc_gap = False
                 if calc_disc_gap:
                     scenapp_log.debug("negative best loss")
-                    # estimate L_f etc. here?
                     delta = self.est_disc_gap(state)
                     if state["best_loss"] > - delta:
                         iters += 1
@@ -388,10 +346,6 @@ class SingleScenApp:
                         outputs = self.verifier.get(**state)
                         state = {**state, **outputs}
 
-                        # Consolidator component # Don't think this is needed/possible for us
-                        #scenapp_log.debug("\033[1m Consolidator \033[0m")
-                        #outputs = self.consolidator.get(**state)
-                        #state = {**state, **outputs}
                         print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                         stop = self.process_certificate(S, state, iters)
 
@@ -402,10 +356,6 @@ class SingleScenApp:
                     outputs = self.verifier.get(**state)
                     state = {**state, **outputs}
 
-                    # Consolidator component # Don't think this is needed/possible for us
-                    #scenapp_log.debug("\033[1m Consolidator \033[0m")
-                    #outputs = self.consolidator.get(**state)
-                    #state = {**state, **outputs}
                     print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                     stop = self.process_certificate(S, state, iters)
             
@@ -432,7 +382,6 @@ class SingleScenApp:
                     state[ScenAppStateKeys.found]
                     or state[ScenAppStateKeys.verification_timed_out]
                     ):
-                #state = self.process_cex(S, state)
 
                 iters += 1
                 old_loss = state["loss"]
@@ -444,7 +393,6 @@ class SingleScenApp:
                 scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
         state = self.process_timers(state)
 
-        #N_data = sum([S_i.shape[0] for S_i in state[ScenAppStateKeys.S].values()])
         stats = Stats(
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
@@ -468,8 +416,6 @@ class SingleScenApp:
                 ScenAppStateKeys.V: None,
                 ScenAppStateKeys.V_dot: None,
                 ScenAppStateKeys.x_v_map: self.x_map,
-                #ScenAppStateKeys.xdot: self.xdot,
-                #ScenAppStateKeys.xdot_func: self.f._f_torch,
                 ScenAppStateKeys.found: False,
                 ScenAppStateKeys.verification_timed_out: False,
                 ScenAppStateKeys.trajectory: None,
@@ -485,14 +431,10 @@ class SingleScenApp:
     def process_timers(self, state: dict[str, Any]) -> dict[str, Any]:
         state[ScenAppStateKeys.components_times] = [
                 self.learner.get_timer().sum,
-                #self.translator.get_timer().sum,
                 self.verifier.get_timer().sum,
-                #self.consolidator.get_timer().sum,
                 ]
         print("Learner times: {}".format(self.learner.get_timer()))
-        #cegis_log.info("Translator times: {}".format(self.translator.get_timer()))
         scenapp_log.info("Verifier times: {}".format(self.verifier.get_timer()))
-        #cegis_log.info("Consolidator times: {}".format(self.consolidator.get_timer()))
         return state
 
     def process_certificate(
@@ -531,6 +473,8 @@ class SingleScenApp:
             self.certificate._assert_state(self.domains, self.S)
 
 class DoubleScenApp(SingleScenApp):
+    # Not sure if this works currently
+
     def __init__(self, config: ScenAppConfig):
         super().__init__(config)
         self.lyap_learner, self.barr_learner = self.learner
@@ -600,7 +544,6 @@ class DoubleScenApp(SingleScenApp):
         S_inds = self.S["indices"]
         S_traj = self.S_traj
         times = self.S["times"]
-        # Initialize CEGIS state
         state = self.init_state(Sdot, S, S_traj, S_inds, times)
 
         # Reset timers for components

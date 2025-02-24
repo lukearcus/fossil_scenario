@@ -159,278 +159,6 @@ class Certificate:
         pass
 
 
-class Lyapunov(Certificate):
-    """
-    Certificies stability for CT and DT models
-    bool LLO: last layer of ones in network
-    XD: Symbolic formula of domain
-
-    """
-
-    bias = False
-
-    def __init__(self, domains, config: ScenAppConfig) -> None:
-        self.domain = domains[XD]
-        self.llo = config.LLO
-        self.control = config.CTRLAYER is not None
-        self.D = config.DOMAINS
-        self.beta = None
-        self.T = config.SYSTEM.time_horizon
-
-    def compute_loss(
-            self, 
-            V: torch.Tensor, 
-            Vdot: torch.Tensor, 
-            indices: list,
-            supp_samples: set,
-            convex: bool
-    ) -> tuple[torch.Tensor, dict]:
-        """_summary_
-
-        Args:
-            V (torch.Tensor): Lyapunov samples over domain
-            Vdot (torch.Tensor): Lyapunov derivative samples over domain
-            circle (torch.Tensor): Circle
-
-        Returns:
-            tuple[torch.Tensor, float]: loss and accuracy
-        """
-        #margin = 0.1 # Need to change this and carry it around for later
-        slope = 10 ** (learner.LearnerNN.order_of_magnitude(Vdot.detach().abs().max()))
-        #relu = torch.nn.LeakyReLU(1 / slope.item())
-        relu = torch.nn.ReLU()
-        # relu = torch.nn.Softplus()
-        # compute loss function. if last layer of ones (llo), can drop parts with V
-        state_loss = -V
-        margin = 1e-3
-        lie_loss = relu(Vdot+margin)
-
-        subgrad = not convex
-        
-        if subgrad:
-            supp_max = torch.tensor([-1.])
-            lie_max = lie_loss.max()
-            ind_lie_max = lie_loss.argmax()
-            loss = lie_max
-            sub_sample = -1
-            for i, elem in enumerate(indices["lie"]):
-                if ind_lie_max in elem:
-                    sub_sample = i
-                    break
-            for ind in supp_samples:
-                inds = indices["lie"][ind]
-                supp_max = torch.max(supp_max, lie_loss[inds].max())
-            supp_loss = supp_max
-            new_sub_samples = set([sub_sample])
-        else:
-            loss = 0
-            for inds in indices["lie"]:
-                curr_max = torch.tensor(0.)
-                if self.llo:
-                    state_elems = torch.tensor(0.)
-                else:
-                    state_elems = state_loss[inds]
-                lie_elems = lie_loss[inds]
-                loss += lie_elems.max()
-            #if self.llo:
-            #    learn_accuracy = (Vdot <= -margin).count_nonzero().item()
-            #    #loss = (relu(Vdot + margin * circle)).max()
-            #    loss = (relu(Vdot + margin)).max()
-            #else:
-            #    learn_accuracy = 0.5 * (
-            #        (Vdot <= -margin).count_nonzero().item()
-            #        + (V >= margin).count_nonzero().item()
-            #    )
-            #    #loss = torch.max((relu(Vdot + margin * circle)).max() , (
-            #    #    relu(-V + margin * circle)
-            #    #).max()) # Why times circle?
-            #    loss = torch.max((relu(Vdot + margin )).max() , (
-            #        relu(-V + margin)
-            #    ).max()) # Why times circle?
-        accuracy = (V > 0).count_nonzero().item() + (Vdot < 0).count_nonzero().item()
-        accuracy /= (len(V) + len(Vdot))
-        accuracy = {"acc": accuracy * 100}
-        gamma = 0.1 
-        state_con = relu(state_loss+margin).mean()
-        loss = loss+ gamma*state_con
-        
-        if supp_loss != -1:
-            supp_loss = supp_loss + gamma*state_con
-        #try:
-        #    final_ind = [ind for ind in indices["lie"] if len(ind) > 0][-1][-1]
-        #except IndexError:
-        #    final_ind = -1
-        #if final_ind < len(lie_loss) - 1:
-        #    loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum
-        #    if supp_loss != -1:
-        #        supp_loss += relu(lie_loss)[final_ind+1:].sum() + relu(state_loss)[final_ind+1:].sum()
-
-
-        return loss, supp_loss, accuracy, new_sub_samples
-
-    def learn(
-        self,
-        learner: learner.LearnerNN,
-        optimizer: Optimizer,
-        S: list,
-        Sdot: list,
-        Sind: list,
-        times: list,
-        best_loss: float,
-        best_net: learner.LearnerNN,
-        f_torch=None,
-        convex=False
-    ) -> dict:
-        """
-        :param learner: learner object
-        :param optimizer: torch optimiser
-        :param S: dict of tensors of data
-        :param Sdot: dict of tensors containing f(data)
-        :return: --
-        """
-
-        batch_size = len(S[XD])
-        learn_loops = 1000
-        samples = S[XD]
-
-        if f_torch:
-            samples_dot = f_torch(samples)
-        else:
-            samples_dot = Sdot[XD]
-
-        idot = len(samples_dot)
-        samples_with_nexts = samples[:idot]
-        states_only = samples[idot:]
-        times = times[XD]
-
-        supp_samples = set()
-        for t in range(learn_loops):
-            optimizer.zero_grad()
-            if self.control:
-                samples_dot = f_torch(samples)
-
-            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
-            V2 = learner(states_only)
-            #V = torch.cat([V1,V2])
-            V = V2
-            V -= learner(torch.zeros_like(samples))
-
-            loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
-            if loss <= best_loss:
-                best_loss = loss
-                best_net = copy.deepcopy(learner)
-
-
-            if self.control:
-                loss = loss + control.cosine_reg(samples, samples_dot)
-
-            if t % 100 == 0 or t == learn_loops - 1:
-                log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-
-            # t>=1 ensures we always have at least 1 optimisation step
-            if learn_accuracy["acc"] == 100 and t >= 1:
-                break
-            
-            if convex:
-                loss.backward()
-            else:
-                loss.backward(retain_graph=True)
-                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                # Code below is for non-convex
-                if supp_loss != -1:
-                    optimizer.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    inner = torch.inner(grads, supp_grads)
-                    #print(inner)
-                    if inner <= 0:
-                        supp_samples = supp_samples.union(sub_sample)
-                        optimizer.zero_grad()
-                        loss.backward()
-                else:
-                    supp_samples = supp_samples.union(sub_sample)
-            optimizer.step()
-
-            if learner._take_abs:
-                learner.make_final_layer_positive()
-        V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
-        V2 = learner(states_only)
-        #V = torch.cat([V1,V2])
-        V = V2
-        V -= learner(torch.zeros_like(samples))
-        loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V, Vdot, Sind, supp_samples, convex)
-
-        if self.control:
-            loss = loss + control.cosine_reg(samples, samples_dot)
-        if loss <= best_loss:
-            best_loss = loss
-            best_net = copy.deepcopy(learner)
-        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
-
-    def get_violations(self, V, Vdot, S, Sdot, times):
-        violated = 0
-        true_violated = 0
-        for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
-            traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
-            
-            valid_inds = torch.where(self.D[XD].check_containment(traj))
-            traj = traj[valid_inds]
-            traj_deriv = traj_deriv[valid_inds]
-            time = time[valid_inds]
-    
-            pred_V = V(traj)
-            pred_0 = V(torch.zeros_like(traj))
-            pred_Vdot = Vdot(traj, traj_deriv, time)
-            if np.linalg.norm(traj[:, -1]) > 0.01: # check this does what I want it to do...
-                true_violated += 1
-            #if any(pred_V < pred_0):
-            #    raise ValueError("Value violation!")
-            if any(pred_Vdot > 0):
-                violated += 1
-        return violated, true_violated
-
-
-    def get_constraints(self, verifier, V, Vdot) -> Generator:
-        """
-        :param verifier: verifier object
-        :param V: SMT formula of Lyapunov Function
-        :param Vdot: SMT formula of Lyapunov lie derivative
-        :return: tuple of dictionaries of lyapunov conditons
-        """
-        _Or = verifier.solver_fncts()["Or"]
-        _And = verifier.solver_fncts()["And"]
-        _Not = verifier.solver_fncts()["Not"]
-
-        if self.llo:
-            # V is positive definite by construction
-            lyap_negated = Vdot >= 0
-        else:
-            lyap_negated = _Or(V <= 0, Vdot >= 0)
-
-        not_origin = _Not(_And(*[xi == 0 for xi in verifier.xs]))
-        lyap_negated = _And(lyap_negated, not_origin)
-        lyap_condition = _And(self.domain, lyap_negated)
-        for cs in ({XD: lyap_condition},):
-            yield cs
-
-
-    def estimate_beta(self, net):
-        # This function is unused I think
-        print("Estimating beta!")
-        try:
-            border_D = self.D[XD].sample_border(300)
-            beta, _ = net.compute_minimum(border_D)
-        except NotImplementedError:
-            beta = self.D[XD].generate_data(300)
-        return beta
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XD]), domain_labels, "Symbolic Domains")
-        _set_assertion(set([XD]), data_labels, "Data Sets")
-
 class Practical_Lyapunov(Certificate):
     """
     Certificies stability for CT and DT models
@@ -472,33 +200,21 @@ class Practical_Lyapunov(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-
-        # cannot get a sub level set within the goal region for some reason???????????
         
         relu = torch.nn.ReLU()
         
         init_loss = V_I
-        #init_loss = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G-V_I.min()#minus since V_I<0
         state_loss = -V_D+beta
         
         margin = 1e-5
         
-        init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
+        init_con = relu(init_loss+margin).mean()
         
-        #init_con =0
-        #goal_con = 0
         border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
-        #if supp_loss + state_con+border_con+init_con > 0:
-        #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
-        #else:
-        #    goal_con = 0
-
-        #loss = 0 # zero losses to only consider state constraints
-        #supp_loss = 0
 
         psi_s = state_con+border_con+init_con+goal_con
         return psi_s
@@ -527,39 +243,24 @@ class Practical_Lyapunov(Certificate):
             tuple[torch.Tensor, float]: loss and accuracy
         """
 
-        # cannot get a sub level set within the goal region for some reason???????????
         
         relu = torch.nn.ReLU()
         
         init_loss = V_I
-        #init_loss = -V_I+beta
         border_loss = -V_SD
-        goal_loss = V_G-V_I.min()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = V_G-V_I.min()
         state_loss = -V_D+beta
         
         margin = 1e-5
         
-        init_con = relu(init_loss+margin).mean()#+relu(init_loss2+margin).mean()
+        init_con = relu(init_loss+margin).mean()
         
-        #init_con =0
-        #goal_con = 0
         border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
-        #if supp_loss + state_con+border_con+init_con > 0:
-        #    goal_con = relu(goal_loss-margin).mean() #-margin since we have beat already added
-        #else:
-        #    goal_con = 0
-
-        #loss = 0 # zero losses to only consider state constraints
-        #supp_loss = 0
-
         psi_s = state_con+border_con+init_con+goal_con
         if True:
-        #if psi_s == 0:
             req_diff = ((V_I.max()-beta)/self.T)
-            #req_diff = req_diff.detach() # should this be detached?
-            #lie_loss = relu(Vdot+relu(req_diff)+margin)
 
             # Code below for trying to get samples before V<beta
             Vdot_selected = []
@@ -567,26 +268,23 @@ class Practical_Lyapunov(Certificate):
             curr_ind = 0
             for inds in indices["lie"]:
                 try:
-                    final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] # Keep finding beta with early indices...
+                    final_ind = inds[0]+torch.where(V_D_lie[inds]<beta)[0][0] 
                 except IndexError:
                     final_ind = inds[-1]+1
                 selected = range(inds[0],final_ind)
-                selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+                selected_inds.append(range(curr_ind,curr_ind+len(selected))) 
                 curr_ind += len(selected)
                 Vdot_selected.append(Vdot[selected])
             Vdot_selected = torch.hstack(Vdot_selected)
-            #Vdot_selected = Vdot_selected.detach() # try detaching this?
-            #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-            lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
+            lie_loss = Vdot_selected+relu(req_diff)+margin
+            if psi_s != 0:
+                lie_loss = relu(lie_loss)
             
             valid_Vdot = True
             if len(lie_loss) == 0:
                 loss = 0
                 valid_Vdot = False
             
-            #valid_Vdot = True
-            #selected_inds = indices["lie"]
-
             subgrad = not convex
 
             if subgrad:
@@ -611,16 +309,6 @@ class Practical_Lyapunov(Certificate):
                     new_sub_samples = set()
             else:
                 raise NotImplementedError
-                # code below works but is now obsolete
-                loss = 0
-                for inds in indices["lie"]:
-                    curr_max = torch.tensor(0.)
-                    if self.llo:
-                        state_elems = torch.tensor(0.)
-                    else:
-                        state_elems = state_loss[inds]
-                    lie_elems = lie_loss[inds]
-                    loss += lie_elems.max()
             loss = loss + psi_s
             if supp_loss != -1:
                 supp_loss = supp_loss + psi_s
@@ -638,9 +326,6 @@ class Practical_Lyapunov(Certificate):
             goal_accuracy = (V_G<V_I.min()).count_nonzero().item()/len(V_G)
             dom_accuracy = (V_D>beta).count_nonzero().item()/len(V_D)
             accuracy = {"goal_acc": goal_accuracy * 100, "domain_acc" : dom_accuracy*100}
-        
-        #loss = psi_s
-        #supp_loss = psi_s # test if we can learn just the value requirements (should be easy)
 
         return loss, supp_loss, accuracy, new_sub_samples
 
@@ -699,7 +384,7 @@ class Practical_Lyapunov(Certificate):
             if self.control:
                 samples_dot = f_torch(samples)
 
-            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) # error here after discarding
+            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) 
             V2 = learner(states_only)
             V = V2
             V_D = V[:i1-idot1]
@@ -709,8 +394,6 @@ class Practical_Lyapunov(Certificate):
             V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
             beta = V_SG.min()
 
-
-            #import pdb; pdb.set_trace()
             if state_sol:
                 loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
                 if loss <= best_loss:
@@ -723,13 +406,11 @@ class Practical_Lyapunov(Certificate):
 
                 if t % 100 == 0 or t == learn_loops - 1:
                     log_loss_acc(t, loss, learn_accuracy, learner.verbose)
-                    #import pdb; pdb.set_trace()    
                 if convex:
                     loss.backward()
                 else:
                     loss.backward(retain_graph=True)
                     grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    # Code below is for non-convex
                     if supp_loss != -1:
                         optimizer.zero_grad()
                         supp_loss.backward(retain_graph=True)
@@ -807,6 +488,7 @@ class Sequential_Reach(Certificate):
     bias = False
 
     def __init__(self, doms, config: ScenAppConfig) -> None:
+        raise NotImplementedError # This whole class is not yet correctly implemented
         #self.domain = domains.Union(doms[XD1], doms[XD2])
         self.llo = config.LLO
         self.control = config.CTRLAYER is not None
@@ -1135,21 +817,15 @@ class BarrierAlt(Certificate):
             B_u > 0
         ).count_nonzero().item()
         percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(B_u) + len(B_i))
-        slope = 1e-2  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
-        #relu6 = torch.nn.ReLU6()
-        #splu = torch.nn.Softplus(beta=0.5)
-        # init_loss = (torch.relu(B_i + margin) - slope * relu6(-B_i + margin)).mean()
         relu = torch.nn.ReLU()
 
         req_diff = (B_u.min() - B_i.max())/self.T
         lie_margin = 1e-5
         lie_loss = Bdot_d-req_diff
-        # For convex this causes problems, need to double check it is still useful for non-convex now I've made some changes
         lie_accuracy = (
             100 * ((Bdot_d < req_diff).count_nonzero()).item() / Bdot_d.shape[0]
         )
         subgrad = not convex
-        # subgradient descent
         
         unsafe_margin = 1e-5
         init_loss = (relu(B_i).mean())
@@ -1158,7 +834,7 @@ class BarrierAlt(Certificate):
         if True:
             if subgrad:
                 supp_max = torch.tensor([-1.0])
-                lie_max = lie_loss.max() # Setting this to 1000 helps the DT converge for some reason...
+                lie_max = lie_loss.max() 
                 ind_lie_max = lie_loss.argmax()
                 loss = lie_max
                 if psi_s > 0:
@@ -1172,7 +848,6 @@ class BarrierAlt(Certificate):
                     lie_inds = indices["lie"][ind]
                     if len(lie_inds) > 0:
                         supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
-                    #supp_max = torch.max(supp_max, torch.max(torch.max(lie_loss[lie_inds].max(), unsafe_loss[unsafe_inds].max()), init_loss[init_inds].max()))
                 supp_loss = supp_max
                 new_sub_samples = set([sub_sample])
             else:    
@@ -1196,20 +871,10 @@ class BarrierAlt(Certificate):
             loss = loss + psi_s
             if supp_loss != -1:
                 supp_loss = supp_loss + psi_s
-            
-            # this bit adds on the additional samples of just states
-
-            # TO FIX: if we have some samples with e.g. unsafe, but final sample does not have any then we assume there aren't any unsafe samples
-            # Don't worry, state data is all added to the end of the data
-            #import pdb; pdb.set_trace()
-            
-            # unsafe_loss = (torch.relu(-B_u + margin) - slope * relu6(B_u + margin)).mean()
         else:
             loss = psi_s
             supp_loss = psi_s
             new_sub_samples = set()
-
-        #loss = torch.max(torch.max(init_loss, unsafe_loss), lie_loss)
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,
@@ -1248,13 +913,11 @@ class BarrierAlt(Certificate):
             idot3 = Sdot[XU].shape[0]
         else:
             idot3 = 0
-        # samples = torch.cat([s for s in S.values()])
         label_order = [XD, XI, XU]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
         samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3]])
         states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:]])
         times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
-        # samples_dot = torch.cat([s for s in Sdot.values()])
         samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         supp_samples = set()
         state_sol = False
@@ -1262,8 +925,6 @@ class BarrierAlt(Certificate):
             optimizer.zero_grad()
 
 
-            # permutation_index = torch.randperm(S[0].size()[0])
-            # permuted_S, permuted_Sdot = S[0][permutation_index], S_dot[0][permutation_index]
             B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
             
             B2 = learner(states_only)
@@ -1282,15 +943,10 @@ class BarrierAlt(Certificate):
                 if loss <= best_loss:
                     best_loss = loss
                     best_net = copy.deepcopy(learner)
-                # loss = loss + (100-percent_accuracy)
 
                 if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
                     log_loss_acc(t, loss, accuracy, learner.verbose)
 
-                # if learn_accuracy / batch_size > 0.99:
-                #     for k in range(batch_size):
-                #         if Vdot[k] > -margin:
-                #             print("Vdot" + str(S[k].tolist()) + " = " + str(Vdot[k].tolist()))
                 if convex:
                     loss.backward()
                 else:
@@ -1302,7 +958,6 @@ class BarrierAlt(Certificate):
                         supp_loss.backward(retain_graph=True)
                         supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                         inner = torch.inner(grads, supp_grads)
-                        #print(inner)
                         if inner <= 0:
                             supp_samples = supp_samples.union(sub_sample)
                             optimizer.zero_grad()
@@ -1366,21 +1021,6 @@ class BarrierAlt(Certificate):
                 continue
         return violated, true_violated
 
-    @classmethod
-    def _for_goal_final(cls, domains, config: ScenAppConfig) -> "BarrierAlt":
-        new_domains = {**domains}
-        new_domains[XI] = domains[XG]
-        new_domains[XU] = domains[XNF] # negation of XG
-        cert = cls(new_domains, config)
-        #cert.relu = torch.nn.ReLU()
-        return cert
-
-    @staticmethod
-    def _assert_state(domains, data):
-        domain_labels = set(domains.keys())
-        data_labels = set(data.keys())
-        _set_assertion(set([XD, XI, XU]), domain_labels, "Symbolic Domains")
-        _set_assertion(set([XD, XI, XU]), data_labels, "Data Sets")
 
 
 class RWS(Certificate):
@@ -1425,12 +1065,10 @@ class RWS(Certificate):
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
         acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d_states)
-        slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
         subgrad = not convex
 
-        #lie_index = torch.nonzero(V_d < -margin)
         Vdot_selected = []
         selected_inds = []
         curr_ind = 0
@@ -1438,7 +1076,7 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
-        goal_loss = relu(V_g-V_i.min()+margin).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = relu(V_g-V_i.min()+margin).mean()
         
         psi_s = init_loss+unsafe_loss+state_loss+goal_loss
         accuracy = {
@@ -1455,45 +1093,60 @@ class RWS(Certificate):
         acc_init = (V_i <= -margin).count_nonzero().item()*100/len(V_i)
         acc_unsafe = (V_u >= margin).count_nonzero().item()*100/len(V_u)
         acc_domain = (V_d_states > beta).count_nonzero().item()*100/len(V_d_states)
-        slope = 0  # 1 / 10**4  # (learner.orderOfMagnitude(max(abs(Vdot)).detach()))
         relu = torch.nn.ReLU()
 
         subgrad = not convex
 
-        #lie_index = torch.nonzero(V_d < -margin)
         Vdot_selected = []
         selected_inds = []
+        Vdot_unselected = []
+        unselected_inds = []
         curr_ind = 0
-        
+        curr_un_ind = 0
+
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
-        goal_loss = relu(V_g-V_i.min()+margin).mean()#minus since V_I<0#+beta # trying to enforce V_G < beta, but shouldn't really need to do this, could add a margin? Currently ignore if everything else = 0
+        goal_loss = relu(V_g-V_i.min()+margin).mean()#minus since V_I<0
         
         psi_s = init_loss+unsafe_loss+state_loss+goal_loss
         
         if True:
             for inds in indices["lie"]:
                 try:
-                    final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] # Keep finding beta with early indices...
+                    final_ind = inds[0]+torch.where(V_d[inds]<beta)[0][0] 
                 except IndexError:
                     final_ind = inds[-1]+1
                 selected = range(inds[0],final_ind)
-                selected_inds.append(range(curr_ind,curr_ind+len(selected))) # think this works but just double check
+                unselected = range(final_ind, inds[-1])
+                selected_inds.append(range(curr_ind,curr_ind+len(selected))) 
+                unselected_inds.append(range(curr_un_ind, curr_un_ind+len(unselected)))
+
                 curr_ind += len(selected)
+                curr_un_ind += len(unselected)
+
                 Vdot_selected.append(Vdot_d[selected])
+                
+                Vdot_unselected.append(Vdot_d[unselected])
+
             Vdot_selected = torch.hstack(Vdot_selected)
-            #Vdot_selected = Vdot_selected.detach() # try detaching this?
-            #lie_loss = relu(Vdot_selected+relu(req_diff)+margin)
-            
-            #Need a req_diff for adter k_G
+            Vdot_unselected = torch.hstack(Vdot_unselected)
+
             req_diff = relu((V_i.max()-beta)/self.T)
-            # could relax this so min is over border of XG, but this doesn't seem to work in practice? 
-            lie_loss = relu(Vdot_selected+req_diff)
             
+            lie_loss = Vdot_selected+req_diff
+            
+            if psi_s > 0:
+                lie_loss = relu(lie_loss)
+
             req_diff_2 = relu((V_u.min()-beta)/self.T)
 
-            barr_lie_loss=relu(Vdot_d-req_diff_2)
+            barr_lie_loss=Vdot_unselected-req_diff_2
+            
+            if psi_s > 0:
+                barr_lie_loss = relu(barr_lie_loss)
+
+
 
             valid_Vdot = True
             if len(lie_loss) == 0:
@@ -1535,7 +1188,7 @@ class RWS(Certificate):
                                 sub_sample=i
                                 break
                         for ind in supp_samples:
-                            lie_inds = indices["lie"][ind]
+                            lie_inds = unselected_inds[ind]
                             if len(lie_inds) > 0:
                                 supp_max = torch.max(supp_max, barr_lie_loss[lie_inds].max())
                     supp_loss = supp_max
@@ -1545,7 +1198,6 @@ class RWS(Certificate):
             else:
                 supp_loss = 0 
                 new_sub_samples = set()
-                # If this set is empty then the function is not negative enough across XS, so only penalise the initial set
             loss = loss+psi_s
             if supp_loss != -1:
                 supp_loss = supp_loss + psi_s
@@ -1605,12 +1257,9 @@ class RWS(Certificate):
 
         label_order = [XD, XI, XG, XS_BORDER, XG_BORDER]
         samples = torch.cat([S[label] for label in label_order if type(S[label]) is not list])
-        # samples = torch.cat((S[XD], S[XI], S[XU]))
 
         samples_dot = Sdot[XD]
         samples_with_nexts = S[XD][:idot1]
-        #samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
-        #samples_with_nexts = torch.cat([samples[:idot1], samples[i1:i1+idot2], samples[i1+i2:i1+i2+idot3], samples[i1+i2+i3:i1+i2+i3+idot4]])
         states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4], samples[i1+i2+i3+i4+idot5:]])
         times = torch.cat([times[label] for label in label_order if type(times[label]) is not list])
         supp_samples = set()
@@ -1621,9 +1270,6 @@ class RWS(Certificate):
 
             B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
 
-            #nn, grad_nn = learner.compute_net_gradnet(samples)
-
-            #V, gradV = learner.compute_V_gradV(nn, grad_nn, samples)
             B = learner(states_only)
             
             B_d_states = B[:i1-idot1]
@@ -1652,13 +1298,11 @@ class RWS(Certificate):
                 else:
                     loss.backward(retain_graph=True)
                     grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    # Code below is for non-convex
                     if supp_loss != -1:
                         optimizer.zero_grad()
                         supp_loss.backward(retain_graph=True)
                         supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                         inner = torch.inner(grads, supp_grads)
-                        #print(inner)
                         if inner <= 0:
                             supp_samples = supp_samples.union(sub_sample)
                             optimizer.zero_grad()
@@ -1698,16 +1342,7 @@ class RWS(Certificate):
         violated = 0
         for i, (traj, traj_deriv, time) in enumerate(zip(S, Sdot, times)):
             traj, traj_deriv, time = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32)
-
-            #valid_inds = torch.where(self.D[XD].check_containment(traj))
-            #
-            #traj = traj[valid_inds]
-            #traj_deriv = traj_deriv[valid_inds]
-            #time = time[valid_inds]
-
             initial_inds = torch.where(self.D[XI].check_containment(traj))
-            
-            # getting too many violations, need to investigate
 
             goal_inds = torch.where(self.D[XG].check_containment(traj))
 
@@ -1777,6 +1412,7 @@ class RSWS(RWS):
             SD: points from XS \ XG (domain less unsafe and goal set)
 
         """
+        raise NotImplementedError #This class currently not implemented
         self.domain = domains[XD]
         self.initial = domains[XI]
         self.safe = domains[XS]

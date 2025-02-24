@@ -88,14 +88,12 @@ def test_lnn(args):
         N_DATA=n_data,
         CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
-        #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
-        #CONVEX_NET=True,
     ) for datum in data]
     with Pool(processes=num_runs) as pool:
         res = pool.map(solve, opts)

@@ -22,7 +22,7 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    XG = domains.Rectangle([-4, 0], [-2, 0.5])
+    XG = domains.Rectangle([-4, 0], [-1, 0.5])
 
     SD =domains.SetMinus(XD, XG) 
     dom = {fossil.XD: XD,
@@ -49,7 +49,7 @@ def test_lnn():
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
     activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
-    n_hidden_neurons = [5] * len(activations)
+    n_hidden_neurons = [10] * len(activations)
 
     ###
     #

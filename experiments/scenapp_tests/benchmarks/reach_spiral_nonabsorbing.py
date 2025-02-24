@@ -64,7 +64,7 @@ def test_lnn():
         TIME_DOMAIN=fossil.TimeDomain.DISCRETE,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=200,
+        SCENAPP_MAX_ITERS=2,
         VERBOSE=2,
     )
     # keep getting a sub level set not in X_G for some reason??

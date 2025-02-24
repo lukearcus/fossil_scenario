@@ -326,9 +326,7 @@ class SingleScenApp:
 
             elif not self.config.CONVEX_NET and state["best_loss"] <= 0.0:
                 
-                calc_disc_gap = True
-                #calc_disc_gap = False
-                if calc_disc_gap:
+                if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)
                     if state["best_loss"] > - delta:

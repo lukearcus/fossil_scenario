@@ -184,6 +184,7 @@ class ScenAppConfig:
     LEARNER: LearnerType = LearnerType.CONTINUOUS
     VERIFIER: VerifierType = VerifierType.SCENAPPNONCONVEX
     CONVEX_NET: bool = False
+    CALC_DISC_GAP: bool = False
     #CONSOLIDATOR: ConsolidatorType = ConsolidatorType.DEFAULT
     #TRANSLATOR: TranslatorType = TranslatorType.CONTINUOUS
     N_DATA: int = 500

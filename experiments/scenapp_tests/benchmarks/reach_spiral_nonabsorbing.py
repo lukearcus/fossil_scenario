@@ -40,7 +40,7 @@ def test_lnn():
     derivs = all_data[2]
     data = {"times":times,"states":states,"derivs":derivs}
     
-    n_state_data = 1000
+    n_state_data = 10000
 
     state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
@@ -64,7 +64,7 @@ def test_lnn():
         TIME_DOMAIN=fossil.TimeDomain.DISCRETE,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=2,
+        SCENAPP_MAX_ITERS=100,
         VERBOSE=2,
     )
     # keep getting a sub level set not in X_G for some reason??

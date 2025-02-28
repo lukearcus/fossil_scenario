@@ -48,7 +48,7 @@ def test_lnn():
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     data = {"states_only": state_data, "full_data":data}
-    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
+    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [10] * len(activations)
 
     ###
@@ -64,7 +64,7 @@ def test_lnn():
         TIME_DOMAIN=fossil.TimeDomain.DISCRETE,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,
-        SCENAPP_MAX_ITERS=100,
+        SCENAPP_MAX_ITERS=5,
         VERBOSE=2,
     )
     # keep getting a sub level set not in X_G for some reason??

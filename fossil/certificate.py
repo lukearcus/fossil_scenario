@@ -211,7 +211,6 @@ class Practical_Lyapunov(Certificate):
         margin = 1e-5
         
         init_con = relu(init_loss+margin).mean()
-        
         border_con = relu(border_loss+margin).mean()
         state_con = relu(state_loss+margin).mean()
         goal_con = relu(goal_loss+margin).mean()
@@ -384,17 +383,16 @@ class Practical_Lyapunov(Certificate):
             if self.control:
                 samples_dot = f_torch(samples)
 
-            V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) 
-            V2 = learner(states_only)
-            V = V2
-            V_D = V[:i1-idot1]
-            V_I = V[i1-idot1:i1+i2-idot1-idot2]
-            V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
-            V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
-            V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-            beta = V_SG.min()
-
             if state_sol:
+                V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) 
+                V2 = learner(states_only)
+                V = V2
+                V_D = V[:i1-idot1]
+                V_I = V[i1-idot1:i1+i2-idot1-idot2]
+                V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                beta = V_SG.min()
                 loss, supp_loss, learn_accuracy, sub_sample = self.compute_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
                 if loss <= best_loss:
                     best_loss = loss
@@ -427,12 +425,36 @@ class Practical_Lyapunov(Certificate):
                 if learner._take_abs:
                     learner.make_final_layer_positive()
             else:
-                loss = self.compute_state_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
-                if loss == 0:
-                    state_sol = True
-                else:
-                    loss.backward()
-                    optimizer.step()
+                state_itt = 0
+                while True:
+                    optimizer.zero_grad()
+                    V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times) 
+                    V2 = learner(states_only)
+                    V = V2
+                    V_D = V[:i1-idot1]
+                    V_I = V[i1-idot1:i1+i2-idot1-idot2]
+                    V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                    V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                    V_SD = V[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                    beta = V_SG.min()
+                    state_itt += 1
+                    loss = self.compute_state_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
+                    if loss == 0:
+                        state_sol=True
+                        break
+                    else:
+                        if state_itt % 1000 == 0:
+                            loss_v = loss.item() if hasattr(loss, "item") else loss
+                            cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
+                            
+                        loss.backward()
+                        optimizer.step()
+                #loss = self.compute_state_loss(V_I, V_G, V_D, V_SD, V1, beta, Vdot, Sind, supp_samples, convex)
+                #if loss == 0:
+                #    state_sol = True
+                #else:
+                #    loss.backward()
+                #    optimizer.step()
                 
         V1, Vdot, circle = learner.get_all(samples_with_nexts, samples_dot, times)
         V2 = learner(states_only)
@@ -966,12 +988,21 @@ class BarrierAlt(Certificate):
                         supp_samples = supp_samples.union(sub_sample)
                 optimizer.step()
             else:
-                loss = self.compute_state_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
-                if loss == 0:
-                    state_sol=True
-                else:
-                    loss.backward()
-                    optimizer.step()
+                state_itt = 0
+                while True:
+                    optimizer.zero_grad()
+                    state_itt += 1
+                    loss = self.compute_state_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+                    if loss == 0:
+                        state_sol=True
+                        break
+                    else:
+                        if state_itt % 100 == 0:
+                            loss_v = loss.item() if hasattr(loss, "item") else loss
+                            cert_log.debug("{} - loss: {:.5f}".format(state_itt, loss_v))
+                            
+                        loss.backward()
+                        optimizer.step()
 
 
         B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
@@ -1311,14 +1342,20 @@ class RWS(Certificate):
                         supp_samples = supp_samples.union(sub_sample)
                 optimizer.step()
             else:
-                state_loss, accuracy = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
-                if state_loss == 0:
-                    state_sol = True
-                else:
-                    state_loss.backward()
-                    optimizer.step()
-                    if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
-                        log_loss_acc(t, state_loss, accuracy, learner.verbose)
+                state_itt = 0
+                while True:
+                    optimizer.zero_grad()
+                    state_itt += 1
+                    state_loss, accuracy = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
+                    if state_loss == 0:
+                        state_sol = True
+                    else:
+                        state_loss.backward()
+                        optimizer.step()
+                        if state_itt % 100 == 0:
+                            loss_v = loss.item() if hasattr(loss, "item") else loss
+                            cert_log.debug("{} - loss: {:.5f}".format(state_itt, loss_v))
+                            
         B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
         B = learner(states_only)
         B_d_states = B[:i1-idot1]
@@ -1698,9 +1735,7 @@ class AutoSets:
         self.certificate = certificate
 
     def auto(self) -> (dict, dict):
-        if self.certificate == CertificateType.LYAPUNOV:
-            return self.auto_lyap()
-        elif self.certificate == CertificateType.PRACTICALLYAPUNOV:
+        if self.certificate == CertificateType.PRACTICALLYAPUNOV:
             return self.auto_practical_lyap()
         elif self.certificate == CertificateType.SEQUENTIALREACH:
             return self.auto_sequential_reach()
@@ -1722,9 +1757,7 @@ class AutoSets:
 def get_certificate(
     certificate: CertificateType, custom_cert=None
 ) -> Type[Certificate]:
-    if certificate == CertificateType.LYAPUNOV:
-        return Lyapunov
-    elif certificate == CertificateType.PRACTICALLYAPUNOV:
+    if certificate == CertificateType.PRACTICALLYAPUNOV:
         return Practical_Lyapunov
     elif certificate == CertificateType.SEQUENTIALREACH:
         return Sequential_Reach

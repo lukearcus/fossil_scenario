@@ -23,7 +23,7 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    XG = domains.Rectangle([-4, -2.5], [-1, 0.5])
+    XG = domains.Rectangle([-4, -1.5], [-1, 0.5])
 
     SD =domains.SetMinus(XD, XG) 
     dom = {fossil.XD: XD,
@@ -40,7 +40,6 @@ def test_lnn():
     states = all_data[1]
     derivs = all_data[2]
     data = {"times":times,"states":states,"derivs":derivs}
-    import pdb; pdb.set_trace()
     
     n_state_data = 10000
 

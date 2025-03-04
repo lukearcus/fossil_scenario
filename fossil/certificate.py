@@ -272,7 +272,7 @@ class Practical_Lyapunov(Certificate):
                     final_ind = inds[-1]+1
                 selected = range(inds[0],final_ind)
                 selected_inds.append(range(curr_ind,curr_ind+len(selected))) 
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
                 curr_ind += len(selected)
                 Vdot_selected.append(Vdot[selected])
             Vdot_selected = torch.hstack(Vdot_selected)

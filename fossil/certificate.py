@@ -205,7 +205,7 @@ class Practical_Lyapunov(Certificate):
         
         init_loss = V_I
         border_loss = -V_SD
-        goal_loss = V_G-V_I.min()#minus since V_I<0
+        goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         state_loss = -V_D+beta
         
         margin = 1e-5
@@ -248,6 +248,7 @@ class Practical_Lyapunov(Certificate):
         init_loss = V_I
         border_loss = -V_SD
         goal_loss = V_G-V_I.min()
+        #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         state_loss = -V_D+beta
         
         margin = 1e-5
@@ -272,7 +273,6 @@ class Practical_Lyapunov(Certificate):
                     final_ind = inds[-1]+1
                 selected = range(inds[0],final_ind)
                 selected_inds.append(range(curr_ind,curr_ind+len(selected))) 
-                #import pdb; pdb.set_trace()
                 curr_ind += len(selected)
                 Vdot_selected.append(Vdot[selected])
             Vdot_selected = torch.hstack(Vdot_selected)

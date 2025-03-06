@@ -248,7 +248,7 @@ class Practical_Lyapunov(Certificate):
         init_loss = V_I
         border_loss = -V_SD
         goal_loss = V_G-V_I.min()
-        #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
+        #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0 #this gives better convergence and epsilon for nonabsorbing, but prefer to have it only in the warm start since no theoretical basis for it...
         state_loss = -V_D+beta
         
         margin = 1e-5

@@ -992,6 +992,18 @@ class BarrierAlt(Certificate):
                 state_itt = 0
                 while True:
                     optimizer.zero_grad()
+                    B, Bdot, _ = learner.get_all(samples_with_nexts, samples_dot, times)
+                    
+                    B2 = learner(states_only)
+                    (
+                        B_d,
+                        Bdot_d,
+                    ) = (
+                            B2[:i1-idot1] ,
+                        Bdot[:idot1],
+                    )
+                    B_i = B2[i1-idot1:i1+i2-idot2-idot1]
+                    B_u = B2[i1+i2-idot1-idot2:]
                     state_itt += 1
                     loss = self.compute_state_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
                     if loss == 0:
@@ -1346,6 +1358,16 @@ class RWS(Certificate):
                 state_itt = 0
                 while True:
                     optimizer.zero_grad()
+                    B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])
+
+                    B = learner(states_only)
+                    
+                    B_d_states = B[:i1-idot1]
+                    B_i = B[i1-idot1 : i1 + i2-idot1-idot2]
+                    B_g = B[i1 + i2-idot1-idot2 :i1+i2+i3-idot1-idot2-idot3]
+                    B_u = B[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                    B_sg = B[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                    beta = B_sg.min()
                     state_itt += 1
                     state_loss, accuracy = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples, convex)
                     if state_loss == 0:

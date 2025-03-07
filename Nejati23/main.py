@@ -183,12 +183,6 @@ def High_D_test(N):
     k = 10+1 #q1-4, gamma, don't count eta
     #k = 5 #
 
-    eta = -0.0155
-    eps = ((-eta/L_g)**4)*(np.pi**2)/(2**13)
-    beta = betainc(k, N-k+1, eps)
-    #calc beta for fixed eta
-    print("Maximum confidence level: {:.30f}".format(beta))
-    
     init_dom_data = XI._generate_data(500)()
     unsafe_dom_data = XU._generate_data(500)()
 
@@ -203,7 +197,6 @@ def High_D_test(N):
     gap = L_g*(((2**13)/(np.pi**2)*eps)**.25)
     print("Optimality gap: {:.3f}".format(gap))
     
-    import pdb; pdb.set_trace()
     #import pdb; pdb.set_trace()
     c = cp.Variable()
     A_mat = cp.Variable((4,4), symmetric=True)
@@ -258,6 +251,11 @@ def High_D_test(N):
         SYSTEM=system,
         CERTIFICATE=cert,
     )
+    
+    eps = ((-eta/L_g)**4)*(np.pi**2)/(2**13)
+    N = int(1e19)
+    beta = betainc(k, N-k+1, eps)
+    print("Maximum confidence level for 1e19 samples (assuming same eta): {:.30f}".format(beta))
 
 class RCP_SCP:
     def __init__(self, barrier_func, barrier_lie_func, barr_data_params):

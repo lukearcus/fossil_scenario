@@ -89,16 +89,11 @@ def Jet_engine(N, discrete=False):
     gamma = cp.Variable(1)
     constraints.append(gamma + c*T - lambd - mu <= eta)
     
-    #for elem in init_dom_data:
-    #    constraints.append(elem@A_mat@elem+elem@B_mat+C_mat-gamma<=eta)
-    #for elem in unsafe_dom_data:
-    #    constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
-    #for elem, next_s in zip(state_data, next_states):
-    #    constraints.append((next_s@A_mat@next_s+next_s@B_mat-(elem@A_mat@elem+elem@B_mat))/tau-c+delta <= eta)
-
-    for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
+    for init, unsafe in zip(init_dom_data, unsafe_dom_data):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+unsafe@ B_mat+C_mat)+lambd <= eta)
+
+    for state, next_s in zip(state_data, next_states):
         if discrete:
             constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c <= eta)
         else:
@@ -245,10 +240,11 @@ def High_D_test(N, discrete=False):
 
     gamma = cp.Variable(1)
     constraints.append(gamma + c*T - lambd - mu <= eta)
-
-    for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
+    for init, unsafe in zip(init_dom_data, unsafe_dom_data):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+unsafe@ B_mat+C_mat)+lambd <= eta)
+
+    for state, next_s in zip(state_data, next_states):
         if discrete:
             constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c <= eta)
         else:
@@ -303,14 +299,14 @@ def DC_Motor(N):
     eps = betaincinv(k, N-k+1, 1-beta)
 
     T = 1 # ignore this
-    mu = -0.01 # Not sure what to set this to
+    mu = -0#1e-5 # Not sure what to set this to
 
     XD = domains.Rectangle([0.1, 0.1], [0.5, 1])
     XI = domains.Rectangle([0.1, 0.1], [0.4, 0.55])
-    XU = domains.Rectangle([0.45, 0.5], [0.6, 1])
+    XU = domains.Rectangle([0.45, 0.6], [0.5, 1])
     
     print("Generating data")
-    N_state = 1000
+    N_state = 10000
     init_dom_data = XI._generate_data(N_state)()
     unsafe_dom_data = XU._generate_data(N_state)()
     
@@ -341,10 +337,16 @@ def DC_Motor(N):
     constraints.append(gamma + c*T - lambd - mu <= eta)
     
 
-    for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
+    for init, unsafe in zip(init_dom_data, unsafe_dom_data):
         constraints.append(init@A_mat@init+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+C_mat)+lambd <= eta)
+    for state, next_s in zip(state_data, next_states):
         constraints.append((next_s@A_mat@next_s-(state@A_mat@state))-c <= eta)
+    
+    #for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
+    #    constraints.append(init@A_mat@init+C_mat-gamma<=eta)
+    #    constraints.append(-(unsafe@A_mat@unsafe+C_mat)+lambd <= eta)
+    #    constraints.append((next_s@A_mat@next_s-(state@A_mat@state))-c <= eta)
 
     print("Problem formulated, solving...")
     prob = cp.Problem(objective, constraints)
@@ -356,7 +358,7 @@ def DC_Motor(N):
     print("gamma: {:.5f}".format(gamma.value.item()))
     print("lambda: {:.5f}".format(lambd.value.item()))
     
-    print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps)))
+    print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((1.44/np.pi)*eps)))
     cert = certificate(A_mat.value, np.zeros((2,1)), C_mat.value)
     opts = ScenAppConfig(
         SYSTEM=system,

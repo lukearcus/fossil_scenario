@@ -81,7 +81,7 @@ class DC_Motor(control.DynamicalModel):
         else:
             x1, x2= v[:, 0], v[:, 1]
 
-        return [x1+self.T*((-R/L)*x1-(kdc/L)*x2), x2+self.T*((kdc/J)*x1-(b/J)*x2)]
+        return [x1+self.T*(((-R/L)*x1)-((kdc/L)*x2)), x2+self.T*(((kdc/J)*x1)-((b/J)*x2))]
 
 
 class HighOrd8(control.DynamicalModel):

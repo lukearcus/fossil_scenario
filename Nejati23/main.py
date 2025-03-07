@@ -363,6 +363,9 @@ def DC_Motor(N):
         CERTIFICATE=cert,
         TIME_DOMAIN=TimeDomain.DISCRETE,
     )
+    axes = plotting.benchmark(system(), cert, levels=[[lambd.value.item(), gamma.value.item()] ], xrange=[0.1,0.5], yrange=[0.1,1])
+    for ax, name in axes:
+        plotting.save_plot_with_tags(ax, opts, name)
 
 class RCP_SCP:
     def __init__(self, barrier_func, barrier_lie_func, barr_data_params):

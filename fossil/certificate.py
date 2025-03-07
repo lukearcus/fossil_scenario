@@ -1120,7 +1120,7 @@ class RWS(Certificate):
         init_loss = relu(V_i + margin).mean()
         unsafe_loss = relu(-V_u + margin).mean()
         state_loss = relu(-V_d_states + beta+margin).mean()
-        goal_loss = relu(V_g-V_i.min()+margin).mean()
+        goal_loss = relu(V_g-(V_i.min()+V_d_states.min())/2+margin).mean()
         
         psi_s = init_loss+unsafe_loss+state_loss+goal_loss
         accuracy = {

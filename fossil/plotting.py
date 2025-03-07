@@ -253,7 +253,10 @@ def certificate_lie(certificate, model, ax=None, xrange=[-3, 3], yrange=[-3, 3])
             torch.cat((dx.reshape(-1, 1), dy.reshape(-1, 1)), dim=1))-                certificate(
             torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1)
         )
-        lie = lie.detach().numpy()
+        try:
+            lie = lie.detach().numpy()
+        except AttributeError:
+            pass
 
     lie = lie.reshape(X.shape)
     ax.plot_surface(X, Y, lie, cmap=cm.coolwarm, alpha=0.7, rstride=5, cstride=5)

@@ -32,7 +32,7 @@ class certificate:
         grad_net = 2*self.A@data.T+self.B
         return net, grad_net
 
-def Jet_engine(N):
+def Jet_engine(N, discrete=False):
     c = 0
     L_f = 4.71
     M_f = 3.16
@@ -61,8 +61,14 @@ def Jet_engine(N):
     
     init_data = XD._generate_data(N)()
 
-    system = models.JetEngBarr
-    all_data = system().generate_trajs(init_data, tau)
+    if discrete:
+        system = models.JetEngBarrDT
+    else:
+        system = models.JetEngBarr
+    if discrete:
+        all_data = system().generate_trajs(init_data, 1)
+    else:
+        all_data = system().generate_trajs(init_data, tau)
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
     next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
@@ -93,7 +99,10 @@ def Jet_engine(N):
     for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+unsafe@ B_mat+C_mat)+lambd <= eta)
-        constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c+delta <= eta)
+        if discrete:
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c <= eta)
+        else:
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c+delta <= eta)
     #for elem in unsafe_dom_data:
     #    constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
     #for elem, next_s in zip(state_data, next_states):
@@ -107,19 +116,28 @@ def Jet_engine(N):
     print("Problem formulated, solving...")
     prob = cp.Problem(objective, constraints)
     prob.solve()
-    print(eta.value)
+    print("eta: {:.5f}".format(eta.value))
+    print("matrix values:")
     print(B_mat.value[0])
     print(A_mat.value[0,1]*2)
     print(B_mat.value[1])
     print(C_mat.value)
-    print(gamma.value)
+    print("gamma: {:.5f}".format(gamma.value))
     
-    print(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps))
+    print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps)))
     cert = certificate(A_mat.value, B_mat.value, C_mat.value)
-    opts = ScenAppConfig(
-        SYSTEM=system,
-        CERTIFICATE=cert,
-    )
+    if discrete:
+        opts = ScenAppConfig(
+            SYSTEM=system,
+            CERTIFICATE=cert,
+            TIME_DOMAIN=TimeDomain.DISCRETE,
+        )
+    else:
+        opts = ScenAppConfig(
+            SYSTEM=system,
+            CERTIFICATE=cert,
+            TIME_DOMAIN=TimeDomain.CONTINUOUS,
+        )
     axes = plotting.benchmark(system(), cert, levels=[[lambd, gamma.value[0]] ], xrange=[0.1,1], yrange=[0.1,1])
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
@@ -233,11 +251,14 @@ def High_D_test(N):
 
     prob = cp.Problem(objective, constraints)
     prob.solve()
-    print(eta.value)
+    print("eta: {:.5f}".format(eta.value))
+    print("matrix values:")
     print(A_mat.value)
     print(B_mat.value)
     print(C_mat.value)
-    print(gamma.value)
+    print("gamma: {:.5f}".format(gamma.value))
+    
+    print("Less than zero check: {:.5f}".format(eta.value[0]+gap))
     
     print(eta.value[0]+gap)
     

@@ -155,6 +155,19 @@ class JetEngBarr(control.DynamicalModel):
             x, y = v[:, 0], v[:, 1]
         return [-y-1.5*x**2-0.5*x**3, x]
 
+class JetEngBarrDT(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 50
+    time = "discrete"
+    T=0.1
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x, y = v[0], v[1]
+        else:
+            x, y = v[:, 0], v[:, 1]
+        return [x+self.T*(-y-1.5*x**2-0.5*x**3), y+self.T*x]
+
 class Circle(control.DynamicalModel):
     n_vars = 2
     time_horizon = 50

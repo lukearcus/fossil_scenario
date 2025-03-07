@@ -66,7 +66,7 @@ def Jet_engine(N, discrete=False):
     else:
         system = models.JetEngBarr
     if discrete:
-        all_data = system().generate_trajs(init_data, 1)
+        all_data = system().generate_trajs(init_data, 2)
     else:
         all_data = system().generate_trajs(init_data, tau)
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
@@ -100,9 +100,9 @@ def Jet_engine(N, discrete=False):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+unsafe@ B_mat+C_mat)+lambd <= eta)
         if discrete:
-            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c <= eta)
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c <= eta)
         else:
-            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c+delta <= eta)
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c+delta <= eta)
     #for elem in unsafe_dom_data:
     #    constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
     #for elem, next_s in zip(state_data, next_states):
@@ -116,13 +116,13 @@ def Jet_engine(N, discrete=False):
     print("Problem formulated, solving...")
     prob = cp.Problem(objective, constraints)
     prob.solve()
-    print("eta: {:.5f}".format(eta.value))
+    print("eta: {:.5f}".format(eta.value.item()))
     print("matrix values:")
     print(B_mat.value[0])
     print(A_mat.value[0,1]*2)
     print(B_mat.value[1])
     print(C_mat.value)
-    print("gamma: {:.5f}".format(gamma.value))
+    print("gamma: {:.5f}".format(gamma.value.item()))
     
     print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps)))
     cert = certificate(A_mat.value, B_mat.value, C_mat.value)
@@ -142,7 +142,7 @@ def Jet_engine(N, discrete=False):
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 
-def High_D_test(N):
+def High_D_test(N, discrete=False):
     max_rhoP = 1.2
     T=2
     mu = -0.
@@ -155,10 +155,12 @@ def High_D_test(N):
 
     n_data = N 
     
-
-    system = models.Barr4D
+    if discrete:
+        system = models.Barr4D_DT
+    else:
+        system = models.Barr4D
     
-    
+   
     alpha = 0.01
     N_overline = 1000
     M = 1000
@@ -172,13 +174,19 @@ def High_D_test(N):
         for i, x in enumerate(lipschitz_data):
             y = domains.Sphere(x, alpha)._generate_data(1)()
             inits = torch.vstack((x,y))
-            data_tau = system().generate_trajs(inits, tau)[1]
+            if discrete:
+                data_tau = system().generate_trajs(inits, 2)[1]
+            else:
+                data_tau = system().generate_trajs(inits, tau)[1]
             x_tau = data_tau[0][:,-1]
             y_tau = data_tau[1][:,-1]
             #y_tau = system().generate_trajs(y, tau)[1][0][:,-1]
             x = x.detach().numpy()
             y = y.detach().numpy()
-            s = np.linalg.norm((x_tau-x-y_tau+y)/tau)/np.linalg.norm(x-y)
+            if discrete:
+                s = np.linalg.norm((x_tau-y_tau))/np.linalg.norm(x-y)
+            else:
+                s = np.linalg.norm((x_tau-x-y_tau+y)/tau)/np.linalg.norm(x-y)
             max_s = max(s,max_s)
             M_f = max(M_f, np.linalg.norm(system().f_torch(0,x))) 
         psi.append(-max_s)
@@ -206,7 +214,10 @@ def High_D_test(N):
 
     init_data = XD._generate_data(n_data)()
     
-    all_data = system().generate_trajs(init_data, tau)
+    if discrete:
+        all_data = system().generate_trajs(init_data, 2)
+    else:
+        all_data = system().generate_trajs(init_data, tau)
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
     next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
@@ -238,7 +249,10 @@ def High_D_test(N):
     for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
         constraints.append(init@A_mat@init+init@B_mat+C_mat-gamma<=eta)
         constraints.append(-(unsafe@A_mat@unsafe+unsafe@ B_mat+C_mat)+lambd <= eta)
-        constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c+delta <= eta)
+        if discrete:
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))-c <= eta)
+        else:
+            constraints.append((next_s@A_mat@next_s+next_s@B_mat-(state@A_mat@state+state@B_mat))/tau-c+delta <= eta)
     #for elem in unsafe_dom_data:
     #    constraints.append(-(elem@A_mat@elem+elem@ B_mat+C_mat)+lambd <= eta)
     #for elem, next_s in zip(state_data, next_states):
@@ -251,12 +265,12 @@ def High_D_test(N):
 
     prob = cp.Problem(objective, constraints)
     prob.solve()
-    print("eta: {:.5f}".format(eta.value))
+    print("eta: {:.5f}".format(eta.value.item()))
     print("matrix values:")
     print(A_mat.value)
     print(B_mat.value)
     print(C_mat.value)
-    print("gamma: {:.5f}".format(gamma.value))
+    print("gamma: {:.5f}".format(gamma.value.item()))
     
     print("Less than zero check: {:.5f}".format(eta.value[0]+gap))
     
@@ -277,6 +291,78 @@ def High_D_test(N):
     N = int(1e19)
     beta = betainc(k, N-k+1, eps)
     print("Maximum confidence level for 1e19 samples (assuming same eta): {:.30f}".format(beta))
+
+def DC_Motor(N):
+    c = 0
+    L_f = 0.014
+    max_rhoP = 0.75
+    L_g = 1.67
+    beta = 0.01
+    k = 7 #don't count eta
+
+    eps = betaincinv(k, N-k+1, 1-beta)
+
+    T = 1 # ignore this
+    mu = -0.01 # Not sure what to set this to
+
+    XD = domains.Rectangle([0.1, 0.1], [0.5, 1])
+    XI = domains.Rectangle([0.1, 0.1], [0.4, 0.55])
+    XU = domains.Rectangle([0.45, 0.5], [0.6, 1])
+    
+    print("Generating data")
+    N_state = 1000
+    init_dom_data = XI._generate_data(N_state)()
+    unsafe_dom_data = XU._generate_data(N_state)()
+    
+    init_data = XD._generate_data(N)()
+
+    system = models.DC_Motor
+    
+    all_data = system().generate_trajs(init_data, 2)
+    
+    state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
+    next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
+    
+    print("Data generation complete")
+    print("Building constraints")
+
+    lambd = cp.Variable(1)
+
+    A_mat = cp.Variable((2,2), symmetric=True)
+    C_mat = cp.Variable(1)
+
+    constraints = [-0.5<= A_mat[0,0], A_mat[0,0] <= 0.5, -0.5<= A_mat[1,1], A_mat[1,1] <= 0.5, -0.25 <= A_mat[0,1], A_mat[0,1] <= 0.25, 
+                    -0.5 <= C_mat, C_mat <=0.5] # they say this is in [-0.4,0.4] but then find it as 2.7288...
+
+    eta = cp.Variable(1)
+    objective = cp.Minimize(eta)
+
+    gamma = cp.Variable(1)
+    constraints.append(gamma + c*T - lambd - mu <= eta)
+    
+
+    for init, unsafe, state, next_s in zip(init_dom_data, unsafe_dom_data, state_data, next_states):
+        constraints.append(init@A_mat@init+C_mat-gamma<=eta)
+        constraints.append(-(unsafe@A_mat@unsafe+C_mat)+lambd <= eta)
+        constraints.append((next_s@A_mat@next_s-(state@A_mat@state))-c <= eta)
+
+    print("Problem formulated, solving...")
+    prob = cp.Problem(objective, constraints)
+    prob.solve()
+    print("eta: {:.5f}".format(eta.value.item()))
+    print("matrix values:")
+    print(A_mat.value)
+    print(C_mat.value)
+    print("gamma: {:.5f}".format(gamma.value.item()))
+    print("lambda: {:.5f}".format(lambd.value.item()))
+    
+    print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((3.24/np.pi)*eps)))
+    cert = certificate(A_mat.value, np.zeros((2,1)), C_mat.value)
+    opts = ScenAppConfig(
+        SYSTEM=system,
+        CERTIFICATE=cert,
+        TIME_DOMAIN=TimeDomain.DISCRETE,
+    )
 
 class RCP_SCP:
     def __init__(self, barrier_func, barrier_lie_func, barr_data_params):

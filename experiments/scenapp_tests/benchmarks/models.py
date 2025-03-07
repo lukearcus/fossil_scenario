@@ -50,6 +50,40 @@ class Barr4D(control.DynamicalModel):
             x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
         return [x1 + 0.2 * x1 * x2 -0.5*x3*x4, np.cos(x4), 0.01*np.sqrt(np.abs(x1)), -x1 - x2**2 + np.sin(x4)]
 
+class Barr4D_DT(control.DynamicalModel):
+    n_vars = 4
+    time_horizon = 40
+    time="discrete"
+    T=0.1
+
+    def f_torch(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
+        else:
+            x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
+        return [x1+self.T*(x1 + 0.2 * x1 * x2 -0.5*x3*x4), x2+self.T*(np.cos(x4)), x3+self.T*0.01*np.sqrt(np.abs(x1)), x4+self.T*(-x1 - x2**2 + np.sin(x4))]
+
+class DC_Motor(control.DynamicalModel):
+    n_vars = 2
+    time_horizon = 100
+    T = 0.01
+    time = "discrete"
+    
+    def f_torch(self, t, v):
+        R =1
+        L=0.01
+        J=0.01
+        b=1
+        kdc=0.01
+
+        if len(v.shape) == 1:
+            x1, x2= v[0], v[1]
+        else:
+            x1, x2= v[:, 0], v[:, 1]
+
+        return [x1+self.T*((-R/L)*x1-(kdc/L)*x2), x2+self.T*((kdc/J)*x1-(b/J)*x2)]
+
+
 class HighOrd8(control.DynamicalModel):
     n_vars = 8
     time_horizon = 2
@@ -157,9 +191,9 @@ class JetEngBarr(control.DynamicalModel):
 
 class JetEngBarrDT(control.DynamicalModel):
     n_vars = 2
-    time_horizon = 50
+    time_horizon = 500
     time = "discrete"
-    T=0.1
+    T=0.01
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:

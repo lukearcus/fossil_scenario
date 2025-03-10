@@ -47,6 +47,7 @@ def test_lnn(args):
         BETA=(0.01,),
         CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
+        CALC_DISC_GAP = True,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,

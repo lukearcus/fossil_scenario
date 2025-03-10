@@ -53,6 +53,7 @@ def test_lnn(args):
         N_VARS=n_vars,
         CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
+        CALC_DISC_GAP = True,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=n_hidden_neurons,

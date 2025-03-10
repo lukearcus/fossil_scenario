@@ -222,6 +222,7 @@ class SingleScenApp:
 
     def est_disc_gap(self, state):
         # Would be better off adding this to the loss function, but this works OK.
+        # Adding to loss function would likely be quite slow...
 
         t_max = max([elem.max() for elem in state[ScenAppStateKeys.times].values() if type(elem) is not list])
         state_data = np.hstack(state[ScenAppStateKeys.S_traj])

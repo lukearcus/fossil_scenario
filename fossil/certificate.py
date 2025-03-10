@@ -842,7 +842,7 @@ class BarrierAlt(Certificate):
         percent_accuracy_init_unsafe = learn_accuracy * 100 / (len(B_u) + len(B_i))
         relu = torch.nn.ReLU()
 
-        req_diff = relu(B_u.min() - B_i.max())/self.T
+        req_diff = (B_u.min() - B_i.max())/self.T
         lie_loss = Bdot_d-req_diff
         lie_accuracy = (
             100 * ((Bdot_d < req_diff).count_nonzero()).item() / Bdot_d.shape[0]
@@ -853,14 +853,16 @@ class BarrierAlt(Certificate):
         init_loss = (relu(B_i).mean())
         unsafe_loss = relu(-B_u+unsafe_margin).mean()
         psi_s = init_loss + unsafe_loss
+        
+        if psi_s > 0:
+            lie_loss = relu(lie_loss)
+        
         if True:
             if subgrad:
                 supp_max = torch.tensor([-1.0])
                 lie_max = lie_loss.max() 
                 ind_lie_max = lie_loss.argmax()
                 loss = lie_max
-                if psi_s > 0:
-                    loss = relu(loss)
                 sub_sample = -1
                 for i, elem in enumerate(indices["lie"]):
                     if ind_lie_max in elem:

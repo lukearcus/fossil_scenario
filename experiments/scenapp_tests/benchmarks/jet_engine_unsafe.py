@@ -14,8 +14,8 @@ def solve(opts):
 
 def test_lnn(args):
     XD = domains.Rectangle([0.1, 0.1], [1, 1])
-    XU = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
-    XI = domains.Rectangle([0.7, 0.3], [1, 0.6])
+    XU = domains.Rectangle([0.1, 0.4], [0.3, 0.6])
+    XI = domains.Rectangle([0.9, 0.1], [1, 1])
 
     n_data = 100 
     num_runs = 1
@@ -48,11 +48,12 @@ def test_lnn(args):
         BETA=(0.01,),
         CERTIFICATE=CertificateType.BARRIERALT,
         TIME_DOMAIN=TimeDomain.CONTINUOUS,
+        CALC_DISC_GAP = True,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=10,
+        SCENAPP_MAX_ITERS=2,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]
     with Pool(processes=num_runs) as pool:

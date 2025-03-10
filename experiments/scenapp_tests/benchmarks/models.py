@@ -12,6 +12,7 @@ from fossil import control
 class Barr1(control.DynamicalModel):
     n_vars = 2
     time_horizon = 2
+    num_time_samples = 1000
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -24,6 +25,7 @@ class Barr1_stoch(control.DynamicalModel):
     n_vars = 2
     time_horizon = 0.5 
     stochastic = True
+    num_time_samples = 1000
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -42,6 +44,7 @@ class Barr1_stoch(control.DynamicalModel):
 class Barr4D(control.DynamicalModel):
     n_vars = 4
     time_horizon = 4
+    num_time_samples = 500
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -87,6 +90,7 @@ class DC_Motor(control.DynamicalModel):
 class HighOrd8(control.DynamicalModel):
     n_vars = 8
     time_horizon = 2
+    num_time_samples = 1000
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:
@@ -181,6 +185,7 @@ class HighOrd8DT(control.DynamicalModel):
 class JetEngBarr(control.DynamicalModel):
     n_vars = 2
     time_horizon = 5
+    num_time_samples = 1000
 
     def f_torch(self, t, v):
         if len(v.shape) == 1:

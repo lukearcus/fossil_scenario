@@ -89,7 +89,7 @@ class DynamicalModel:
                     return np.array(self.f_torch(t,y))
                 def g_func(y, t):
                     return np.array(self.g_torch(t,y))
-                tspan = np.linspace(0., time_horizon, int(1000*time_horizon+1))
+                tspan = np.linspace(0., time_horizon, self.num_time_samples)
                 seed = int(10000*np.random.random())
                 generator = np.random.default_rng(seed=seed)
                 for elem in x_0:
@@ -106,7 +106,7 @@ class DynamicalModel:
                 # use difference to calculate derivative... not very satisfying but seems to be the best option?
             else:
                 for elem in x_0:
-                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem, t_eval = np.linspace(0., time_horizon, 500)))
+                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem, t_eval = np.linspace(0., time_horizon, self.num_time_samples)))
                 state_trajs = [traj["y"] for traj in trajs]
                 times = [traj["t"] for traj in trajs]
                 nexts = [traj[:, 1:] for traj in state_trajs]

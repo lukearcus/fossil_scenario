@@ -17,7 +17,7 @@ def test_lnn(args):
     XU = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
     XI = domains.Rectangle([0.7, 0.3], [1, 0.6])
 
-    n_data = 1000 
+    n_data = 100 
     num_runs = 1
 
     sets = {
@@ -25,19 +25,20 @@ def test_lnn(args):
         certificate.XI: XI,
         certificate.XU: XU,
     }
+    n_state_data = 10000
     state_data = {
-        certificate.XD: XD._generate_data(5000)(),
-        certificate.XI: XI._generate_data(5000)(),
-        certificate.XU: XU._generate_data(5000)(),
+        certificate.XD: XD._generate_data(n_state_data)(),
+        certificate.XI: XI._generate_data(n_state_data)(),
+        certificate.XU: XU._generate_data(n_state_data)(),
     }
     init_data = [XI._generate_data(n_data)() for i in range(num_runs)]
 
     system = models.JetEngBarr
     all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
-    activations = [ActivationType.SIGMOID]
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
-    hidden_neurons = [5] * len(activations)
+    hidden_neurons = [10] * len(activations)
     opts = [ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,
@@ -51,7 +52,7 @@ def test_lnn(args):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=2,
+        SCENAPP_MAX_ITERS=10,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]
     with Pool(processes=num_runs) as pool:

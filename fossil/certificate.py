@@ -967,7 +967,7 @@ class BarrierAlt(Certificate):
                     best_loss = loss
                     best_net = copy.deepcopy(learner)
 
-                if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
+                if (t % int(learn_loops / 10) == 0 or learn_loops - t < 10) or t == 0:
                     log_loss_acc(t, loss, accuracy, learner.verbose)
 
                 if convex:

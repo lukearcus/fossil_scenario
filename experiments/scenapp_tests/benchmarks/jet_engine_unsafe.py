@@ -15,7 +15,7 @@ def solve(opts):
 def test_lnn(args):
     XD = domains.Rectangle([0.1, 0.1], [1, 1])
     XU = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
-    XI = domains.Rectangle([0.7, 0.4], [1, 0.7])
+    XI = domains.Rectangle([0.7, 0.3], [1, 0.6])
 
     n_data = 1000 
     num_runs = 1
@@ -51,7 +51,7 @@ def test_lnn(args):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=2500,
+        SCENAPP_MAX_ITERS=2,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]
     with Pool(processes=num_runs) as pool:

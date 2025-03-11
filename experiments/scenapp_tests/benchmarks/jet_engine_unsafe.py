@@ -36,7 +36,7 @@ def test_lnn(args):
     system = models.JetEngBarr
     all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
-    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID]
+    activations = [ActivationType.SIGMOID, ActivationType.SIGMOID, ActivationType.SIGMOID]
     #activations = [ActivationType.RELU]
     hidden_neurons = [10] * len(activations)
     opts = [ScenAppConfig(

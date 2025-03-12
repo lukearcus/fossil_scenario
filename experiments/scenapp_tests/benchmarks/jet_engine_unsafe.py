@@ -14,11 +14,11 @@ def solve(opts):
 
 def test_lnn(args):
     XD = domains.Rectangle([0.1, 0.1], [1, 1])
-    XU = domains.Rectangle([0.1, 0.4], [0.3, 0.6])
+    XU = domains.Rectangle([0.1, 0.45], [0.3, 0.55])
     XI = domains.Rectangle([0.9, 0.1], [1, 1])
 
-    n_data = 100 
-    num_runs = 1
+    n_data = 1000 
+    num_runs = 5
 
     sets = {
         certificate.XD: XD,
@@ -52,8 +52,8 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=2,
-        SCENAPP_MAX_ITERS=2,
+        VERBOSE=0,
+        SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]
     with Pool(processes=num_runs) as pool:

@@ -963,10 +963,12 @@ class BarrierAlt(Certificate):
             B_u = B2[i1+i2-idot1-idot2:]
             if state_sol:
                 loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
-                
+
                 if loss <= best_loss:
                     best_loss = loss
                     best_net = copy.deepcopy(learner)
+                    if loss <= 0:
+                        break # Don't do this in CT
 
                 if (t % int(learn_loops / 10) == 0 or learn_loops - t < 10) or t == 1:
                     log_loss_acc(t, loss, accuracy, learner.verbose)
@@ -982,7 +984,8 @@ class BarrierAlt(Certificate):
                         supp_loss.backward(retain_graph=True)
                         supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                         inner = torch.inner(grads, supp_grads)
-                        if inner <= 0:
+                        if supp_loss <= 0:
+                        #if inner <= 0:
                             supp_samples = supp_samples.union(sub_sample)
                             optimizer.zero_grad()
                             loss.backward()

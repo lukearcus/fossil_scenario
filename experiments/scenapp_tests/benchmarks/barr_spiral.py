@@ -31,7 +31,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=0,
+        VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
@@ -67,7 +67,7 @@ def test_lnn(args):
     system = models.Spiral
     system.time_horizon = 100
     
-    num_runs = 5
+    num_runs = 1
 
     init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
     
@@ -91,7 +91,7 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=0,
+        VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,

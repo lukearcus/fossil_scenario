@@ -1,0 +1,68 @@
+Our Approach for Jet Engine\n
+\n\n Nejati23 Results for Jet Engine\n
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.05422
+matrix values:
+[0.4]
+0.3999999999719159
+[-0.07117715]
+[2.72249615]
+gamma: 3.03578
+Less than zero check: 0.00076
+Elapsed time: 5785.03250
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.05422
+matrix values:
+[0.4]
+0.3999999999719159
+[-0.07117715]
+[2.72249615]
+gamma: 3.03578
+Less than zero check: 0.00076
+Elapsed time: 6127.70716
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.05422
+matrix values:
+[0.4]
+0.3999999999719159
+[-0.07117715]
+[2.72249615]
+gamma: 3.03578
+Less than zero check: 0.00076
+Elapsed time: 6073.44522
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.05422
+matrix values:
+[0.4]
+0.3999999999719159
+[-0.07117715]
+[2.72249615]
+gamma: 3.03578
+Less than zero check: 0.00076
+Elapsed time: 6015.61903
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.05422
+matrix values:
+[0.4]
+0.3999999999719159
+[-0.07117715]
+[2.72249615]
+gamma: 3.03578
+Less than zero check: 0.00076
+Elapsed time: 5739.64296
+\n\nOur Approach for unsafe Model\n

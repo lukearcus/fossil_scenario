@@ -945,6 +945,8 @@ class BarrierAlt(Certificate):
         samples_dot = torch.cat([Sdot[label] for label in label_order if type(Sdot[label]) is not list])
         supp_samples = set()
         state_sol = False
+        prev_supp_loss = -1000
+        prev_loss = 1000
         for t in range(learn_loops):
             optimizer.zero_grad()
 
@@ -964,11 +966,14 @@ class BarrierAlt(Certificate):
             if state_sol:
                 loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
 
-                if loss <= best_loss:
+                if loss < best_loss:
+                    supp_samples = supp_samples.union(sub_sample)
                     best_loss = loss
                     best_net = copy.deepcopy(learner)
-                    if loss <= 0:
-                        break # Don't do this in CT
+                #if loss <= 0:
+                #    break
+                if torch.abs(loss-prev_loss) < 1e-7: #converged
+                    break
 
                 if (t % int(learn_loops / 10) == 0 or learn_loops - t < 10) or t == 1:
                     log_loss_acc(t, loss, accuracy, learner.verbose)
@@ -984,13 +989,16 @@ class BarrierAlt(Certificate):
                         supp_loss.backward(retain_graph=True)
                         supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                         inner = torch.inner(grads, supp_grads)
-                        if supp_loss <= 0:
+                        if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
                         #if inner <= 0:
                             supp_samples = supp_samples.union(sub_sample)
                             optimizer.zero_grad()
                             loss.backward()
                     else:
                         supp_samples = supp_samples.union(sub_sample)
+                prev_supp_loss = supp_loss
+                #prev_loss = min(prev_loss, loss.item())
+                prev_loss = loss.item()
                 optimizer.step()
             else:
                 state_itt = 0

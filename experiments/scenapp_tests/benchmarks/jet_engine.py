@@ -18,7 +18,7 @@ def test_lnn(args):
     XU = domains.Rectangle([0.7, 0.7], [1, 1])
 
     n_data = 10000 
-    num_runs = 5
+    num_runs = 1
 
     sets = {
         certificate.XD: XD,
@@ -51,10 +51,11 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=0,
+        VERBOSE=2,
         SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]
+    print("Data generation finished")
     with Pool(processes=num_runs) as pool:
         res = pool.map(solve, opts)
     

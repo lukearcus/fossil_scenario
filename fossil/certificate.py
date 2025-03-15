@@ -857,54 +857,43 @@ class BarrierAlt(Certificate):
         if psi_s > 0:
             lie_loss = relu(lie_loss)
         
-        if True:
-            if subgrad:
-                supp_max = torch.tensor([-1.0])
-                lie_max = lie_loss.max() 
-                ind_lie_max = lie_loss.argmax()
-                loss = lie_max
-                sub_sample = -1
-                for i, elem in enumerate(indices["lie"]):
-                    if ind_lie_max in elem:
-                        sub_sample = i
-                        break
-                for ind in supp_samples:
-                    lie_inds = indices["lie"][ind]
-                    if len(lie_inds) > 0:
-                        supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
-                supp_loss = supp_max
-                new_sub_samples = set([sub_sample])
-            else:    
-                # relaxed constraints below
-                supp_loss = -1
-                loss = 0
-                sub_samples = {"active":0,"relaxed":0}
-                i = 0
-                for inds_lie in indices["lie"]:
-                    curr_max = torch.tensor(-1.0)
-                    elems_lie = lie_loss[inds_lie]
-                    if len(elems_lie) > 0 :
-                        curr_max = torch.max(curr_max, elems_lie.max())
-                    if curr_max > 0:
-                        loss += curr_max
-                        sub_samples["relaxed"] += 1
-                    elif curr_max > -0.01: #Some wiggle room for what counts as active
-                        sub_samples["active"] += 1
-                    i += 1
-                new_sub_samples = sub_samples
-            loss = loss + psi_s
-            if supp_loss != -1:
-                supp_loss = supp_loss + psi_s
-        else:
-            loss = psi_s
-            supp_loss = psi_s
-            new_sub_samples = set()
+            
+        supp_max = torch.tensor([-1.0])
+        lie_losses = {}
+        #lie_max = lie_loss.max() 
+        
+        ind_lie_max = lie_loss.argmax()
+        
+        for ind in supp_samples:
+            lie_inds = indices["lie"][ind]
+            if len(lie_inds) > 0:
+                if lie_loss[lie_inds].max() > supp_max:
+                    supp_max = lie_loss[lie_inds].max()
+                    supp_max_ind = ind
+        
+        #sub_sample = -1
+
+        for i, elem in enumerate(indices["lie"]):
+            elem_lie_loss = lie_loss[elem].max()
+            if elem_lie_loss >= supp_max:
+                lie_losses[i] = elem_lie_loss
+            #if ind_lie_max in elem:
+            #    sub_sample = i
+            #    break
+        
+        supp_loss = supp_max
+        
+        losses = {k: lie_losses[k]+psi_s for k in lie_losses} 
+
+        #loss = loss + psi_s
+        if supp_loss != -1:
+            supp_loss = supp_loss + psi_s
 
         accuracy = {
             "acc init unsafe": percent_accuracy_init_unsafe,
             "acc lie": lie_accuracy,
         }
-        return loss, supp_loss, accuracy, new_sub_samples
+        return losses, supp_loss, accuracy
     
     def learn(
         self,
@@ -964,41 +953,53 @@ class BarrierAlt(Certificate):
             B_i = B2[i1-idot1:i1+i2-idot2-idot1]
             B_u = B2[i1+i2-idot1-idot2:]
             if state_sol:
-                loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+                losses, supp_loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
 
-                if loss < best_loss:
-                    supp_samples = supp_samples.union(sub_sample)
-                    best_loss = loss
+                sorted_keys = sorted(losses, key=losses.get, reverse=True)
+                max_loss = losses[sorted_keys[0]]
+                if max_loss < best_loss:
+                    best_supp_sample = set([sorted_keys[0]])
+                    best_loss = max_loss
                     best_net = copy.deepcopy(learner)
                 #if loss <= 0:
                 #    break
-                if torch.abs(loss-prev_loss) < 1e-7: #converged
-                    break
+                if (max_loss-prev_loss) >= 1e-3: #converged, only occurs for DT if we have ReLU on lie
+                    if sorted_keys[0] in supp_samples:
+                        break
+                    else:
+                        supp_samples = supp_samples.union(set([sorted_keys[0]]))
 
                 if (t % int(learn_loops / 10) == 0 or learn_loops - t < 10) or t == 1:
-                    log_loss_acc(t, loss, accuracy, learner.verbose)
+                    log_loss_acc(t, max_loss, accuracy, learner.verbose)
 
-                if convex:
-                    loss.backward()
-                else:
-                    loss.backward(retain_graph=True)
-                    grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                    # Code below is for non-convex
-                    if supp_loss != -1:
+                #grads = []
+                # Code below is for non-convex
+                if supp_loss != -1:
+                    optimizer.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                    #inners = grads@supp_grads
+                    #misaligneds = (inners <= 0).nonzero()
+                    #if len(misaligneds) > 0:
+                    #    max_sample = sorted_keys[misaligneds[0]]
+                    #    supp_samples = supp_samples.union(set([max_sample]))
+                    #    optimizer.zero_grad()
+                    #    losses[max_sample].backward()
+                    for k in sorted_keys:
                         optimizer.zero_grad()
-                        supp_loss.backward(retain_graph=True)
-                        supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                        inner = torch.inner(grads, supp_grads)
-                        if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
-                        #if inner <= 0:
-                            supp_samples = supp_samples.union(sub_sample)
-                            optimizer.zero_grad()
-                            loss.backward()
-                    else:
-                        supp_samples = supp_samples.union(sub_sample)
+                        losses[k].backward(retain_graph=True)
+                        grad = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                        inner = torch.inner(grad, supp_grads)
+                        #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
+                        if inner <= 0:
+                            supp_samples = supp_samples.union(set([k]))
+                            break
+                else:
+                    supp_samples = supp_samples.union(set([sorted_keys[0]]))
+                
                 prev_supp_loss = supp_loss
                 #prev_loss = min(prev_loss, loss.item())
-                prev_loss = loss.item()
+                prev_loss = max_loss.item()
                 optimizer.step()
             else:
                 state_itt = 0
@@ -1041,13 +1042,17 @@ class BarrierAlt(Certificate):
         )
         B_i = B2[i1-idot1:i1+i2-idot2-idot1]
         B_u = B2[i1+i2-idot1-idot2:]
-        loss, supp_loss, accuracy, sub_sample = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
+        losses, supp_loss, accuracy = self.compute_loss(B_i, B_u, B_d, Bdot_d, Sind, supp_samples, convex)
         
-        if loss <= best_loss:
-            best_loss = loss
+        max_k = max(losses, key=losses.get)
+        max_loss = losses[max_k]
+        if losses[max_k] <= best_loss:
+            best_loss = losses[max_k]
             best_net = copy.deepcopy(learner)
-            print(supp_samples)
-        return {ScenAppStateKeys.loss: loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
+            supp_samples = supp_samples.union(set([max_k]))
+        else:
+            supp_samples = supp_samples.union(best_supp_sample)
+        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_net, "new_supps": supp_samples}
 
     def get_violations(self, B, Bdot, S, Sdot, times, state_data):
         req_diff = (B(state_data["unsafe"]).min()-B(state_data["init"]).max())/self.T

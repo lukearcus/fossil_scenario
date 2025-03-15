@@ -202,7 +202,7 @@ class SingleScenApp:
                     actual_ind = self.remaining_inds[new_disc]
                     state["discarded"].add(actual_ind)
                     to_remove.add(actual_ind)
-                if to_remove == self.remaining_inds:
+                if len(to_remove) == len(self.remaining_inds):
                     print("removed all samples, maintaining final support samples")
                     return
                 self.remaining_inds=list(set(self.remaining_inds)-to_remove)
@@ -211,7 +211,9 @@ class SingleScenApp:
         new_traj_data = {}
         for key in traj_data:
             new_traj_data[key] = [traj_data[key][ind] for ind in new_traj_inds]
+        
         self.S, self.S_traj = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+        
         state[ScenAppStateKeys.S] = self.S["states"]
         state[ScenAppStateKeys.S_dot] = self.S["derivs"]
         state[ScenAppStateKeys.S_traj] = self.S_traj["states"]

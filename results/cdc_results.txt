@@ -1,68 +1,31 @@
 Our Approach for Jet Engine\n
+Data generation finished
+Epsilon: 0.01400
+Found a valid BARRIERALT certificate
+Learner times: total=418.3847904619761s,min=418.3847904619761s,max=418.3847904619761s,avg=418.3847904619761s, N=1
+Direct Property scenario approach risk: 0.00262
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 74.64125s
+Epsilon: 0.01400
+Found a valid BARRIERALT certificate
+Learner times: total=409.4666059908923s,min=409.4666059908923s,max=409.4666059908923s,avg=409.4666059908923s, N=1
+Direct Property scenario approach risk: 0.00262
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 90.88783s
+Epsilon: 0.01587
+Found a valid BARRIERALT certificate
+Learner times: total=441.46013888088055s,min=441.46013888088055s,max=441.46013888088055s,avg=441.46013888088055s, N=1
+Direct Property scenario approach risk: 0.00262
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 80.26928s
+Epsilon: 0.01400
+Found a valid BARRIERALT certificate
+Learner times: total=473.01856295904145s,min=473.01856295904145s,max=473.01856295904145s,avg=473.01856295904145s, N=1
+Direct Property scenario approach risk: 0.00262
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 76.15107s
 \n\n Nejati23 Results for Jet Engine\n
-Generating data
-Data generation complete
-Building constraints
-Problem formulated, solving...
-eta: -0.05422
-matrix values:
-[0.4]
-0.3999999999719159
-[-0.07117715]
-[2.72249615]
-gamma: 3.03578
-Less than zero check: 0.00076
-Elapsed time: 5785.03250
-Generating data
-Data generation complete
-Building constraints
-Problem formulated, solving...
-eta: -0.05422
-matrix values:
-[0.4]
-0.3999999999719159
-[-0.07117715]
-[2.72249615]
-gamma: 3.03578
-Less than zero check: 0.00076
-Elapsed time: 6127.70716
-Generating data
-Data generation complete
-Building constraints
-Problem formulated, solving...
-eta: -0.05422
-matrix values:
-[0.4]
-0.3999999999719159
-[-0.07117715]
-[2.72249615]
-gamma: 3.03578
-Less than zero check: 0.00076
-Elapsed time: 6073.44522
-Generating data
-Data generation complete
-Building constraints
-Problem formulated, solving...
-eta: -0.05422
-matrix values:
-[0.4]
-0.3999999999719159
-[-0.07117715]
-[2.72249615]
-gamma: 3.03578
-Less than zero check: 0.00076
-Elapsed time: 6015.61903
-Generating data
-Data generation complete
-Building constraints
-Problem formulated, solving...
-eta: -0.05422
-matrix values:
-[0.4]
-0.3999999999719159
-[-0.07117715]
-[2.72249615]
-gamma: 3.03578
-Less than zero check: 0.00076
-Elapsed time: 5739.64296
-\n\nOur Approach for unsafe Model\n

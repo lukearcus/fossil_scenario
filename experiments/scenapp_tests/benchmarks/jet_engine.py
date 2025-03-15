@@ -17,8 +17,8 @@ def test_lnn(args):
     XI = domains.Rectangle([0.1, 0.1], [0.5, 0.5])
     XU = domains.Rectangle([0.7, 0.7], [1, 1])
 
-    n_data = 10000 
-    num_runs = 1
+    n_data = 1000
+    num_runs = 5
 
     sets = {
         certificate.XD: XD,
@@ -51,7 +51,7 @@ def test_lnn(args):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=2,
+        VERBOSE=0,
         SCENAPP_MAX_ITERS=2500,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
     ) for datum in data]

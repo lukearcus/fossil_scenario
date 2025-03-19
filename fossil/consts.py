@@ -249,6 +249,7 @@ class ScenAppStateKeys:
     best_net = "best_net"
     discarded = "discarded"
     convex = "convex"
+    discrete = "discrete"
 
 
 class ScenAppComponentsState:

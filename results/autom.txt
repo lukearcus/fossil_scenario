@@ -1,0 +1,11 @@
+Spiral Reach
+\nSpiral Safe
+Epsilon: 0.02694
+Found a valid BARRIERALT certificate
+Learner times: total=667.2248809388839s,min=667.2248809388839s,max=667.2248809388839s,avg=667.2248809388839s, N=1
+Direct Property scenario approach risk: 0.01145
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 5.67819s
+\nSpiral RWA
+\nSpiral Partially Unsafe

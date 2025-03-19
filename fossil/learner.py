@@ -113,7 +113,7 @@ class LearnerNN(nn.Module, Learner):
             kw[ScenAppStateKeys.times],
             kw[ScenAppStateKeys.best_loss],
             kw[ScenAppStateKeys.best_net],
-            kw[ScenAppStateKeys.convex]
+            kw[ScenAppStateKeys.discrete]
             # I think this could actually still pass xdot_func, since there's no pytorch parameters to learn
         )
 

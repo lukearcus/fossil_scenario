@@ -104,7 +104,7 @@ def test_lnn(args):
         system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
     for ax, name in axes:
-        plotting.save_plot_with_tags(ax, opts, name)
+        plotting.save_plot_with_tags(ax, opts, name+"_unsafe")
 
 
 if __name__ == "__main__":

@@ -175,7 +175,7 @@ class SingleScenApp:
         num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], data["full_data"]["times"], state_data)
         k = num_violations
         k = true_violations # use this for direct property validation
-        beta_bar = self.config.BETA[0]/n_data
+        beta_bar = self.config.BETA[0]
         N = n_data
         d = 1
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
@@ -426,6 +426,7 @@ class SingleScenApp:
                 ScenAppStateKeys.best_net: None,
                 ScenAppStateKeys.discarded: set(),
                 ScenAppStateKeys.convex: self.config.CONVEX_NET,
+                ScenAppStateKeys.discrete: self.config.TIME_DOMAIN != TimeDomain.CONTINUOUS,
                 }
 
         return state

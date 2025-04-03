@@ -68,7 +68,7 @@ def test_lnn(args):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     ) for datum in data]
-    
+    opts[0].VERBOSE = 2 
 
     #PAC = ScenApp(opts)
     #result = PAC.solve()

@@ -24,7 +24,7 @@ import fossil.learner as learner
 from fossil.consts import ScenAppConfig, CertificateType, DomainNames, ScenAppStateKeys
 import fossil.domains as domains
 
-
+torch.set_num_threads(8)
 XD = DomainNames.XD.value
 XD1 = DomainNames.XD1.value
 XD2 = DomainNames.XD2.value
@@ -273,7 +273,7 @@ class Practical_Lyapunov(Certificate):
             curr_ind += len(selected)
             Vdot_selected.append(Vdot[selected])
         Vdot_selected = torch.hstack(Vdot_selected)
-        lie_loss = Vdot_selected+relu(req_diff)+margin
+        lie_loss = Vdot_selected+relu(req_diff)
         if psi_s != 0:
             lie_loss = relu(lie_loss)
         
@@ -353,6 +353,7 @@ class Practical_Lyapunov(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
+        torch.set_num_threads(8)
 
         batch_size = len(S[XD])
         learn_loops = 1000
@@ -415,7 +416,7 @@ class Practical_Lyapunov(Certificate):
                         supp_samples = supp_samples.union(set([sorted_keys[0]]))
                         break
 
-                if (max_loss-best_loss) >= 1e-2: #converged, only occurs for DT if we have ReLU on lie
+                if (max_loss-best_loss) >= 1e-2: 
                     if sorted_keys[0] in supp_samples:
                         break
                     else:
@@ -423,8 +424,6 @@ class Practical_Lyapunov(Certificate):
 
                 if t % 100 == 0 or t == learn_loops - 1:
                     log_loss_acc(t, max_loss, learn_accuracy, learner.verbose)
-                loss.backward(retain_graph=True)
-                grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                 if supp_loss != -1:
                     optimizer.zero_grad()
                     supp_loss.backward(retain_graph=True)
@@ -432,16 +431,14 @@ class Practical_Lyapunov(Certificate):
                     for k in sorted_keys:
                         optimizer.zero_grad()
                         losses[k].backward(retain_graph=True)
-                        grad = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                        inner = torch.inner(grad, supp_grads)
+                        grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                        inner = torch.inner(grads, supp_grads)
                         #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
                         if inner <= 0:
                             supp_samples = supp_samples.union(set([k]))
                             break
                 else:
-                    supp_samples = supp_samples.union(sub_sample)
-                    optimizer.zero_grad()
-                    max_loss.backward()
+                    supp_samples = supp_samples.union(set([sorted_keys[0]]))
                 optimizer.step()
             else:
                 state_itt = 0
@@ -585,6 +582,7 @@ class BarrierAlt(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
+        torch.set_num_threads(8)
         learn_accuracy = (B_i <= 0).count_nonzero().item() + (
             B_u > 0
         ).count_nonzero().item()
@@ -739,7 +737,7 @@ class BarrierAlt(Certificate):
                 # Code below is for non-convex
                 if supp_loss != -1:
                     optimizer.zero_grad()
-                    supp_loss.backward(retain_graph=True)
+                    max_loss.backward(retain_graph=True)
                     supp_grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
                     #inners = grads@supp_grads
                     #misaligneds = (inners <= 0).nonzero()
@@ -966,8 +964,6 @@ class RWS(Certificate):
         if psi_s > 0:
             barr_lie_loss = relu(barr_lie_loss)
 
-
-
         valid_Vdot = True
         if len(lie_loss) == 0:
             lie_accuracy = 0.0
@@ -983,61 +979,52 @@ class RWS(Certificate):
             lie_accuracy=(((Vdot_selected <= -req_diff).count_nonzero()).item() * 100 / Vdot_selected.shape[0]
             )
             supp_max = torch.tensor([-1.0])
-            ind_lie_max = lie_loss.argmax()
-            barr_lie_max = barr_lie_loss.max()
             losses = {}
-            if lie_max > barr_lie_max:
-                for ind in supp_samples:
-                    lie_inds = selected_inds[ind]
-                    #adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
-                    if len(lie_inds) > 0:
-                        supp_max = torch.max(supp_max, lie_loss[lie_inds].max())
-                supp_loss = supp_max 
+            lie_losses = {}
+
+            for ind in supp_samples:
+                lie_sel_inds = selected_inds[ind]
+                lie_unsel_inds = unselected_inds[ind]
+                if len(lie_sel_inds) > 0:
+                    supp_max = torch.max(supp_max, lie_loss[lie_sel_inds].max())
+                #adjusted_inds = torch.cat([torch.where(lie_index[:,0] == elem)[0] for elem in lie_inds])
+                if len(lie_unsel_inds) > 0:
+                    supp_max = torch.max(supp_max, barr_lie_loss[lie_unsel_inds].max())
+            supp_loss = supp_max 
+            
+            for i, (sel_inds, unsel_inds) in enumerate(zip(selected_inds, unselected_inds)):
                 if supp_loss != -1:
-                    for i, elem in enumerate(selected_inds):
-                        elem_lie_loss = lie_loss[elem].max()
-                        if elem_lie_loss >= supp_max:
-                            lie_losses[i] = elem_lie_loss
-                        #if ind_lie_max in elem:
-                        #    sub_sample = i
-                        #    break
-                    
-                    supp_loss = supp_max
+                    if len(sel_inds) > 0:
+                        elem_r_loss = lie_loss[sel_inds].max()
+                    else:
+                        elem_r_loss = torch.tensor([-1.0])
+                    if len(unsel_inds) > 0:
+                        elem_barr_loss = barr_lie_loss[unsel_inds].max()
+                    else:
+                        elem_barr_loss = torch.tensor([-1.0])
+
+                    elem_lie_loss = torch.max(elem_r_loss, elem_barr_loss)
+                    if elem_lie_loss >= supp_max:
+                        lie_losses[i] = elem_lie_loss
                     losses = {k: lie_losses[k]+psi_s for k in lie_losses} 
                 else:
-                    lie_max = lie_loss.max()
-                    ind_lie_max = lie_loss.argmax()
-                    
-                    for i, elem in enumerate(selected_inds):
-                        if ind_lie_max in elem:
-                            losses = {i: lie_max+psi_s}
-                            break
-            else:
-                ind_lie_max = barr_lie_loss.argmax()
-                for ind in supp_samples:
-                    lie_inds = unselected_inds[ind]
-                    if len(lie_inds) > 0:
-                        supp_max = torch.max(supp_max, barr_lie_loss[lie_inds].max())
-                supp_loss = supp_max
-                if supp_loss != -1:
-                    for i, elem in enumerate(indices["lie"]):
-                        elem_lie_loss = lie_loss[elem].max()
-                        if elem_lie_loss >= supp_max:
-                            lie_losses[i] = elem_lie_loss
-                        #if ind_lie_max in elem:
-                        #    sub_sample = i
-                        #    break
-                    
-                    supp_loss = supp_max
-                    losses = {k: lie_losses[k]+psi_s for k in lie_losses} 
-                else:
-                    lie_max = lie_loss.max()
-                    ind_lie_max = lie_loss.argmax()
-                    
-                    for i, elem in enumerate(indices["lie"]):
-                        if ind_lie_max in elem:
-                            losses = {i: lie_max+psi_s}
-                            break
+
+                    lie_r_max = lie_loss.max()
+                    lie_b_max = barr_lie_loss.max()
+                    if lie_r_max > lie_b_max:
+                        ind_lie_max = lie_loss.argmax()
+                        lie_max = lie_r_max
+                        for i, elem in enumerate(selected_inds):
+                            if ind_lie_max in elem:
+                                losses = {i: lie_max+psi_s}
+                                break
+                    else:
+                        ind_lie_max = barr_lie_loss.argmax()
+                        lie_max = lie_b_max
+                        for i, elem in enumerate(unselected_inds):
+                            if ind_lie_max in elem:
+                                losses = {i: lie_max+psi_s}
+                                break
         else:
             supp_loss = 0 
             losses = {-1: psi_s}
@@ -1073,6 +1060,7 @@ class RWS(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
+        torch.set_num_threads(8)
         
         assert len(S) == len(Sdot)
 
@@ -1134,15 +1122,16 @@ class RWS(Certificate):
                         supp_samples = supp_samples.union(set([sorted_keys[0]]))
                         break
 
-                if (max_loss-best_loss) >= 1e-2: #converged, only occurs for DT if we have ReLU on lie
+                if (max_loss-best_loss) >= 1e-1: #converged, only occurs for DT if we have ReLU on lie
                     if sorted_keys[0] in supp_samples:
                         break
                     else:
                         supp_samples = supp_samples.union(set([sorted_keys[0]]))
                 
 
-                if t % int(learn_loops / 10) == 0 or learn_loops - t < 10:
-                    log_loss_acc(t, loss, accuracy, learner.verbose)
+                if (t-1) % int(learn_loops / 100) == 0 or learn_loops - t < 10:
+
+                    log_loss_acc(t, max_loss, accuracy, learner.verbose)
                 
                 if supp_loss != -1:
                     optimizer.zero_grad()
@@ -1151,8 +1140,8 @@ class RWS(Certificate):
                     for k in sorted_keys:
                         optimizer.zero_grad()
                         losses[k].backward(retain_graph=True)
-                        grad = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
-                        inner = torch.inner(grad, supp_grads)
+                        grads = torch.hstack([torch.flatten(param.grad) for param in learner.parameters()])
+                        inner = torch.inner(grads, supp_grads)
                         #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
                         if inner <= 0:
                             supp_samples = supp_samples.union(set([k]))
@@ -1180,11 +1169,12 @@ class RWS(Certificate):
                     state_loss, accuracy = self.compute_state_loss(B_i, B_u, B_d, B_d_states, B_g, Bdot_d, beta, Sind, supp_samples)
                     if state_loss == 0:
                         state_sol = True
+                        break
                     else:
                         state_loss.backward()
                         optimizer.step()
                         if state_itt % 100 == 0:
-                            loss_v = loss.item() if hasattr(loss, "item") else loss
+                            loss_v = state_loss.item() if hasattr(state_loss, "item") else state_loss
                             cert_log.debug("{} - loss: {:.5f}".format(state_itt, loss_v))
                             
         B_d, Bdot_d, _ = learner.get_all(samples_with_nexts, samples_dot, times[:idot1])

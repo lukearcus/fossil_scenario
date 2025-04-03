@@ -392,7 +392,7 @@ class SingleScenApp:
                 scenapp_log.info("Best loss: {:.10f}".format(old_best))
             else:
                 scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
-            scenapp_log.info("Current loss: {:.10f}".format(state["loss"]))
+            scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
         state = self.process_timers(state)
 
         stats = Stats(

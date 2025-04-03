@@ -137,7 +137,7 @@ def Jet_engine(N, discrete=False):
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 
-def High_D_test(N, discrete=False):
+def High_D_test(all_data, discrete=False):
     max_rhoP = 1.2
     T=2
     mu = -0.
@@ -148,8 +148,7 @@ def High_D_test(N, discrete=False):
     from experiments.scenapp_tests.benchmarks.Barr4D import UnsafeDomain
     XU = UnsafeDomain()
 
-    n_data = N 
-    
+    N=len(all_data[0])
     if discrete:
         system = models.Barr4D_DT
     else:
@@ -207,12 +206,12 @@ def High_D_test(N, discrete=False):
     init_dom_data = XI._generate_data(500)()
     unsafe_dom_data = XU._generate_data(500)()
 
-    init_data = XD._generate_data(n_data)()
+    #init_data = XD._generate_data(n_data)()
     
-    if discrete:
-        all_data = system().generate_trajs(init_data, 2)
-    else:
-        all_data = system().generate_trajs(init_data, tau)
+    #if discrete:
+    #    all_data = system().generate_trajs(init_data, 2)
+    #else:
+    #    all_data = system().generate_trajs(init_data, tau)
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
     next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
     
@@ -288,7 +287,7 @@ def High_D_test(N, discrete=False):
     beta = betainc(k, N-k+1, eps)
     print("Maximum confidence level for 1e19 samples (assuming same eta): {:.30f}".format(beta))
 
-def DC_Motor(N):
+def DC_Motor(all_data):
     c = 0
     L_f = 0.014
     max_rhoP = 0.75
@@ -296,6 +295,7 @@ def DC_Motor(N):
     beta = 0.01
     k = 7 #don't count eta
 
+    N=len(all_data[0])
     eps = betaincinv(k, N-k+1, 1-beta)
 
     T = 1 # ignore this
@@ -310,11 +310,6 @@ def DC_Motor(N):
     init_dom_data = XI._generate_data(N_state)()
     unsafe_dom_data = XU._generate_data(N_state)()
     
-    init_data = XD._generate_data(N)()
-
-    system = models.DC_Motor
-    
-    all_data = system().generate_trajs(init_data, 2)
     
     state_data = np.vstack([elem[:, 0] for elem in all_data[1]])
     next_states = np.vstack([elem[:, -1] for elem in all_data[1]])
@@ -360,6 +355,7 @@ def DC_Motor(N):
     
     print("Less than zero check: {:.5f}".format(eta.value[0]+L_g*np.sqrt((1.44/np.pi)*eps)))
     cert = certificate(A_mat.value, np.zeros((2,1)), C_mat.value)
+    system = models.DC_Motor
     opts = ScenAppConfig(
         SYSTEM=system,
         CERTIFICATE=cert,

@@ -1,0 +1,6 @@
+> /home/luke_test/code/fossil_scenario/Nejati23/main.py(300)DC_Motor()
+-> eps = betaincinv(k, N-k+1, 1-beta)
+(Pdb) --KeyboardInterrupt--
+(Pdb) --KeyboardInterrupt--
+(Pdb) (Pdb) --KeyboardInterrupt--
+(Pdb) (Pdb) 

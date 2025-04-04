@@ -245,6 +245,11 @@ Less than zero check: 9.83388
 Maximum confidence level: 0.000000000000000000000000000000
 Maximum confidence level for 1e19 samples (assuming same eta): 0.999999999999999888977697537484
 Elapsed time: 26976.36816
+Elapsed time: 46997.30479
+Elapsed time: 46409.42338
+Elapsed time: 46327.73268
+Elapsed time: 45865.39835
+
 
 8D Barrier
 Epsilon: 0.02039

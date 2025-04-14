@@ -691,7 +691,7 @@ class VerifierScenAppNonConvex(Component):
         return t2
             
 
-    def verify(self, C, dC, S, dS, supp_lb, discarded):
+    def verify(self, supp_lb, discarded):
         """
         :param C: function
         :param dC: function
@@ -707,7 +707,7 @@ class VerifierScenAppNonConvex(Component):
     
     def get(self, **kw):
         # translator default returns V and Vdot
-        return self.verify(kw[ScenAppStateKeys.best_net], kw[ScenAppStateKeys.best_net].nn_dot, kw[ScenAppStateKeys.S_traj], kw[ScenAppStateKeys.S_traj_dot], kw[ScenAppStateKeys.supps], kw[ScenAppStateKeys.discarded])
+        return self.verify(kw[ScenAppStateKeys.supps], kw[ScenAppStateKeys.discarded])
     
     @staticmethod
     def get_timer():

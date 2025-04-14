@@ -9,6 +9,46 @@ from matplotlib import pyplot as plt
 
 from fossil import control
 
+class InvPendulum(control.DissDynamicalModel):
+    n_vars=2
+    time_horizon=100
+    time="discrete"
+    T=0.1
+    
+            # Physical parameters for the inverted pendulum
+    m = 0.1  # Mass of the pendulum (kg)
+    l = 2  # Length of the pendulum (m)
+    gr = 9.81  # Gravitational acceleration (m/s^2)
+    #I = (self.m * self.l ** 2) / 3  # Moment of inertia around the pivot
+    I = 1 / 3
+    u_min = -5
+    u_max = 5
+
+    def f(self, t, x):
+        if len(x.shape) == 1:
+            th, th_dot = x[0], x[1]
+        else:
+            th, th_dot = x[:, 0], x[:, 1]
+        f = (self.m * self.gr * self.l / (2 * self.I)) * np.sin(th)
+        return [th+self.T*th_dot, th_dot+self.T*(f)]
+    
+    def g(self, t, x):
+        g= 1/self.I
+        return [0, self.T*(g)]
+
+    def f_torch(self, t, x):
+        u = self.controller(t, x)
+        if type(u) is not float:
+            u = u.squeeze()
+        if len(x.shape) == 1:
+            th, th_dot = x[0], x[1]
+        else:
+            th, th_dot = x[:, 0], x[:, 1]
+        f = self.f(t,x) 
+        g = self.g(t,x)
+        return [f[0]+g[0]*u, f[1]+g[1]*u]
+
+
 class Barr1(control.DynamicalModel):
     n_vars = 2
     time_horizon = 2

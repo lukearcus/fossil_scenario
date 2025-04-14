@@ -42,7 +42,7 @@ class LearnerNN(nn.Module, Learner):
         self,
         input_size,
         learn_method,
-        *args,
+        n_hidden,
         activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
         config: ScenAppConfig = ScenAppConfig(),
         bias=True,
@@ -62,7 +62,7 @@ class LearnerNN(nn.Module, Learner):
         self.beta = None
         k = 1
 
-        for n_hid in args:
+        for n_hid in n_hidden:
             layer = nn.Linear(n_prev, n_hid, bias=bias)
             self.register_parameter("W" + str(k), layer.weight)
             if bias:
@@ -96,12 +96,14 @@ class LearnerNN(nn.Module, Learner):
         S: dict,
         Sdot: dict,
         Sind: dict,
+        f: dict,
+        g: dict,
         times: dict,
         best_loss: float,
         best_net: "LearnerNN",
         convex: bool
     ) -> dict:
-        return self.learn_method(net, optimizer, S, Sdot, Sind, times, best_loss, best_net, None, convex)
+        return self.learn_method(net, optimizer, S, Sdot, Sind, f, g, times, best_loss, best_net, None, convex)
 
     def get(self, **kw):
         return self.learn(
@@ -110,6 +112,8 @@ class LearnerNN(nn.Module, Learner):
             kw[ScenAppStateKeys.S],
             kw[ScenAppStateKeys.S_dot],
             kw[ScenAppStateKeys.S_inds],
+            kw[ScenAppStateKeys.f], 
+            kw[ScenAppStateKeys.g], 
             kw[ScenAppStateKeys.times],
             kw[ScenAppStateKeys.best_loss],
             kw[ScenAppStateKeys.best_net],
@@ -423,6 +427,178 @@ class LearnerDT(LearnerNN):
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
         return self.get_all(S, Sdot, times)[1] # Returns 1 step change
 
+class DissV(LearnerNN):
+    def __init__(
+        self,
+        input_size,
+        learn_method,
+        n_hidden,
+        activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
+        config: ScenAppConfig = ScenAppConfig(),
+        bias=True,
+    ):
+        config.LLO = True
+        super().__init__(
+            input_size,
+            learn_method,
+            n_hidden,
+            activation,
+            config,
+            bias,
+            )
+    def get_all(
+            self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Computes V, delta_V and circle.
+
+        Args:
+            S (torch.Tensor): samples over the domain
+            Sdot (torch.Tensor): f(x) evaluated at the samples
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                V (torch.Tensor): Value of the function.
+                delta V (torch.Tensor): One step difference of the function.
+                circle (torch.Tensor): Circle of the function.
+        """
+        # assert (len(S) == len(Sdot))  ## This causes a warning in Marabou
+
+        nn = self.forward(S)
+        nn_next = self.forward(Sdot)
+        # circle = x0*x0 + ... + xN*xN
+        circle = torch.pow(S, 2).sum(dim=1)
+
+        E = self.compute_factors(S)
+
+        # define E(x) := (x-eq_0) * ... * (x-eq_N)
+        # V = NN(x) * E(x)
+        V = nn
+        delta_V = nn_next - V[:len(nn_next)]
+
+        return V, delta_V, circle
+    
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot, times)[1] # Returns 1 step change
+
+class DissQ(LearnerNN):
+    def get_all(
+            self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Computes V, delta_V and circle.
+
+        Args:
+            S (torch.Tensor): samples over the domain
+            Sdot (torch.Tensor): f(x) evaluated at the samples
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                V (torch.Tensor): Value of the function.
+                delta V (torch.Tensor): One step difference of the function.
+                circle (torch.Tensor): Circle of the function.
+        """
+        # assert (len(S) == len(Sdot))  ## This causes a warning in Marabou
+
+        nn = self.forward(S)
+        nn_next = self.forward(Sdot)
+        # circle = x0*x0 + ... + xN*xN
+        circle = torch.pow(S, 2).sum(dim=1)
+
+        E = self.compute_factors(S)
+
+        # define E(x) := (x-eq_0) * ... * (x-eq_N)
+        # V = NN(x) * E(x)
+        V = nn
+        delta_V = nn_next - V[:len(nn_next)]
+
+        return V, delta_V, circle
+    
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot, times)[1] # Returns 1 step change
+
+class DissS(LearnerNN):
+    def __init__(
+        self,
+        input_size,
+        output_size,
+        learn_method,
+        n_hidden,
+        activation: tuple[ActivationType, ...] = (ActivationType.SQUARE,),
+        config: ScenAppConfig = ScenAppConfig(),
+        bias=True,
+    ):
+        super(LearnerNN, self).__init__()
+
+        self.input_size = input_size
+        n_prev = self.input_size
+        self._diagonalise = False
+        self.acts = activation
+        self._is_there_bias = bias
+        self.verbose = config.VERBOSE
+        ZaZ = config.FACTORS  # kw.get(CegisConfig.FACTORS.k, CegisConfig.FACTORS.v)
+        self.factor = QuadraticFactor() if ZaZ == LearningFactors.QUADRATIC else None
+        self.layers = []
+        self._take_abs = config.LLO and not self.is_final_polynomial()
+        self.beta = None
+        k = 1
+
+        for n_hid in n_hidden:
+            layer = nn.Linear(n_prev, n_hid, bias=bias)
+            self.register_parameter("W" + str(k), layer.weight)
+            if bias:
+                self.register_parameter("b" + str(k), layer.bias)
+            self.layers.append(layer)
+            n_prev = n_hid
+            k = k + 1
+
+            # last layer
+        layer = nn.Linear(n_prev, output_size, bias=bias)
+        # last layer of ones
+        if config.LLO and not self._take_abs:
+            layer.weight = torch.nn.Parameter(torch.ones(layer.weight.shape))
+            self.layers.append(layer)
+        else:  # free output layer
+            self.register_parameter("W" + str(k), layer.weight)
+            if bias:
+                self.register_parameter("b" + str(k), layer.bias)
+            self.layers.append(layer)
+        if config.LLO and not self.is_positive_definite():
+            warnings.warn("LLO set but function is not positive definite")
+        self.learn_method = learn_method
+        self._type = config.CERTIFICATE.name
+
+    def get_all(
+            self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Computes V, delta_V and circle.
+
+        Args:
+            S (torch.Tensor): samples over the domain
+            Sdot (torch.Tensor): f(x) evaluated at the samples
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                V (torch.Tensor): Value of the function.
+                delta V (torch.Tensor): One step difference of the function.
+                circle (torch.Tensor): Circle of the function.
+        """
+        # assert (len(S) == len(Sdot))  ## This causes a warning in Marabou
+
+        nn = self.forward(S)
+        nn_next = self.forward(Sdot)
+        # circle = x0*x0 + ... + xN*xN
+        circle = torch.pow(S, 2).sum(dim=1)
+
+        E = self.compute_factors(S)
+
+        # define E(x) := (x-eq_0) * ... * (x-eq_N)
+        # V = NN(x) * E(x)
+        V = nn
+        delta_V = nn_next - V[:len(nn_next)]
+
+        return V, delta_V, circle
+    
+    def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
+        return self.get_all(S, Sdot, times)[1] # Returns 1 step change
 
 class CtrlLearnerCT(LearnerCT):
     def __init__(

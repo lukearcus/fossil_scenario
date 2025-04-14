@@ -203,6 +203,70 @@ class DynamicalModel:
         """Prepare object for pickling"""
         self.fncs = None
 
+class DissDynamicalModel(DynamicalModel):
+    time = "continuous"
+    stochastic = False
+
+
+    def generate_trajs(self, x_0, time_horizon=None):
+        if time_horizon is None:
+            time_horizon = self.time_horizon
+        #if x_0.ndim > 1:
+        #    x_0 = x_0.flatten()
+        trajs = []
+        if self.time == "continuous":
+            if self.stochastic:
+                def f_func(y, t):
+                    return np.array(self.f_torch(t,y))
+                def g_func(y, t):
+                    return np.array(self.g_torch(t,y))
+                tspan = np.linspace(0., time_horizon, self.num_time_samples)
+                seed = int(10000*np.random.random())
+                generator = np.random.default_rng(seed=seed)
+                for elem in x_0:
+                    # Apparently we should use an SDE solver not an ODE solver (something to do with sqrt(T))
+                    trajs.append(sdeint.itoint(f_func, g_func, elem, tspan, generator=generator))
+                    #trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, self.time_horizon), elem))
+                state_trajs = [np.array([elem for elem in traj if not np.isnan(np.sum(elem))]).T for traj in trajs]
+                times = [tspan[0:len(state_traj[0])-1] for state_traj in state_trajs]
+                h = (tspan[-1]-tspan[0])/len(tspan)
+                #nexts = [(state_traj[:, 1:]-state_traj[:, :-1])/h for state_traj in state_trajs]
+                nexts = [state_traj[:, 1:] for state_traj in state_trajs]
+                state_trajs = [state_traj[:, :-1] for state_traj in state_trajs]
+                times = [[h for s in state_traj] for state_traj in state_trajs]        
+                # use difference to calculate derivative... not very satisfying but seems to be the best option?
+            else:
+                for elem in x_0:
+                    trajs.append( scipy.integrate.solve_ivp(self.f_torch, (0, time_horizon), elem, t_eval = np.linspace(0., time_horizon, self.num_time_samples)))
+                state_trajs = [traj["y"] for traj in trajs]
+                times = [traj["t"] for traj in trajs]
+                nexts = [traj[:, 1:] for traj in state_trajs]
+                state_trajs = [traj[:, :-1] for traj in state_trajs]
+                times = [time[1:] - time[:-1] for time in times]
+                #derivs = [self.f_torch(time, state.T) for time, state in zip(times, state_trajs)]
+        else:
+            state_trajs = []
+            nexts = []
+            fs = []
+            gs = []
+            for elem in x_0:
+                traj = [elem]
+                next_s = []
+                fs_elem = []
+                gs_elem = []
+                for k in range(time_horizon):
+                    fs_elem.append(self.f(k, traj[-1]))
+                    gs_elem.append(self.g(k, traj[-1]))
+                    traj.append(np.hstack(self.f_torch(k, traj[-1])))
+                    next_s.append(traj[-1])
+                traj.pop(-1)
+                state_trajs.append(np.vstack(traj).T)
+                nexts.append(np.vstack(next_s).T)
+                fs.append(np.vstack(fs_elem).T)
+                gs.append(np.vstack(gs_elem).T)
+            times = [list(range(time_horizon)) for traj in state_trajs]
+        return times, state_trajs, nexts, fs, gs
+
 
 class ControllableDynamicalModel:
     """Combine with a GeneralController to create a closed-loop model"""

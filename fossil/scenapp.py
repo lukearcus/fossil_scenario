@@ -37,13 +37,10 @@ class SingleScenApp:
         self.config = config
         
         self.x, self.x_map, self.domains = self._initialise_domains()
-        self.S, self.S_traj = self._initialise_data(self.config.DATA["full_data"], self.config.DATA["states_only"]) # Needs editing
+        self.S, self.S_traj, self.init_S = self._initialise_data(self.config.DATA["full_data"], self.config.DATA["states_only"]) # Needs editing
         self.certificate = self._initialise_certificate()
         self.learner = self._initialise_learner()
-        if config.CONVEX_NET:
-            self.a_priori_supps = sum([param.numel() for param in self.learner.parameters()]) # Take this and add any violations for convex
-        else:
-            self.a_priori_supps = None
+        self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
         if self.config.VERBOSE:
@@ -78,21 +75,35 @@ class SingleScenApp:
 
 
     def _initialise_learner(self):
-        learner_type = learner.get_learner(
-                    self.config.TIME_DOMAIN, self.config.CTRLAYER
-                        )
-        learner_instance = learner_type(
+         V = learner.DissV(
             self.config.N_VARS,
             self.certificate.learn,
-            *self.config.N_HIDDEN_NEURONS,
-            activation=self.config.ACTIVATION,
+            self.config.N_HIDDEN_NEURONS["V"],
+            activation=self.config.ACTIVATION["V"],
+            bias=self.certificate.bias,
+            config=self.config,
+            )
+         Q = learner.DissQ(
+            self.config.N_VARS,
+            self.certificate.learn,
+            self.config.N_HIDDEN_NEURONS["Q"],
+            activation=self.config.ACTIVATION["Q"],
             bias=self.certificate.bias,
             config=self.config,
                             )
-        return learner_instance
+         S = learner.DissS(
+            self.config.N_VARS,
+            self.config.CONTROL_VARS,
+            self.certificate.learn,
+            self.config.N_HIDDEN_NEURONS["S"],
+            activation=self.config.ACTIVATION["S"],
+            bias=self.certificate.bias,
+            config=self.config,
+                            )
+         return (V, Q, S)
 
     def _initialise_verifier(self):
-        num_params = sum(p.numel() for p in self.learner.parameters() if p.requires_grad)
+        num_params = sum(sum(p.numel() for p in l.parameters() if p.requires_grad) for l in self.learner)
 
         verifier_type = verifier.get_verifier_type(self.config.VERIFIER)
         verifier_instance = verifier_type(
@@ -107,7 +118,7 @@ class SingleScenApp:
 
     def _initialise_data(self, traj_data, state_data):
         lumped_data = {key: torch.tensor(np.hstack(traj_data[key]), dtype=torch.float32 ) for key in traj_data} 
-
+        inits = np.stack(traj_data["states"])[:,:,0]
         traj_inds = [] 
         curr_ind = 0
         for elem in traj_data["times"]:
@@ -118,13 +129,17 @@ class SingleScenApp:
             traj_inds.append((curr_ind, curr_ind+elem_len))
             curr_ind += elem_len
 
-        domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}}
+        domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}, "f":{}, "g":{}}
+        max_len = len(traj_data["times"][0]) 
         for key in self.config.DOMAINS:
             domain = self.config.DOMAINS[key]
             domained_data["states"][key] = []
             domained_data["derivs"][key] = []
             domained_data["times"][key] = []
-            domained_data["indices"][key] = [[] for elem in traj_inds]
+            domained_data["f"][key] = []              
+            domained_data["g"][key] = []              
+            domained_data["indices"][key] = [torch.ones(max_len, dtype=torch.int32)*(-1) for elem in traj_inds]
+            ind_indexer = [0 for elem in traj_inds]
             curr_ind = 0
             for ind, elem in enumerate(lumped_data["states"].T):
                 if domain.check_containment(elem.expand([1,elem.size(dim=0)])):
@@ -132,12 +147,18 @@ class SingleScenApp:
                         if ind in range(*index):
                             sample_ind = i
                             break
-                    domained_data["indices"][key][sample_ind].append(curr_ind)
+                    domained_data["indices"][key][sample_ind][ind_indexer[sample_ind]] = curr_ind
                     curr_ind += 1
+                    ind_indexer[sample_ind] += 1
                     domained_data["states"][key].append(lumped_data["states"][:,ind])
                     domained_data["derivs"][key].append(lumped_data["derivs"][:,ind])
                     domained_data["times"][key].append(lumped_data["times"][ind])
-                    
+                    domained_data["f"][key].append(lumped_data["f_vals"][:,ind])
+                    domained_data["g"][key].append(lumped_data["g_vals"][:,ind])
+            #import pdb; pdb.set_trace()
+            #extra = torch.ones(max_len)*(-1)
+            #domained_data["indices"][key] = [torch.tensor(elem) for elem in domained_data["indices"][key]]
+
             if len(domained_data["states"][key]) > 0:
                 if key in state_data:
                     domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
@@ -145,24 +166,33 @@ class SingleScenApp:
                     domained_data["states"][key] = torch.stack(domained_data["states"][key])
                 domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
                 domained_data["times"][key] = torch.stack(domained_data["times"][key])
+                domained_data["f"][key] = torch.stack(domained_data["f"][key]) 
+                domained_data["g"][key] = torch.stack(domained_data["g"][key])
             else:
                 domained_data["states"][key] = state_data[key]
         
-        return domained_data, traj_data
+        return domained_data, traj_data, inits
 
 
     def _initialise_optimizer(self):
         #return torch.optim.SGD(
-        return torch.optim.AdamW(
-                [{"params": self.learner.parameters()}], # Might need to change this to consider controller parameters
+        optimizers = []
+        for l in self.learner:
+            optimizers.append(torch.optim.AdamW(
+                [{"params": l.parameters()}], # Might need to change this to consider controller parameters
                 lr=self.config.LEARNING_RATE,
-                )
+                ))
+        return optimizers
+        #return (torch.optim.AdamW(
+        #        [{"params": l.parameters()}], # Might need to change this to consider controller parameters
+        #        lr=self.config.LEARNING_RATE,
+        #        ) for l in self.learner)
 
     def update_controller(self, state):
         scenapp_log.debug("Updating controller does nothing")
         return state 
 
-    def a_post_verify(self, cert, cert_deriv, n_data):
+    def a_post_verify(self, certs, n_data):
         state_data = self.config.DATA["states_only"]
         torch.manual_seed(clock_gettime(0))      #allows different samples when running in parallel
         try:
@@ -171,8 +201,9 @@ class SingleScenApp:
             test_data = self.config.DOMAINS["lie"]._generate_data(n_data)()
 
         all_test_data = self.config.SYSTEM().generate_trajs(test_data)
-        data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
-        num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], data["full_data"]["times"], state_data)
+       # data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
+        data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2], "f_vals":all_test_data[3], "g_vals":all_test_data[4]}}
+        num_violations, true_violations = self.certificate.get_violations(certs, data["full_data"], state_data)
         k = num_violations
         k = true_violations # use this for direct property validation
         beta_bar = self.config.BETA[0]
@@ -184,9 +215,34 @@ class SingleScenApp:
         print("Property violation rate: {:.3f}".format(true_violations/n_data))
         return eps
 
+    def update_controller(self, state):
+        
+        R = torch.eye(1) # Change this! self.S["g"] should have nxm matrices, but m is 1, so no m
+        def diss_control(obj, t, x):
+            x = torch.tensor(x,dtype=torch.float32)
+            if len(x.shape) == 1: 
+                return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
+            else:
+                return (-torch.bmm(torch.inverse(R).repeat(x.shape[0],1,1),state["best_net"][2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+
+        self.config.SYSTEM.controller = diss_control
+        
+        all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
+        new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
+        
+        self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+        
+        state[ScenAppStateKeys.S] = self.S["states"]
+        state[ScenAppStateKeys.S_dot] = self.S["derivs"]
+        state[ScenAppStateKeys.S_traj] = self.S_traj["states"]
+        state[ScenAppStateKeys.S_traj_dot] =  self.S_traj["derivs"]
+        state[ScenAppStateKeys.S_inds] =  self.S["indices"]
+        state[ScenAppStateKeys.times] = self.S["times"]
+        state[ScenAppStateKeys.f] = self.S["f"]
+        state[ScenAppStateKeys.g] = self.S["g"]
+        return
 
     def discard(self, state):
-        
         # Discard all samples that were of support for last run...
         # Could discard just the current worst case for better guarantees but worse performance
         # Could probably do this by just discarding last support sample...
@@ -212,7 +268,7 @@ class SingleScenApp:
         for key in traj_data:
             new_traj_data[key] = [traj_data[key][ind] for ind in new_traj_inds]
         
-        self.S, self.S_traj = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+        self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
         state[ScenAppStateKeys.S_dot] = self.S["derivs"]
@@ -220,6 +276,8 @@ class SingleScenApp:
         state[ScenAppStateKeys.S_traj_dot] =  self.S_traj["derivs"]
         state[ScenAppStateKeys.S_inds] =  self.S["indices"]
         state[ScenAppStateKeys.times] = self.S["times"]
+        state[ScenAppStateKeys.f] = self.S["f"]
+        state[ScenAppStateKeys.g] = self.S["g"]
         return
 
     def est_disc_gap(self, state):
@@ -291,12 +349,17 @@ class SingleScenApp:
         S_inds = self.S["indices"]
         S_traj = self.S_traj
         times = self.S["times"]
+        f = self.S["f"]
+        g = self.S["g"]
         # Initialize CEGIS state
-        state = self.init_state(Sdot, S, S_traj, S_inds, times)
+        state = self.init_state(Sdot, S, S_traj, S_inds, times, f, g)
+        param_sum = 1
 
         # Reset timers for components
-        self.learner.get_timer().reset()
-        state["net_dot"] = self.learner.nn_dot
+        for l in self.learner:
+            l.get_timer().reset()
+        
+        state["net_dot"] = self.learner[0].nn_dot
         iters = 0
         stop = False
         N_data = self.config.N_DATA
@@ -310,24 +373,20 @@ class SingleScenApp:
         state["supp_len"] = self.a_priori_supps
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
-            outputs = self.learner.get(**state)
-            state = {**state, **outputs}
             
-            if self.config.CONVEX_NET:
-                state["supps"] = outputs["new_supps"]
-            else:
-                state["supps"] = state["supps"].union(outputs["new_supps"])
-            state = self.update_controller(state)
-            if self.config.CONVEX_NET and torch.abs(state["loss"]-old_loss) < converge_tol:
-                scenapp_log.debug("\033[1m Verifier \033[0m")
-                
-
-                outputs = self.verifier.get(**state)
-                state = {**state, **outputs}
-                print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
-                stop = self.process_certificate(S, state, iters)
-
-            elif not self.config.CONVEX_NET and state["best_loss"] <= 0.0:
+            outputs = self.learner[0].get(**state)
+            
+            state = {**state, **outputs}
+            new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
+            converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
+            if not converged_controller:
+                param_sum = new_param_sum
+                self.update_controller(state)
+                state["best_loss"] = torch.tensor([100])*(iters+1)
+            
+            state["supps"] = state["supps"].union(outputs["new_supps"])
+            
+            if state["best_loss"] <= 0.0:
                 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
@@ -370,7 +429,7 @@ class SingleScenApp:
                 scenapp_log.warning("Out of iterations")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
-            elif not self.config.CONVEX_NET and torch.abs(state["best_loss"]-old_best) < converge_tol:
+            elif torch.abs(state["best_loss"]-old_best) < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
@@ -399,13 +458,13 @@ class SingleScenApp:
                 iters, N_data, state["components_times"], torch.initial_seed()
                 )
         pre_post = perf_counter()
-        a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], state[ScenAppStateKeys.best_net].nn_dot, n_test_data)
+        a_post_eps = self.a_post_verify(state[ScenAppStateKeys.best_net], n_test_data)
         print("Direct property guarantee time: {:.5f}s".format(perf_counter()-pre_post))
         self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
         return self._result
 
-    def init_state(self, Sdot, S, S_traj, S_inds, times):
+    def init_state(self, Sdot, S, S_traj, S_inds, times, f, g):
         state = {
                 ScenAppStateKeys.net: self.learner,
                 ScenAppStateKeys.optimizer: self.optimizer,
@@ -414,6 +473,8 @@ class SingleScenApp:
                 ScenAppStateKeys.S_traj: S_traj["states"],
                 ScenAppStateKeys.S_traj_dot: S_traj["derivs"],
                 ScenAppStateKeys.S_inds: S_inds,
+                ScenAppStateKeys.f: f, 
+                ScenAppStateKeys.g: g , 
                 ScenAppStateKeys.times: times,
                 ScenAppStateKeys.V: None,
                 ScenAppStateKeys.V_dot: None,
@@ -433,10 +494,10 @@ class SingleScenApp:
 
     def process_timers(self, state: dict[str, Any]) -> dict[str, Any]:
         state[ScenAppStateKeys.components_times] = [
-                self.learner.get_timer().sum,
+                self.learner[0].get_timer().sum,
                 self.verifier.get_timer().sum,
                 ]
-        print("Learner times: {}".format(self.learner.get_timer()))
+        print("Learner times: {}".format(self.learner[0].get_timer()))
         scenapp_log.info("Verifier times: {}".format(self.verifier.get_timer()))
         return state
 

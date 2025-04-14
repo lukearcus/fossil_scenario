@@ -106,6 +106,7 @@ class DomainNames(Enum):
 
 
 class CertificateType(Enum):
+    DISSIPATIVITY = auto()
     BARRIER = auto()
     BARRIERALT = auto()
     LYAPUNOV = auto()
@@ -197,6 +198,7 @@ class ScenAppConfig:
     LLO: bool = False  # last layer of ones
     ROUNDING: int = 3
     N_VARS: int = 0
+    CONTROL_VARS: int = 0
     N_HIDDEN_NEURONS: tuple[int] = (10,)
     ACTIVATION: tuple[ActivationType, ...] = (ActivationType.SQUARE,)
     VERBOSE: int = 0
@@ -224,6 +226,8 @@ class ScenAppStateKeys:
     S_traj = "S_traj"
     S_traj_dot = "S_traj_dot"
     times = "times"
+    f = "f"
+    g = "g"
     B = "B"
     B_dot = "B_dot"
     optimizer = "optimizer"

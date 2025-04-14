@@ -100,7 +100,7 @@ def test_lnn():
         DATA=data[-1],
         N_DATA=n_data,
         N_TEST_DATA=n_data,
-        CERTIFICATE=CertificateType.PRACTICALLYAPUNOV,
+        CERTIFICATE=CertificateType.DISSIPATIVITY,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,

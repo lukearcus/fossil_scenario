@@ -79,7 +79,7 @@ def test_lnn():
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SQUARE], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SQUARE]}
+    activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SQUARE], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SQUARE]}
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"])}
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()
@@ -127,7 +127,6 @@ def test_lnn():
     axes = plotting.benchmark(
         system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
-    
 
     init_data = XI._generate_data(num_traj_plots)()
     traj_data_controlled = system().generate_trajs(init_data)[1]

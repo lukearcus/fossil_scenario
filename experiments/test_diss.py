@@ -93,6 +93,16 @@ def test_lnn():
     #with Pool(processes=num_runs) as pool:
     #    res = pool.map(part_solve, data)
     
+    R = torch.eye(1) # Change this! self.S["g"] should have nxm matrices, but m is 1, so no m
+    def diss_control(obj, t, x):
+        x = torch.tensor(x,dtype=torch.float32)
+        if len(x.shape) == 1: 
+            return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
+        else:
+            return (-torch.bmm(torch.inverse(R).repeat(x.shape[0],1,1),res[-1].cert[2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+
+    system.controller = diss_control
+    
     opts = ScenAppConfig(
         N_VARS=2,
         SYSTEM=system,
@@ -114,6 +124,11 @@ def test_lnn():
     axes = plotting.benchmark(
         system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
+    
+
+    init_data = XI._generate_data(10)()
+    traj_data = system().generate_trajs(init_data)
+    
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 

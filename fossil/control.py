@@ -174,6 +174,7 @@ class DynamicalModel:
             # color = np.sqrt((np.hypot(dx, dy)))
             dx = nx.reshape(XX.shape)-XX
             dy = ny.reshape(YY.shape)-YY
+        
 
         # color = color.reshape(XX.shape)
         ax.set_ylim(xrange)

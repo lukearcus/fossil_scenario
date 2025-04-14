@@ -81,9 +81,9 @@ def test_lnn():
     #activations = [fossil.ActivationType.SQUARE]
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SQUARE], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SQUARE]}
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"])}
-    
-    init_data = XI._generate_data(10)()
-    traj_data_random = system().generate_trajs(init_data)
+    num_traj_plots = 5
+    init_data = XI._generate_data(num_traj_plots)()
+    traj_data_random = system().generate_trajs(init_data)[1]
     
     num_runs =5
 
@@ -129,9 +129,12 @@ def test_lnn():
     )
     
 
-    init_data = XI._generate_data(10)()
-    traj_data_controlled = system().generate_trajs(init_data)
-    import pdb; pdb.set_trace()
+    init_data = XI._generate_data(num_traj_plots)()
+    traj_data_controlled = system().generate_trajs(init_data)[1]
+    for traj in traj_data_controlled:
+        axes[0][0].plot(traj[0,:], traj[1,:], 'b')
+    for traj in traj_data_random:
+        axes[0][0].plot(traj[0,:], traj[1,:], 'r')
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 

@@ -444,7 +444,7 @@ class DissV(LearnerNN):
             n_hidden,
             activation,
             config,
-            bias,
+            False,
             )
     def get_all(
             self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,

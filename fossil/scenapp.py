@@ -100,7 +100,25 @@ class SingleScenApp:
             bias=self.certificate.bias,
             config=self.config,
                             )
-         return (V, Q, S)
+         R = learner.DissR(
+            self.config.N_VARS,
+            self.config.CONTROL_VARS,
+            self.certificate.learn,
+            self.config.N_HIDDEN_NEURONS["R"],
+            activation=self.config.ACTIVATION["R"],
+            bias=self.certificate.bias,
+            config=self.config,
+                            )
+         L = learner.DissS(
+            self.config.N_VARS,
+            self.config.N_VARS,
+            self.certificate.learn,
+            self.config.N_HIDDEN_NEURONS["L"],
+            activation=self.config.ACTIVATION["L"],
+            bias=self.certificate.bias,
+            config=self.config,
+                            )
+         return (V, Q, S, R, L)
 
     def _initialise_verifier(self):
         num_params = sum(sum(p.numel() for p in l.parameters() if p.requires_grad) for l in self.learner)
@@ -377,6 +395,11 @@ class SingleScenApp:
             outputs = self.learner[0].get(**state)
             
             state = {**state, **outputs}
+            scenapp_log.info("Best loss: {:.5f}".format(state["best_loss"]))
+            if type(old_best) is float:
+                scenapp_log.info("Best loss: {:.10f}".format(old_best))
+            else:
+                scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
@@ -399,7 +422,6 @@ class SingleScenApp:
                         scenapp_log.info("Iteration: {}".format(iters))
                     else:
                         scenapp_log.info("Required delta: {:.5f}".format(delta))
-                        scenapp_log.info("Best loss: {:.5f}".format(state["best_loss"]))
                         scenapp_log.debug("\033[1m Verifier \033[0m")
                         
 

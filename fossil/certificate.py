@@ -179,10 +179,10 @@ class Dissipativity(Certificate):
     def compute_state_loss(self, Q, S, R):
         relu = torch.nn.ReLU()
         
-        first = S@torch.inverse(R)
+        first = torch.bmm(S,torch.inverse(R))
         second = torch.bmm(first, S.mT)
         losses = second-Q
-        relud_losses = relu(losses.squeeze())
+        relud_losses = relu(-losses.squeeze())
         loss = relud_losses.mean()
         return loss
 
@@ -212,11 +212,10 @@ class Dissipativity(Certificate):
 
         
         relu = torch.nn.ReLU()
-        
-        UL = (nexts@L-f@L).unsqueeze(1)-Vdot+Q
-        UR = S.mT-0.5*(g@L).unsqueeze(1)
+        UL = (torch.bmm(nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        UR = S.mT-0.5*torch.bmm(g,L.mT)
         U = torch.cat((UL, UR), 2)
-        BR = R.repeat(U.shape[0],1,1)
+        BR = R
 
         B = torch.cat((UR, BR),2)
 
@@ -252,6 +251,7 @@ class Dissipativity(Certificate):
         :return: --
         """
         torch.set_num_threads(8)
+        relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
         learn_loops = 1000
@@ -293,22 +293,25 @@ class Dissipativity(Certificate):
                 for opt in optimizer:
                     opt.zero_grad()
                 V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-                Q1, Qdot, circle = learners[1].get_all(samples_with_nexts, samples_dot, times) 
-                S1, Sdot, circle = learners[2].get_all(samples_with_nexts, samples_dot, times) 
+                Q1 = learners[1](samples_with_nexts) 
+                S1 = learners[2](samples_with_nexts) 
+                R1 = learners[3](samples_with_nexts)
+                L1 = learners[4](samples_with_nexts)
                 
+
                 V1 = torch.unsqueeze(V1, 1)
                 Vdot = torch.unsqueeze(Vdot, 1)
                 Q1 = torch.unsqueeze(Q1, 1)
                 S1 = torch.unsqueeze(S1, 1)
+                L = torch.unsqueeze(L1, 1)
                 samples = torch.unsqueeze(samples, 2)
-
-                R = torch.eye(S1.shape[-1])
-                L = torch.ones(samples.shape[1])
-
-
+                
+                
+    
                 V2 = learners[0](states_only)
                 Q2 = learners[1](states_only)
                 S2 = learners[2](states_only)
+                R2 = learners[3](states_only)
                 
                 V2 = torch.unsqueeze(V2, 1)
                 Q2 = torch.unsqueeze(Q2, 1)
@@ -319,9 +322,9 @@ class Dissipativity(Certificate):
                 #V_SG = V[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
                 #V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 #beta = V_SG.min()
-                losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R, Sind)
+                losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R1, Sind)
                 
-                loss = self.compute_state_loss(Q1, S1, R)
+                loss = self.compute_state_loss(Q2, S2, R2)
                 if loss > 0:
                     losses = relu(losses) + loss
                 else:
@@ -355,13 +358,13 @@ class Dissipativity(Certificate):
                             supp_samples = supp_samples.union(set([ind_max]))
                             break
 
-                    if (max_loss-best_loss) >= 1e-2: 
-                        if ind_max in supp_samples:
-                            break
-                        else:
-                            supp_samples = supp_samples.union(set([ind_max]))
+                    #if (max_loss-best_loss) >= 1e-2: 
+                    #    if ind_max in supp_samples:
+                    #        break
+                    #    else:
+                    #        supp_samples = supp_samples.union(set([ind_max]))
 
-                    if t % 1 == 0 or t == learn_loops - 1:
+                    if t % 100 == 0 or t == learn_loops - 1:
                         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
                     for opt in optimizer:
                         opt.zero_grad()
@@ -398,7 +401,8 @@ class Dissipativity(Certificate):
                     Smat = learners[2](states_only)
                     Q = torch.unsqueeze(Q, 1)
                     Smat = torch.unsqueeze(Smat, 1)
-                    R = torch.eye(Smat.shape[-1])
+                    R = learners[3](states_only)
+                    #R = torch.eye(Smat.shape[-1])
                     
 
                     state_itt += 1
@@ -407,7 +411,7 @@ class Dissipativity(Certificate):
                         state_sol=True
                         break
                     else:
-                        if state_itt % 1 == 0:
+                        if state_itt % 100 == 0:
                             loss_v = loss.item() if hasattr(loss, "item") else loss
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
                             
@@ -417,23 +421,23 @@ class Dissipativity(Certificate):
 
                 
         V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-        Q1, Qdot, circle = learners[1].get_all(samples_with_nexts, samples_dot, times) 
-        S1, Sdot, circle = learners[2].get_all(samples_with_nexts, samples_dot, times) 
+        Q1 = learners[1](samples_with_nexts) 
+        S1 = learners[2](samples_with_nexts) 
+        R1 = learners[3](samples_with_nexts)
+        L1 = learners[4](samples_with_nexts)
         
         V1 = torch.unsqueeze(V1, 1)
         Vdot = torch.unsqueeze(Vdot, 1)
         Q1 = torch.unsqueeze(Q1, 1)
         S1 = torch.unsqueeze(S1, 1)
+        L = torch.unsqueeze(L1, 1)
         samples = torch.unsqueeze(samples, 2)
-
-
-        R = torch.eye(S1.shape[-1])
-        L = torch.ones(samples.shape[1])
 
 
         V2 = learners[0](states_only)
         Q2 = learners[1](states_only)
         S2 = learners[2](states_only)
+        R2 = learners[3](states_only)
         
         V2 = torch.unsqueeze(V2, 1)
         Q2 = torch.unsqueeze(Q2, 1)
@@ -445,9 +449,9 @@ class Dissipativity(Certificate):
         #V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         
         #beta = V_SG.min()
-        losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R, Sind)
+        losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R1, Sind)
         
-        loss = self.compute_state_loss(Q1, S1, R)
+        loss = self.compute_state_loss(Q2, S2, R2)
         losses = losses + loss
         max_loss = torch.max(losses, 0)
         ind_max = max_loss[1].item()
@@ -482,23 +486,25 @@ class Dissipativity(Certificate):
             traj = torch.unsqueeze(traj, 1)
             traj_deriv = torch.unsqueeze(traj_deriv, 1)
             V1, Vdot, circle = nets[0].get_all(traj, traj_deriv, time) 
-            Q1, Qdot, circle = nets[1].get_all(traj, traj_deriv, time) 
-            S1, Sdot, circle = nets[2].get_all(traj, traj_deriv, time) 
+            Q1= nets[1](traj) 
+            S1= nets[2](traj)
+            R1 = nets[3](traj)
+            L1 = nets[4](traj)
             
             V1 = torch.unsqueeze(V1, 1)
             Q1 = torch.unsqueeze(Q1, 1)
             S1 = torch.unsqueeze(S1, 1)
+            L = torch.unsqueeze(L1, 1)
             Vdot = torch.unsqueeze(Vdot, 1)
             
             f = torch.unsqueeze(f.T, 2).mT
             g = torch.unsqueeze(g.T, 2).mT
 
-            R = torch.eye(S1.shape[-1])
-            L = torch.ones(traj.shape[2])
 
             V2 = nets[0](state_data["lie"])
             Q2 = nets[1](state_data["lie"])
             S2 = nets[2](state_data["lie"])
+            R2 = nets[3](state_data["lie"])
             
             V2 = torch.unsqueeze(V2, 1)
             Q2 = torch.unsqueeze(Q2, 1)
@@ -510,8 +516,8 @@ class Dissipativity(Certificate):
             #V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
             Sind = {"lie":[torch.arange(len(traj))]}
             #beta = V_SG.min()
-            losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R, Sind)
-            loss = self.compute_state_loss(Q1, S1, R)
+            losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind)
+            loss = self.compute_state_loss(Q2, S2, R2)
             losses = losses + loss
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))

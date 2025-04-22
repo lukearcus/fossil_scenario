@@ -57,9 +57,11 @@ def test_lnn():
     system.controller = random_control
 
     #XD = fossil.domains.Sphere([0,0], 1)
-    XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-3, -3], [3, 3])
-    XG = domains.Sphere([0,0],1)
+    #XD = domains.Rectangle([-5, -5], [5, 5])
+    XD = domains.Sphere([0,0],0.5)
+    XI = domains.Sphere([0,0],0.5)
+    #XI = domains.Rectangle([-3, -3], [3, 3])
+    XG = domains.Sphere([0,0],0.1)
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

@@ -499,16 +499,6 @@ class Dissipativity(Certificate):
             
             f = torch.unsqueeze(f.T, 2).mT
             g = torch.unsqueeze(g.T, 2).mT
-
-
-            V2 = nets[0](state_data["lie"])
-            Q2 = nets[1](state_data["lie"])
-            S2 = nets[2](state_data["lie"])
-            R2 = nets[3](state_data["lie"])
-            
-            V2 = torch.unsqueeze(V2, 1)
-            Q2 = torch.unsqueeze(Q2, 1)
-            S2 = torch.unsqueeze(S2, 1)
             
             #V_D = V[:i1-idot1]
             #V_I = V[i1-idot1:i1+i2-idot1-idot2]
@@ -517,8 +507,6 @@ class Dissipativity(Certificate):
             Sind = {"lie":[torch.arange(len(traj))]}
             #beta = V_SG.min()
             losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind)
-            loss = self.compute_state_loss(Q2, S2, R2)
-            losses = losses + loss
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))
             if len(goal_inds) == 0:

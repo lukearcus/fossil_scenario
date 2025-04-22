@@ -584,6 +584,7 @@ class DissR(LearnerNN):
         y = self.layers[-1](y)[:, 0]
         y = torch.reshape(y, [-1, self.output_size, self.output_size])
         y = 0.5*(y+y.mT)
+        y = y+torch.eye(self.output_size)
         return y
 
     def get_all(

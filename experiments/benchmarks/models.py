@@ -13,7 +13,7 @@ class InvPendulum(control.DissDynamicalModel):
     n_vars=2
     time_horizon=100
     time="discrete"
-    T=0.1
+    T=0.01
     
             # Physical parameters for the inverted pendulum
     m = 0.1  # Mass of the pendulum (kg)
@@ -21,8 +21,8 @@ class InvPendulum(control.DissDynamicalModel):
     gr = 9.81  # Gravitational acceleration (m/s^2)
     #I = (self.m * self.l ** 2) / 3  # Moment of inertia around the pivot
     I = 1 / 3
-    u_min = -5
-    u_max = 5
+    u_min = -1
+    u_max = 1
 
     def f(self, t, x):
         if len(x.shape) == 1:

@@ -235,19 +235,20 @@ class SingleScenApp:
 
     def update_controller(self, state):
         
-        R = torch.eye(1) # Change this! self.S["g"] should have nxm matrices, but m is 1, so no m
         def diss_control(obj, t, x):
             x = torch.tensor(x,dtype=torch.float32)
-            if len(x.shape) == 1: 
+            if len(x.shape) == 1:
+                R = state["best_net"][3](x.unsqueeze(1).T).detach()
                 return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
             else:
-                return (-torch.bmm(torch.inverse(R).repeat(x.shape[0],1,1),state["best_net"][2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+                R = state["best_net"][3](x.unsqueeze(2).mT).detach()
+                return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
 
         self.config.SYSTEM.controller = diss_control
         
         all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
         new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
-        
+        import pdb; pdb.set_trace()
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
@@ -395,17 +396,20 @@ class SingleScenApp:
             outputs = self.learner[0].get(**state)
             
             state = {**state, **outputs}
-            scenapp_log.info("Best loss: {:.5f}".format(state["best_loss"]))
-            if type(old_best) is float:
-                scenapp_log.info("Best loss: {:.10f}".format(old_best))
+            if state["best_loss"] != 0:
+                scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
-                scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
+                scenapp_log.info("Zero Best Loss")
+            if type(old_best) is float:
+                scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
+            else:
+                scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
-            converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
-            if not converged_controller:
-                param_sum = new_param_sum
-                self.update_controller(state)
-                state["best_loss"] = torch.tensor([100])*(iters+1)
+            #converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
+            #if not converged_controller:
+            #    param_sum = new_param_sum
+            #    self.update_controller(state)
+            #    state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
@@ -459,6 +463,9 @@ class SingleScenApp:
                 old_loss = state["loss"]
                 old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
+                for (net, best) in zip(state[ScenAppStateKeys.net], state["best_net"]):
+                    net.load_state_dict(best.state_dict())
+                #= copy.deepcopy(state["best_net"])
 
             elif not (
                     state[ScenAppStateKeys.found]
@@ -469,11 +476,10 @@ class SingleScenApp:
                 old_loss = state["loss"]
                 old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
-            if type(old_best) is float:
-                scenapp_log.info("Best loss: {:.10f}".format(old_best))
+            if state["loss"].item() == 0:
+                scenapp_log.info("Zero Current Loss")
             else:
-                scenapp_log.info("Best loss: {:.10f}".format(old_best.item()))
-            scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
+                scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
         state = self.process_timers(state)
 
         stats = Stats(

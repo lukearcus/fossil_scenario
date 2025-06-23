@@ -1,289 +1,223 @@
 Spiral Reach
+Epsilon: 0.02271
+Found a valid PRACTICALLYAPUNOV certificate
+Learner times: total=13683.282082387945s,min=13683.282082387945s,max=13683.282082387945s,avg=13683.282082387945s, N=1
+Direct Property scenario approach risk: 0.01825
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 3.14358s
+Epsilon: 0.02271
+Found a valid PRACTICALLYAPUNOV certificate
+Learner times: total=9976.130736174993s,min=9976.130736174993s,max=9976.130736174993s,avg=9976.130736174993s, N=1
+Direct Property scenario approach risk: 0.01825
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.49191s
 Epsilon: 0.02488
 Found a valid PRACTICALLYAPUNOV certificate
-Learner times: total=14020.145122115999s,min=14020.145122115999s,max=14020.145122115999s,avg=14020.145122115999s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=11975.354122285964s,min=11975.354122285964s,max=11975.354122285964s,avg=11975.354122285964s, N=1
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 2.24518s
-Epsilon: 0.02271
+Direct property guarantee time: 2.36511s
+Epsilon: 0.02694
 Found a valid PRACTICALLYAPUNOV certificate
-Learner times: total=5530.030803864s,min=5530.030803864s,max=5530.030803864s,avg=5530.030803864s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=12600.404896649998s,min=12600.404896649998s,max=12600.404896649998s,avg=12600.404896649998s, N=1
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 2.90372s
-Epsilon: 0.02271
-Found a valid PRACTICALLYAPUNOV certificate
-Learner times: total=10188.706336982s,min=10188.706336982s,max=10188.706336982s,avg=10188.706336982s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.60029s
-Epsilon: 0.02891
-Found a valid PRACTICALLYAPUNOV certificate
-Learner times: total=10628.194676635s,min=10628.194676635s,max=10628.194676635s,avg=10628.194676635s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.29661s
-Epsilon: 0.03267
-Time: 39206
-Direct: 0.01145
-Time: 2.3
+Direct property guarantee time: 2.25085s
 
 Spiral Safe
-Epsilon: 0.03625
-Found a valid BARRIERALT certificate
-Learner times: total=8359.107262022995s,min=534.3131655599973s,max=7824.794096462998s,avg=4179.553631011498s, N=2
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 5.50880s
-Epsilon: 0.02694
-Found a valid BARRIERALT certificate
-Learner times: total=6975.174891435003s,min=641.8109097880006s,max=6333.363981647002s,avg=3487.5874457175014s, N=2
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 6.72493s
-Epsilon: 0.04136
-Found a valid BARRIERALT certificate
-Learner times: total=7038.389432644s,min=885.945040370003s,max=6152.444392273997s,avg=3519.194716322s, N=2
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 6.21254s
-Epsilon: 0.06151
-Found a valid BARRIERALT certificate
-Learner times: total=7659.556240039998s,min=291.8679052359985s,max=6281.797729590999s,avg=2553.185413346666s, N=3
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 5.73918s
-Epsilon: 0.05404
-Found a valid BARRIERALT certificate
-Learner times: total=7411.277452587998s,min=305.65276197799903s,max=6409.884556577999s,avg=2470.4258175293326s, N=3
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 6.13315s
-
-Spiral RWA
-Epsilon: 0.04624
+-e \nSpiral RWA
+Epsilon: 0.07580
 Found a valid RWS certificate
-Learner times: total=10547.871693113004s,min=10547.871693113004s,max=10547.871693113004s,avg=10547.871693113004s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=51040.37291776086s,min=1360.496443037875s,max=19163.348622536985s,avg=10208.074583552172s, N=5
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 6.54363s
-Epsilon: 0.02039
+Direct property guarantee time: 5.47811s
+Epsilon: 0.01782
 Found a valid RWS certificate
-Learner times: total=4991.326011263998s,min=4991.326011263998s,max=4991.326011263998s,avg=4991.326011263998s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=7408.415569796925s,min=7408.415569796925s,max=7408.415569796925s,avg=7408.415569796925s, N=1
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 6.53326s
-Epsilon: 0.04941
+Direct property guarantee time: 6.05584s
+Epsilon: 0.02891
 Found a valid RWS certificate
-Learner times: total=20270.583434312983s,min=20270.583434312983s,max=20270.583434312983s,avg=20270.583434312983s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=9556.840184331872s,min=9556.840184331872s,max=9556.840184331872s,avg=9556.840184331872s, N=1
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 6.15287s
-Epsilon: 0.03448
+Direct property guarantee time: 6.04174s
+Epsilon: 0.03968
 Found a valid RWS certificate
-Learner times: total=14119.254656585981s,min=14119.254656585981s,max=14119.254656585981s,avg=14119.254656585981s, N=1
-Direct Property scenario approach risk: 0.01145
+Learner times: total=24715.22689919197s,min=1088.0948289469816s,max=23627.13207024499s,avg=12357.613449595985s, N=2
+Direct Property scenario approach risk: 0.01825
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 5.50558s
-Epsilon: 0.02694
-Time: 24691.8
-Direct eps: 0.01145
-d_time: 5.5
+Direct property guarantee time: 5.75472s
 
 Spiral Partially Unsafe
-Epsilon: 0.35275
-Found a valid BARRIERALT certificate
-Learner times: total=27351.028615667194s,min=196.99895588302752s,max=4196.978337345994s,avg=1051.9626390641229s, N=26
-Direct Property scenario approach risk: 0.03400
-Certificate violation rate: 0.066
-Property violation rate: 0.012
-Direct property guarantee time: 7.07937s
-Epsilon: 0.38364
-Found a valid BARRIERALT certificate
-Learner times: total=30914.01277323725s,min=125.2680643699714s,max=3086.549897548044s,avg=1066.0004404564568s, N=29
-Direct Property scenario approach risk: 0.03858
-Certificate violation rate: 0.098
-Property violation rate: 0.015
-Direct property guarantee time: 4.25737s
-Epsilon: 0.40683
-Found a valid BARRIERALT certificate
-Learner times: total=32995.391505209205s,min=226.04178129899083s,max=4121.270120612986s,avg=1031.1059845377877s, N=32
-Direct Property scenario approach risk: 0.04007
-Certificate violation rate: 0.085
-Property violation rate: 0.016
-Direct property guarantee time: 4.13552s
 Epsilon: 0.39315
 Found a valid BARRIERALT certificate
-Learner times: total=34621.78766548098s,min=68.10960481403163s,max=4134.437875945005s,avg=1018.2878725141464s, N=34
-2025-04-02 18:01:51,538 - fossil.scenapp - INFO - Verifier times: total=0s,min=9223372036854775808s,max=0s,avg=0s, N=0
-Direct Property scenario approach risk: 0.02922
-Certificate violation rate: 0.072
-Property violation rate: 0.009
-Direct property guarantee time: 3.51856s
-Epsilon: 0.40052
+Learner times: total=20194.724807573948s,min=0.19318921980448067s,max=3016.790009691147s,avg=531.4401265151039s, N=38
+Direct Property scenario approach risk: 0.04687
+Certificate violation rate: 0.097
+Property violation rate: 0.014
+Direct property guarantee time: 3.06808s
+Epsilon: 0.33446
 Found a valid BARRIERALT certificate
-Learner times: total=35917.736661666015s,min=107.02135592204286s,max=5005.719510797993s,avg=970.7496395044869s, N=37
-Direct Property scenario approach risk: 0.03555
-Certificate violation rate: 0.094
-Property violation rate: 0.013
-Direct property guarantee time: 3.07769s
+Learner times: total=16441.555302057415s,min=0.20837449887767434s,max=2597.667864284944s,avg=469.75872291592617s, N=35
+Direct Property scenario approach risk: 0.03639
+Certificate violation rate: 0.045
+Property violation rate: 0.008
+Direct property guarantee time: 3.29746s
 
+Spiral Partially Unsafe
+Epsilon: 0.39315
+Found a valid BARRIERALT certificate
+Learner times: total=19028.02823866671s,min=0.200325271114707s,max=2494.98366343393s,avg=500.7375852280713s, N=38
+Direct Property scenario approach risk: 0.04687
+Certificate violation rate: 0.084
+Property violation rate: 0.014
+Direct property guarantee time: 3.04967s
+Epsilon: 0.37410
+Found a valid BARRIERALT certificate
+Learner times: total=16926.360947024776s,min=5.280200168956071s,max=3213.301362989936s,avg=546.0116434524122s, N=31
+Direct Property scenario approach risk: 0.04350
+Certificate violation rate: 0.081
+Property violation rate: 0.012
+Direct property guarantee time: 3.44526s
+Epsilon: 0.44434
+Found a valid BARRIERALT certificate
+Learner times: total=17266.4300838965s,min=125.07999655185267s,max=1752.502992528025s,avg=466.6602725377432s, N=37
+Direct Property scenario approach risk: 0.03823
+Certificate violation rate: 0.077
+Property violation rate: 0.009
+Direct property guarantee time: 3.19136s
+
+8D Barrier
 
 DC Motor Our Appraoch
 Epsilon: 0.00983
 Found a valid BARRIERALT certificate
-Learner times: total=1.7496374920010567s,min=1.7496374920010567s,max=1.7496374920010567s,avg=1.7496374920010567s, N=1
-Direct Property scenario approach risk: 0.00092
+Learner times: total=10.862113103969023s,min=10.862113103969023s,max=10.862113103969023s,avg=10.862113103969023s, N=1
+Direct Property scenario approach risk: 0.00262
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 18.08632s
+Direct property guarantee time: 11.01644s
 Epsilon: 0.00983
 Found a valid BARRIERALT certificate
-Learner times: total=1.2148091180133633s,min=1.2148091180133633s,max=1.2148091180133633s,avg=1.2148091180133633s, N=1
-Direct Property scenario approach risk: 0.00092
+Learner times: total=10.43367011891678s,min=10.43367011891678s,max=10.43367011891678s,avg=10.43367011891678s, N=1
+Direct Property scenario approach risk: 0.00262
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 12.69282s
-Epsilon: 0.00983
-Found a valid BARRIERALT certificate
-Learner times: total=1.482718731975183s,min=1.482718731975183s,max=1.482718731975183s,avg=1.482718731975183s, N=1
-Direct Property scenario approach risk: 0.00092
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 12.68872s
-eps: 0.00983
-time: 0.1
-direct: 0.00092
-d_time: 12.0
-eps: 0.00983
-time: 0.1
-direct: 0.00092
-d_time: 12.0
+Direct property guarantee time: 11.12353s
 
 DC Motor Nejati
 Generating data
 Data generation complete
 Building constraints
 Problem formulated, solving...
-eta: -0.01555
+eta: -0.01543
 matrix values:
 [[0.5  0.25]
  [0.25 0.5 ]]
-[-4.05333496e-06]
-gamma: 0.35855
-lambda: 0.39517
-Less than zero check: -0.00055
-Elapsed time: 260.76925
-Elapsed time: 821.35926
-Elapsed time: 843.47230
-Elapsed time: 934.13441
-Elapsed time: 882.93713
+[-1.48233601e-05]
+gamma: 0.35425
+lambda: 0.39866
+Less than zero check: -0.00043
+Elapsed time: 233.80823
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.01543
+matrix values:
+[[0.5  0.25]
+ [0.25 0.5 ]]
+[-8.91780708e-06]
+gamma: 0.35218
+lambda: 0.40030
+Less than zero check: -0.00043
+Elapsed time: 296.89151
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.01564
+matrix values:
+[[0.5  0.25]
+ [0.25 0.5 ]]
+[-6.29247893e-06]
+gamma: 0.35227
+lambda: 0.40026
+Less than zero check: -0.00065
+Elapsed time: 299.41391
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.01523
+matrix values:
+[[0.5  0.25]
+ [0.25 0.5 ]]
+[-7.48817343e-06]
+gamma: 0.35194
+lambda: 0.40057
+Less than zero check: -0.00024
+Elapsed time: 355.05179
+Generating data
+Data generation complete
+Building constraints
+Problem formulated, solving...
+eta: -0.01516
+matrix values:
+[[0.5  0.25]
+ [0.25 0.5 ]]
+[-1.46648455e-05]
+gamma: 0.35190
+lambda: 0.40045
+Less than zero check: -0.00016
+Elapsed time: 349.69578
 
 4D Our Appraoch
 Epsilon: 0.02039
 Found a valid BARRIERALT certificate
-Learner times: total=418.5953480740427s,min=418.5953480740427s,max=418.5953480740427s,avg=418.5953480740427s, N=1
-Direct Property scenario approach risk: 0.00230
-Certificate violation rate: 0.001
-Property violation rate: 0.000
-Direct property guarantee time: 15.91624s
-Epsilon: 0.02039
-Found a valid BARRIERALT certificate
-Learner times: total=542.4906213840004s,min=542.4906213840004s,max=542.4906213840004s,avg=542.4906213840004s, N=1
-Direct Property scenario approach risk: 0.00230
+Learner times: total=323.23023338406347s,min=0.06701690307818353s,max=323.1632164809853s,avg=161.61511669203173s, N=2
+Direct Property scenario approach risk: 0.00400
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 14.65420s
+Direct property guarantee time: 11.41582s
 Epsilon: 0.02039
 Found a valid BARRIERALT certificate
-Learner times: total=820.2567257889896s,min=820.2567257889896s,max=820.2567257889896s,avg=820.2567257889896s, N=1
-Direct Property scenario approach risk: 0.00230
+Learner times: total=255.84645799477585s,min=0.07707138988189399s,max=255.76938660489395s,avg=127.92322899738792s, N=2
+Direct Property scenario approach risk: 0.00400
 Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 9.56463s
+Direct property guarantee time: 10.47944s
 Epsilon: 0.02039
 Found a valid BARRIERALT certificate
-Learner times: total=553.2609257929726s,min=553.2609257929726s,max=553.2609257929726s,avg=553.2609257929726s, N=1
-Direct Property scenario approach risk: 0.00230
-Certificate violation rate: 0.001
+Learner times: total=278.2918519319501s,min=0.06788016087375581s,max=278.2239717710763s,avg=139.14592596597504s, N=2
+Direct Property scenario approach risk: 0.00400
+Certificate violation rate: 0.000
 Property violation rate: 0.000
-Direct property guarantee time: 10.93484s
-eps: 0.02039
-Time: 12.1
-direct: 0.0023
-d_time: 8.9
+Direct property guarantee time: 9.34709s
+Epsilon: 0.02039
+Found a valid BARRIERALT certificate
+Learner times: total=288.3774463708978s,min=0.05340889887884259s,max=288.324037472019s,avg=144.1887231854489s, N=2
+Direct Property scenario approach risk: 0.00400
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 9.10726s
+Epsilon: 0.02039
+Found a valid BARRIERALT certificate
+Learner times: total=317.49253577319905s,min=0.06434311508201063s,max=317.42819265811704s,avg=158.74626788659953s, N=2
+Direct Property scenario approach risk: 0.00400
+Certificate violation rate: 0.000
+Property violation rate: 0.000
+Direct property guarantee time: 8.74501s
 
 4D Nejati
-Optimality gap: 10.294
-eta: -0.46061
-matrix values:
-[[-0.12330027 -0.07894753 -0.16478208 -0.03637308]
- [-0.07894753 -0.4        -0.2        -0.0274703 ]
- [-0.16478208 -0.2         0.3747565  -0.0932339 ]
- [-0.03637308 -0.0274703  -0.0932339   0.12997576]]
-[[-0.4       ]
- [-0.4       ]
- [-0.4       ]
- [-0.17228062]]
-[4.]
-gamma: 0.70696
-Less than zero check: 9.83388
-9.833881076943454
-Maximum confidence level: 0.000000000000000000000000000000
-Maximum confidence level for 1e19 samples (assuming same eta): 0.999999999999999888977697537484
-Elapsed time: 26976.36816
-Elapsed time: 46997.30479
-Elapsed time: 46409.42338
-Elapsed time: 46327.73268
-Elapsed time: 45865.39835
-
-
-8D Barrier
-Epsilon: 0.02039
-Found a valid BARRIERALT certificate
-Learner times: total=0.2788860250147991s,min=0.2788860250147991s,max=0.2788860250147991s,avg=0.2788860250147991s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.29116s
-Epsilon: 0.02039
-Found a valid BARRIERALT certificate
-Learner times: total=0.27986245503416285s,min=0.27986245503416285s,max=0.27986245503416285s,avg=0.27986245503416285s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.24790s
-Epsilon: 0.02039
-Found a valid BARRIERALT certificate
-Learner times: total=0.2863173739751801s,min=0.2863173739751801s,max=0.2863173739751801s,avg=0.2863173739751801s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.27064s
-Epsilon: 0.01782
-Found a valid BARRIERALT certificate
-Learner times: total=0.27501075697364286s,min=0.27501075697364286s,max=0.27501075697364286s,avg=0.27501075697364286s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.29018s
-Epsilon: 0.01782
-Found a valid BARRIERALT certificate
-Learner times: total=0.27887808298692107s,min=0.27887808298692107s,max=0.27887808298692107s,avg=0.27887808298692107s, N=1
-Direct Property scenario approach risk: 0.01145
-Certificate violation rate: 0.000
-Property violation rate: 0.000
-Direct property guarantee time: 2.23158s

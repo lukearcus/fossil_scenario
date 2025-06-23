@@ -5,7 +5,7 @@ echo -e "Spiral Reach" > results/autom.txt
 python3 -m experiments.scenapp_tests.benchmarks.reach_spiral >> results/autom.txt
 echo -e "\nSpiral Safe" >> results/autom.txt
 python3 -m experiments.scenapp_tests.benchmarks.barr_spiral >> results/autom.txt
-echo "-e \nSpiral RWA" >> results/autom.txt
+echo -e \n"Spiral RWA" >> results/autom.txt
 python3 -m experiments.scenapp_tests.benchmarks.rwa_spiral >> results/autom.txt
 echo -e "Spiral Benchmarks Complete"
 echo -e "\nSpiral Partially Unsafe" >> results/autom.txt

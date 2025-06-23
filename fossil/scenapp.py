@@ -175,8 +175,8 @@ class SingleScenApp:
         num_violations, true_violations = self.certificate.get_violations(cert, cert_deriv, data["full_data"]["states"], data["full_data"]["derivs"], data["full_data"]["times"], state_data)
         k = num_violations
         k = true_violations # use this for direct property validation
-        beta_bar = self.config.BETA[0]
         N = n_data
+        beta_bar = self.config.BETA[0]/N
         d = 1
         eps = betaF.ppf(1-beta_bar, k+d, N-(d+k)+1) 
         print("Direct Property scenario approach risk: {:.5f}".format(eps))

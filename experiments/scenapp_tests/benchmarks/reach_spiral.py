@@ -77,7 +77,7 @@ def test_lnn():
     activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
     n_hidden_neurons = [5] * len(activations)
     
-    num_runs =5
+    num_runs =1
 
     init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
     

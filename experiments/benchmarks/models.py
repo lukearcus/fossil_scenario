@@ -9,6 +9,38 @@ from matplotlib import pyplot as plt
 
 from fossil import control
 
+class LTI_disc(control.DissDynamicalModel):
+    n_vars=2
+    time_horizon=100
+    time="discrete"
+    T=0.01
+    A = np.array([[0.7,0.8],[-0.4,1.4]])
+    B = np.array([[1],[1]])
+    u_min = -1
+    u_max = 1
+
+    def f(self, t, x):
+        if len(x.shape) == 1:
+            x1, x2 = x[0], x[1]
+            out = self.A@np.array([[x1],[x2]])
+            return [out[0,:].item(),out[1,:].item()]
+        else:
+            out = torch.tensor(self.A@np.array(x).T, dtype=torch.double)
+            return [out[0,:],out[1,:]]
+    
+    def g(self, t, x):
+        B = self.B
+        return [B[0].item(), B[1].item()]
+
+    def f_torch(self, t, x):
+        u = self.controller(t, x)
+        if type(u) is not float:
+            u = u.squeeze()
+        f = self.f(t,x) 
+        g = self.g(t,x)
+        return [f[0]+g[0]*u, f[1]+g[1]*u]
+
+
 class InvPendulum(control.DissDynamicalModel):
     n_vars=2
     time_horizon=100

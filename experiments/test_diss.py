@@ -50,7 +50,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 def test_lnn():
     n_data = 1000
-    system = models.InvPendulum 
+    system = models.LTI_disc 
     
     def random_control(obj, t, x):
         return np.random.random()*(system.u_max-system.u_min)+system.u_min
@@ -106,8 +106,8 @@ def test_lnn():
             R = res[-1].cert[3](x.unsqueeze(1).T).detach()
             return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
         else:
-            R = res[-1].cert[3](x.unsqueeze(2)).detach()
-            return (-torch.bmm(torch.inverse(R).repeat(x.shape[0],1,1),res[-1].cert[2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+            R = res[-1].cert[3](x.unsqueeze(2).mT).detach()
+            return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
         
 
     system.controller = diss_control

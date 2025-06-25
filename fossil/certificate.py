@@ -293,7 +293,6 @@ class Dissipativity(Certificate):
         g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         supp_samples = set()
         state_sol = False
-        state_sol=True
         best_supp_defd = False
         for t in range(learn_loops):
             if state_sol:

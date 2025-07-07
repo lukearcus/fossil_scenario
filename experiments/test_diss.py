@@ -41,8 +41,6 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )
-    
-
     PAC = ScenApp(opts)
     result = PAC.solve()
     return result
@@ -86,7 +84,9 @@ def test_lnn():
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
-    #activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
+    
+    activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
+    
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()
@@ -111,9 +111,8 @@ def test_lnn():
             return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
         else:
             R = res[-1].cert[3](x.unsqueeze(2).mT).detach()
-            return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+            return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT))).detach().numpy()
         
-
     system.controller = diss_control
     
     opts = ScenAppConfig(
@@ -135,7 +134,7 @@ def test_lnn():
         #CONVEX_NET=True,
     )
     axes = plotting.benchmark(
-        system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-1, 1], yrange=[-1, 1]
+        system(), res[-1].cert[0], domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
 
     init_data = XI._generate_data(num_traj_plots)()

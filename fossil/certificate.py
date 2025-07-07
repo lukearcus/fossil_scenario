@@ -166,7 +166,7 @@ class Dissipativity(Certificate):
     XG: Goal region (around origin)
     """
 
-    bias = False
+    bias = True
 
     def __init__(self, domains, config: ScenAppConfig) -> None:
         self.domain = domains[XD]
@@ -308,8 +308,9 @@ class Dissipativity(Certificate):
                 V1 = torch.unsqueeze(V1, 1)
                 Vdot = torch.unsqueeze(Vdot, 1)
                 Q1 = torch.unsqueeze(Q1, 1)
-                S1 = torch.unsqueeze(S1, 1)
-                L = torch.unsqueeze(L1, 1)
+                #S1 = torch.unsqueeze(S1, 1)
+                L = L1
+                #L = torch.unsqueeze(L1, 1)
                 samples = torch.unsqueeze(samples, 2)
                 
                 
@@ -321,7 +322,8 @@ class Dissipativity(Certificate):
                 
                 V2 = torch.unsqueeze(V2, 1)
                 Q2 = torch.unsqueeze(Q2, 1)
-                S2 = torch.unsqueeze(S2, 1)
+                #S2 = torch.unsqueeze(S2, 1)
+                #import pdb; pdb.set_trace()
                 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -407,12 +409,11 @@ class Dissipativity(Certificate):
                     Q = learners[1](states_only)
                     Smat = learners[2](states_only)
                     Q = torch.unsqueeze(Q, 1)
-                    Smat = torch.unsqueeze(Smat, 1)
+                    #Smat = torch.unsqueeze(Smat, 1)
                     R = learners[3](states_only)
                     V2 = learners[0](states_only)
                     V2 = torch.unsqueeze(V2, 1)
-                    #R = torch.eye(Smat.shape[-1])
-                    
+                    #R = torch.eye(Smat.shape[-1]) 
 
                     state_itt += 1
                     V_I = V2[i1-idot1:i1+i2-idot1-idot2]
@@ -445,8 +446,8 @@ class Dissipativity(Certificate):
         V1 = torch.unsqueeze(V1, 1)
         Vdot = torch.unsqueeze(Vdot, 1)
         Q1 = torch.unsqueeze(Q1, 1)
-        S1 = torch.unsqueeze(S1, 1)
-        L = torch.unsqueeze(L1, 1)
+        #S1 = torch.unsqueeze(S1, 1)
+        L = L1
         samples = torch.unsqueeze(samples, 2)
 
 
@@ -457,7 +458,7 @@ class Dissipativity(Certificate):
         
         V2 = torch.unsqueeze(V2, 1)
         Q2 = torch.unsqueeze(Q2, 1)[:i1-idot1]
-        S2 = torch.unsqueeze(S2, 1)[:i1-idot1]
+        S2 = S2[:i1-idot1]
         
         V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
         V_D = V2[:i1-idot1]
@@ -515,8 +516,9 @@ class Dissipativity(Certificate):
             
             V1 = torch.unsqueeze(V1, 1)
             Q1 = torch.unsqueeze(Q1, 1)
-            S1 = torch.unsqueeze(S1, 1)
-            L = torch.unsqueeze(L1, 1)
+            #S1 = torch.unsqueeze(S1, 1)
+            #L = torch.unsqueeze(L1, 1)
+            L=L1
             Vdot = torch.unsqueeze(Vdot, 1)
             
             f = torch.unsqueeze(f.T, 2).mT

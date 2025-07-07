@@ -437,6 +437,7 @@ class DissV(LearnerNN):
         config: ScenAppConfig = ScenAppConfig(),
         bias=True,
     ):
+        bias = False
         config.LLO = True
         super().__init__(
             input_size,
@@ -446,6 +447,7 @@ class DissV(LearnerNN):
             config,
             bias,
             )
+        config.LLO = False
     def get_all(
             self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -701,6 +703,23 @@ class DissS(LearnerNN):
         delta_V = nn_next - V[:len(nn_next)]
 
         return V, delta_V, circle
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Standard forward pass of the neural network.
+
+            x (torch.Tensor): input tensor
+
+        Returns:
+            torch.Tensor: output tensor
+        """
+        y = x
+
+        for idx, layer in enumerate(self.layers[:-1]):
+            z = layer(y)
+            y = activation(self.acts[idx], z)
+
+        y = self.layers[-1](y)
+        return y
     
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
         return self.get_all(S, Sdot, times)[1] # Returns 1 step change

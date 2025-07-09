@@ -206,9 +206,6 @@ class SingleScenApp:
         #        lr=self.config.LEARNING_RATE,
         #        ) for l in self.learner)
 
-    def update_controller(self, state):
-        scenapp_log.debug("Updating controller does nothing")
-        return state 
 
     def a_post_verify(self, certs, n_data):
         state_data = self.config.DATA["states_only"]
@@ -242,13 +239,12 @@ class SingleScenApp:
                 return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
             else:
                 R = state["best_net"][3](x.unsqueeze(2).mT).detach()
-                return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT).unsqueeze(2))).detach().numpy()
+                return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT))).detach().numpy()
 
         self.config.SYSTEM.controller = diss_control
         
         all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
         new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
-        import pdb; pdb.set_trace()
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
@@ -405,11 +401,11 @@ class SingleScenApp:
             else:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
-            #converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
-            #if not converged_controller:
-            #    param_sum = new_param_sum
-            #    self.update_controller(state)
-            #    state["best_loss"] = torch.tensor([100])*(iters+1)
+            converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
+            if not converged_controller:
+                param_sum = new_param_sum
+                self.update_controller(state)
+                state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             

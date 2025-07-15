@@ -179,22 +179,24 @@ class Dissipativity(Certificate):
     def compute_state_loss(self, Q, S, R, V_D, V_G, V_I, beta):
         relu = torch.nn.ReLU()
         
-        first = torch.bmm(S,torch.inverse(R))
-        second = torch.bmm(first, S.mT)
-        losses = second-Q
-        relud_losses = relu(-losses.squeeze())
-        loss = relud_losses.mean()
-        state_loss = -V_D+beta
-        loss = loss + relu(state_loss).mean()
         eigs = torch.linalg.eigvalsh(-R)[:,-1]+1e-5
-        loss = loss + relu(eigs).mean()
+        loss = relu(eigs).mean()
+        
+        if loss == 0:
+            first = torch.bmm(S,torch.inverse(R))
+            second = torch.bmm(first, S.mT)
+            losses = second-Q
+            relud_losses = relu(-losses.squeeze())
+            loss = loss+relud_losses.mean()
+        #state_loss = -V_D+beta
+        #loss = loss + relu(state_loss).mean()
         #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         #loss = loss + relu(goal_loss).mean()
         return loss
 
     def compute_loss(
             self, 
-            Vdot,
+            V,
             Q,
             S,
             f,
@@ -204,6 +206,7 @@ class Dissipativity(Certificate):
             L, 
             R,
             indices: list,
+            xnext_term
     ) -> tuple[torch.Tensor, dict]:
         """_summary_
 
@@ -216,9 +219,10 @@ class Dissipativity(Certificate):
             tuple[torch.Tensor, float]: loss and accuracy
         """
 
-        
+        #import pdb; pdb.set_trace()        
         relu = torch.nn.ReLU()
-        UL = (torch.bmm(nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        #UL = (torch.bmm(nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        UL = xnext_term-torch.bmm(f,L.mT)+Q+V
         UR = S.mT-0.5*torch.bmm(g,L.mT)
         U = torch.cat((UL, UR), 2)
         BR = R
@@ -302,7 +306,8 @@ class Dissipativity(Certificate):
                 Q1 = learners[1](samples_with_nexts) 
                 S1 = learners[2](samples_with_nexts) 
                 R1 = learners[3](samples_with_nexts)
-                L1 = learners[4](samples_with_nexts)
+               # L1 = learners[4](samples_with_nexts)
+                L1 = learners[4](torch.ones_like(samples_with_nexts))
                 
 
                 V1 = torch.unsqueeze(V1, 1)
@@ -323,14 +328,20 @@ class Dissipativity(Certificate):
                 V2 = torch.unsqueeze(V2, 1)
                 Q2 = torch.unsqueeze(Q2, 1)
                 #S2 = torch.unsqueeze(S2, 1)
-                #import pdb; pdb.set_trace()
-                
+                #nexts = torch.vstack((samples_dot,states_only[:i1-idot1])) #this depends on samples, which we don't want
+                nexts = states_only[:i1-idot1] 
+                V_next = learners[0](nexts)
+                V_next = torch.unsqueeze(V_next, 1)
+                L_next = learners[4](torch.ones_like(nexts))
+
+                xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
+
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 beta = V_SG.min()
-                losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R1, Sind)
+                losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f_samples, g_samples, samples_with_nexts, nexts, L, R1, Sind, xnext_term)
                 
                 loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
                 if loss > 0:
@@ -344,6 +355,8 @@ class Dissipativity(Certificate):
                     supp_samples.add(ind_max)
                     if discrete:
                         if max_loss <= 0:
+                            best_nets = copy.deepcopy(learners)
+                            print("No supports, max loss is zero")
                             break
                     max_loss.backward()
                     for opt in optimizer:
@@ -354,17 +367,29 @@ class Dissipativity(Certificate):
                     maximising_losses = losses[max_inds]
                     
                     maximising_losses, max_inds = zip(*sorted(zip(maximising_losses, max_inds), reverse=True))
-
+                    supps = list(supp_samples)
+                    max_loss = torch.max(losses[supps], 0)
+                    ind_max = supps[max_loss[1]]
+                    max_loss = max_loss[0]
                     if max_loss < best_loss:
-                        best_supp_defd = True
-                        best_supp_sample = set([ind_max])
+                        #best_supp_defd = True
+                        #best_supp_sample = set([ind_max])
                         best_loss = max_loss
                         best_nets = copy.deepcopy(learners)
     
                     if discrete:
                         if max_loss <= 0:
-                            supp_samples = supp_samples.union(set([ind_max]))
-                            break
+                            true_max_loss = torch.max(losses, 0)
+                            ind_true_max = true_max_loss[1].item()
+                            true_max_loss = true_max_loss[0]
+                            if true_max_loss <= 0:
+                                best_loss = true_max_loss
+                                best_nets = copy.deepcopy(learners)
+                                print("Zero loss, breaking loop")
+                                break
+                            else:
+                                supp_samples = supp_samples.union(set([ind_true_max]))
+                                max_loss = true_max_loss
 
                     #if (max_loss-best_loss) >= 1e-2: 
                     #    if ind_max in supp_samples:
@@ -426,6 +451,7 @@ class Dissipativity(Certificate):
                     #    import pdb; pdb.set_trace()
                     if loss == 0:
                         state_sol=True
+                        print("State sol at iteration {}".format(state_itt))
                         break
                     else:
                         if state_itt % 100 == 0:
@@ -437,11 +463,12 @@ class Dissipativity(Certificate):
                             opt.step()
 
                 
-        V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-        Q1 = learners[1](samples_with_nexts) 
-        S1 = learners[2](samples_with_nexts) 
-        R1 = learners[3](samples_with_nexts)
-        L1 = learners[4](samples_with_nexts)
+        learners = copy.deepcopy(best_nets)
+        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
+        Q1 = best_nets[1](samples_with_nexts) 
+        S1 = best_nets[2](samples_with_nexts) 
+        R1 = best_nets[3](samples_with_nexts)
+        L1 = best_nets[4](torch.ones_like(samples_with_nexts))
         
         V1 = torch.unsqueeze(V1, 1)
         Vdot = torch.unsqueeze(Vdot, 1)
@@ -451,10 +478,10 @@ class Dissipativity(Certificate):
         samples = torch.unsqueeze(samples, 2)
 
 
-        V2 = learners[0](states_only)
-        Q2 = learners[1](states_only)
-        S2 = learners[2](states_only)
-        R2 = learners[3](states_only)[:i1-idot1]
+        V2 = best_nets[0](states_only)
+        Q2 = best_nets[1](states_only)
+        S2 = best_nets[2](states_only)
+        R2 = best_nets[3](states_only)[:i1-idot1]
         
         V2 = torch.unsqueeze(V2, 1)
         Q2 = torch.unsqueeze(Q2, 1)[:i1-idot1]
@@ -465,7 +492,13 @@ class Dissipativity(Certificate):
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         beta = V_SG.min()
-        losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, L, R1, Sind)
+        nexts = states_only[:i1-idot1] 
+        V_next = best_nets[0](nexts)
+        V_next = torch.unsqueeze(V_next, 1)
+        L_next = best_nets[4](torch.ones_like(nexts))
+        xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
+
+        losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f_samples, g_samples, samples_with_nexts, nexts, L, R1, Sind, xnext_term)
         
         loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
         
@@ -479,13 +512,13 @@ class Dissipativity(Certificate):
         ind_max = max_loss[1].item()
         max_loss = max_loss[0]
         
-        if max_loss <= best_loss:
-            best_loss = losses[ind_max]
-            best_nets = copy.deepcopy(learners)
-            supp_samples = supp_samples.union(set([ind_max]))
-        else:
-            if best_supp_defd:
-                supp_samples = supp_samples.union(best_supp_sample)
+        #if max_loss <= best_loss:
+        best_loss = max_loss 
+        print("Loss is {:.10f}".format(best_loss))
+        supp_samples = supp_samples.union(set([ind_max]))
+        #else:
+        #    if best_supp_defd:
+        #        supp_samples = supp_samples.union(best_supp_sample)
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
@@ -530,7 +563,15 @@ class Dissipativity(Certificate):
             #V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
             Sind = {"lie":[torch.arange(len(traj))]}
             #beta = V_SG.min()
-            losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind)
+            #nexts = states_only[:i1-idot1] 
+            #V_next = learners[0](nexts)
+            #V_next = torch.unsqueeze(V_next, 1)
+            #L_next = learners[4](torch.ones_like(nexts))
+            #xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
+            xnext_term = torch.tensor([0.])
+
+            losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind, xnext_term)
+            #losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind)
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))
             if len(goal_inds) == 0:

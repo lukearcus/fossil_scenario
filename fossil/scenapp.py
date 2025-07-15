@@ -188,7 +188,6 @@ class SingleScenApp:
                 domained_data["g"][key] = torch.stack(domained_data["g"][key])
             else:
                 domained_data["states"][key] = state_data[key]
-        
         return domained_data, traj_data, inits
 
 

@@ -52,11 +52,11 @@ def test_lnn():
     
     def random_control(obj, t, x):
         return np.random.random()*(system.u_max-system.u_min)+system.u_min
-    #system.controller = random_control
+    system.controller = random_control
 
     def uncontrol(obj, t, x):
         return np.array([0])
-    system.controller = uncontrol
+    #system.controller = uncontrol
 
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])

@@ -336,6 +336,8 @@ class Dissipativity(Certificate):
 
                 xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
 
+                #import pdb; pdb.set_trace()
+
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
                 V_D = V2[:i1-idot1]

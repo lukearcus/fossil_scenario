@@ -402,8 +402,9 @@ class SingleScenApp:
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
+                if state["best_loss"] <= 0.0:
+                    self.update_controller(state)
                 param_sum = new_param_sum
-                self.update_controller(state)
                 state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])

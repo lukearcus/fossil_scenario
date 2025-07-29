@@ -11,7 +11,7 @@ from fossil import control
 
 class LTI_disc(control.DissDynamicalModel):
     n_vars=2
-    time_horizon=100
+    time_horizon=10
     time="discrete"
     T=0.01
     A = np.array([[0.7,0.8],[-0.4,1.4]])

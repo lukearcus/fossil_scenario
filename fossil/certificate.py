@@ -188,6 +188,8 @@ class Dissipativity(Certificate):
             losses = second-Q
             relud_losses = relu(-losses.squeeze())
             loss = loss+relud_losses.mean()
+        else:
+            loss = loss + 1
         #state_loss = -V_D+beta
         #loss = loss + relu(state_loss).mean()
         #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
@@ -197,11 +199,13 @@ class Dissipativity(Certificate):
     def compute_loss(
             self, 
             V,
+            Vdot,
             Q,
             S,
             f,
             g,
             samples,
+            traj_nexts,
             nexts,
             L, 
             R,
@@ -221,8 +225,10 @@ class Dissipativity(Certificate):
 
         #import pdb; pdb.set_trace()        
         relu = torch.nn.ReLU()
-        #UL = (torch.bmm(nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
-        UL = xnext_term-torch.bmm(f,L.mT)+Q+V
+        
+        UL_traj = (torch.bmm(traj_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        UL_random = xnext_term-torch.bmm(f,L.mT)+Q+V
+        UL = torch.min(UL_traj, UL_random) 
         UR = S.mT-0.5*torch.bmm(g,L.mT)
         U = torch.cat((UL, UR), 2)
         BR = R
@@ -343,7 +349,7 @@ class Dissipativity(Certificate):
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 beta = V_SG.min()
-                losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f_samples, g_samples, samples_with_nexts, nexts, L, R1, Sind, xnext_term)
+                losses, learn_accuracy = self.compute_loss(V1, Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, R1, Sind, xnext_term)
                 
                 loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
                 if loss > 0:
@@ -500,7 +506,7 @@ class Dissipativity(Certificate):
         L_next = best_nets[4](torch.ones_like(nexts))
         xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
 
-        losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f_samples, g_samples, samples_with_nexts, nexts, L, R1, Sind, xnext_term)
+        losses, learn_accuracy = self.compute_loss(V1, Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, R1, Sind, xnext_term)
         
         loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
         

@@ -839,9 +839,9 @@ class BarrierAlt(Certificate):
             pred_B_dots = Bdot(traj, traj_deriv, time)
             if any(self.D[XU].check_containment(traj)):
                 true_violated += 1
-            #if (any(pred_B_i >= 0) or
-            #        any(pred_B_u <= 0)):
-            #    raise ValueError("Value violation!")
+            if (any(pred_B_i >= 0) or
+                    any(pred_B_u <= 0)):
+                raise ValueError("Value violation!")
             if any(pred_B_dots > req_diff):
                 violated += 1
                 continue

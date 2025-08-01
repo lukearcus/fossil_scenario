@@ -40,6 +40,10 @@ class SingleScenApp:
         self.S, self.S_traj = self._initialise_data(self.config.DATA["full_data"], self.config.DATA["states_only"]) # Needs editing
         self.certificate = self._initialise_certificate()
         self.learner = self._initialise_learner()
+        
+        #num_params = sum([param.numel() for param in self.learner.parameters()]) # Take this and add any violations for convex
+        #print(num_params)
+        #import pdb; pdb.set_trace()
         if config.CONVEX_NET:
             self.a_priori_supps = sum([param.numel() for param in self.learner.parameters()]) # Take this and add any violations for convex
         else:

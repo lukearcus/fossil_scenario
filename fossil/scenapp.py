@@ -389,8 +389,8 @@ class SingleScenApp:
             scenapp_log.debug("\033[1m Learner \033[0m")
             
             outputs = self.learner[0].get(**state)
-            
             state = {**state, **outputs}
+
             if state["best_loss"] != 0:
                 scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
@@ -410,7 +410,7 @@ class SingleScenApp:
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
             if state["best_loss"] <= 0.0:
-                
+            #if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)

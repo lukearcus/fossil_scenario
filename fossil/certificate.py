@@ -200,6 +200,7 @@ class Dissipativity(Certificate):
             self, 
             V,
             Vdot,
+            V_next,
             Q,
             S,
             f,
@@ -225,10 +226,27 @@ class Dissipativity(Certificate):
 
         #import pdb; pdb.set_trace()        
         relu = torch.nn.ReLU()
+         
+        big_nexts = torch.vstack([torch.vstack((nexts,t_next.unsqueeze(0))) for t_next in traj_nexts])
+        Vdot = torch.vstack([torch.vstack((V_next-V_elem,Vdot_elem.unsqueeze(0))) for V_elem, Vdot_elem in zip(V,Vdot)])
+
+        num_repeats = nexts.shape[0]+1
+        L = L.repeat((num_repeats, 1, 1))
+        f = f.repeat((num_repeats, 1, 1))
+        g = g.repeat((num_repeats, 1, 1))
+        Q = Q.repeat((num_repeats, 1, 1))
+        V = V.repeat((num_repeats, 1, 1))
+        S = S.repeat((num_repeats, 1, 1))
+        R = R.repeat((num_repeats, 1, 1))
+        #Vdot = Vdot.repeat((num_repeats, 1, 1))
         
-        UL_traj = (torch.bmm(traj_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
-        UL_random = xnext_term-torch.bmm(f,L.mT)+Q+V
-        UL = torch.min(UL_traj, UL_random) 
+
+
+        #UL_traj = (torch.bmm(traj_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        #UL_random = xnext_term-torch.bmm(f,L.mT)+Q+V
+        #UL = torch.min(UL_traj, UL_random) 
+        
+        UL = (torch.bmm(big_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
         UR = S.mT-0.5*torch.bmm(g,L.mT)
         U = torch.cat((UL, UR), 2)
         BR = R
@@ -237,8 +255,13 @@ class Dissipativity(Certificate):
 
         mat = torch.cat((U,B),1)
         eigs = torch.linalg.eigvalsh(-mat)[:,-1]
+        
+        eigs = eigs.reshape((num_repeats, -1))
+        eigs = eigs.max(axis=0)[0]
         eigs = torch.hstack((eigs, torch.tensor([0])))
-        stacked_inds = torch.hstack(indices["lie"]) 
+        
+        stacked_inds = torch.hstack(indices["lie"])
+        #stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
         ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
         losses = torch.max(ind_eigs,dim=1)[0]
         #max_eig = torch.max(eigs)
@@ -312,8 +335,8 @@ class Dissipativity(Certificate):
                 Q1 = learners[1](samples_with_nexts) 
                 S1 = learners[2](samples_with_nexts) 
                 R1 = learners[3](samples_with_nexts)
-               # L1 = learners[4](samples_with_nexts)
-                L1 = learners[4](torch.ones_like(samples_with_nexts))
+                L1 = learners[4](samples_with_nexts)
+                #L1 = learners[4](torch.ones_like(samples_with_nexts))
                 
 
                 V1 = torch.unsqueeze(V1, 1)
@@ -339,6 +362,7 @@ class Dissipativity(Certificate):
                 V_next = learners[0](nexts)
                 V_next = torch.unsqueeze(V_next, 1)
                 L_next = learners[4](torch.ones_like(nexts))
+                #L_next = learners[4](torch.ones_like(nexts))
 
                 xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
 
@@ -349,7 +373,7 @@ class Dissipativity(Certificate):
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 beta = V_SG.min()
-                losses, learn_accuracy = self.compute_loss(V1, Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, R1, Sind, xnext_term)
+                losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next[:10], Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts[:10], L, R1, Sind, xnext_term)
                 
                 loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
                 if loss > 0:
@@ -476,7 +500,8 @@ class Dissipativity(Certificate):
         Q1 = best_nets[1](samples_with_nexts) 
         S1 = best_nets[2](samples_with_nexts) 
         R1 = best_nets[3](samples_with_nexts)
-        L1 = best_nets[4](torch.ones_like(samples_with_nexts))
+        #L1 = best_nets[4](torch.ones_like(samples_with_nexts))
+        L1 = best_nets[4](samples_with_nexts)
         
         V1 = torch.unsqueeze(V1, 1)
         Vdot = torch.unsqueeze(Vdot, 1)
@@ -506,7 +531,8 @@ class Dissipativity(Certificate):
         L_next = best_nets[4](torch.ones_like(nexts))
         xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
 
-        losses, learn_accuracy = self.compute_loss(V1, Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, R1, Sind, xnext_term)
+        losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next[:10], Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts[:10], L, R1, Sind, xnext_term)
+        #losses, learn_accuracy = self.compute_loss(V1, Vdot, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, R1, Sind, xnext_term)
         
         loss = self.compute_state_loss(Q2, S2, R2, V_D, V_G, V_I, beta)
         
@@ -571,14 +597,15 @@ class Dissipativity(Certificate):
             #V_G = V[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
             Sind = {"lie":[torch.arange(len(traj))]}
             #beta = V_SG.min()
-            #nexts = states_only[:i1-idot1] 
-            #V_next = learners[0](nexts)
+            nexts = state_data["lie"] 
+            V_next = nets[0](nexts)
             #V_next = torch.unsqueeze(V_next, 1)
             #L_next = learners[4](torch.ones_like(nexts))
             #xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
             xnext_term = torch.tensor([0.])
 
-            losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind, xnext_term)
+            #losses, learn_accuracy = self.compute_loss(V1, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind, xnext_term)
+            losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next[:10].unsqueeze(1).unsqueeze(1), Q1, S1, f, g, traj, traj_deriv, nexts[:10].unsqueeze(1), L, R1, Sind, xnext_term)
             #losses, learn_accuracy = self.compute_loss(Vdot, Q1, S1, f, g, traj, traj_deriv, L, R1, Sind)
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))

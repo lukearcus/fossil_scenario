@@ -452,19 +452,23 @@ class Dissipativity(Certificate):
                         for l in learners])
                     new_supp = False
                     if supp_loss != max_loss:
-                        for ind, loss in zip(max_inds, maximising_losses):
-                            for opt in optimizer:
-                                opt.zero_grad()
-                            loss.backward(retain_graph=True)
-                            grads = torch.hstack([
-                                torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                                for l in learners])
-                            inner = torch.inner(grads, supp_grads)
-                            #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
-                            if inner <= 0:
-                                supp_samples = supp_samples.union(set([ind.item()]))
-                                new_supp = True
-                                break
+                        if supp_loss == 0:
+                            supp_samples = supp_samples.union(set([ind_max]))
+                            max_loss.backward()
+                            new_supp=True
+                        #for ind, loss in zip(max_inds, maximising_losses):
+                        #    for opt in optimizer:
+                        #        opt.zero_grad()
+                        #    loss.backward(retain_graph=True)
+                        #    grads = torch.hstack([
+                        #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                        #        for l in learners])
+                        #    inner = torch.inner(grads, supp_grads)
+                        #    #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
+                        #    if inner <= 0:
+                        #        supp_samples = supp_samples.union(set([ind.item()]))
+                        #        new_supp = True
+                        #        break
                     if not new_supp:
                         for opt in optimizer:
                             opt.zero_grad()

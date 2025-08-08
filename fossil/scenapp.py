@@ -454,7 +454,8 @@ class SingleScenApp:
                 scenapp_log.warning("Out of iterations")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
-            elif torch.abs(old_best-state["best_loss"]) < converge_tol:
+            #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
+            elif old_best-state["best_loss"] < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 self.discard(state)
                 scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))

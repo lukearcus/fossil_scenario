@@ -403,14 +403,17 @@ class SingleScenApp:
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
                 if state["best_loss"] <= 0.0:
+                    print("Updating controller")
                     self.update_controller(state)
                 param_sum = new_param_sum
-                state["best_loss"] = torch.tensor([100])*(iters+1)
+                if state["best_loss"] == 0:
+                    state["best_loss"] = torch.tensor([1e-5])
+                #state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
-            if state["best_loss"] <= 0.0:
-            #if True: 
+            #if state["best_loss"] <= 0.0:
+            if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)
@@ -451,10 +454,10 @@ class SingleScenApp:
                 scenapp_log.warning("Out of iterations")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
-            elif torch.abs(state["best_loss"]-old_best) < converge_tol:
+            elif torch.abs(old_best-state["best_loss"]) < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
-                self.discard(state)
-                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
+                #self.discard(state)
+                #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
                 old_loss = state["loss"]
                 old_best = state["best_loss"]

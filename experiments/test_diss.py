@@ -47,7 +47,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 1000
+    n_data = 1
     system = models.LTI_disc 
     
     def random_control(obj, t, x):
@@ -60,7 +60,7 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])
     XD = domains.Torus([0,0],5,0.1)
-    XI = domains.Torus([0,0],5,0.2)
+    XI = domains.Torus([0,0],1,0.2)
     #XI = domains.Rectangle([-3, -3], [3, 3])
     XG = domains.Sphere([0,0],0.1)
 

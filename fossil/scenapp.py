@@ -274,15 +274,16 @@ class SingleScenApp:
                     to_remove.add(actual_ind)
                 if len(to_remove) == len(self.remaining_inds):
                     print("removed all samples, maintaining final support samples")
-                    return
+                    return state
                 self.remaining_inds=list(set(self.remaining_inds)-to_remove)
             state["supps"] = set()
-        new_traj_inds = [i for i in range(len(traj_data["states"])) if i not in state["discarded"]]
+        #new_traj_inds = [i for i in range(len(traj_data["states"])) if i not in state["discarded"]]
+        new_traj_inds = self.remaining_inds
         new_traj_data = {}
         for key in traj_data:
             new_traj_data[key] = [traj_data[key][ind] for ind in new_traj_inds]
         
-        self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+        self.S, self.S_traj, self.init_S = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
         state[ScenAppStateKeys.S_dot] = self.S["derivs"]
@@ -292,7 +293,7 @@ class SingleScenApp:
         state[ScenAppStateKeys.times] = self.S["times"]
         state[ScenAppStateKeys.f] = self.S["f"]
         state[ScenAppStateKeys.g] = self.S["g"]
-        return
+        return state
 
     def est_disc_gap(self, state):
         # Would be better off adding this to the loss function, but this works OK.
@@ -402,7 +403,8 @@ class SingleScenApp:
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
-                if state["best_loss"] <= 0.0:
+                #if state["best_loss"] <= 0.0:
+                if True:
                     print("Updating controller")
                     self.update_controller(state)
                 param_sum = new_param_sum
@@ -457,8 +459,8 @@ class SingleScenApp:
             #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
             elif old_best-state["best_loss"] < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
-                self.discard(state)
-                scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
+                #state = self.discard(state)
+                #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
                 old_loss = state["loss"]
                 old_best = state["best_loss"]

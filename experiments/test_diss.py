@@ -37,7 +37,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=250,
+        SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )
@@ -47,7 +47,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 100
+    n_data = 1
     system = models.LTI_disc 
     
     def random_control(obj, t, x):
@@ -87,7 +87,6 @@ def test_lnn():
     activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
     
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
-    n_hidden_neurons = {"V":[5] * len(activations["V"]), "Q":[5] * len(activations["Q"]), "S":[5] * len(activations["S"]), "R":[5] * len(activations["R"]), "L":[5] * len(activations["L"])}
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()
     traj_data_random = system().generate_trajs(init_data)[1]

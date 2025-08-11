@@ -182,6 +182,11 @@ class Dissipativity(Certificate):
         eigs = torch.linalg.eigvalsh(-R)[:,-1]+1e-5
         loss = relu(eigs).mean()
         
+        state_loss = -V_D+beta
+        loss = loss + relu(state_loss).mean()
+        goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
+        loss = loss + relu(goal_loss).mean()
+        
         if loss == 0:
             first = torch.bmm(S,torch.inverse(R))
             second = torch.bmm(first, S.mT)
@@ -193,10 +198,6 @@ class Dissipativity(Certificate):
             loss = loss+control.mean()
         else:
             loss = loss + 1
-        #state_loss = -V_D+beta
-        #loss = loss + relu(state_loss).mean()
-        #goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
-        #loss = loss + relu(goal_loss).mean()
         return loss
 
     def compute_loss(
@@ -299,7 +300,7 @@ class Dissipativity(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 1000
+        learn_loops = 1000000
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -433,6 +434,8 @@ class Dissipativity(Certificate):
                                 print("Zero loss, breaking loop")
                                 break
                             else:
+                                print("zero supp_loss, jumping")
+                                best_loss = true_max_loss
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
 
@@ -452,23 +455,24 @@ class Dissipativity(Certificate):
                         for l in learners])
                     new_supp = False
                     if supp_loss != max_loss:
-                        if supp_loss == 0:
-                            supp_samples = supp_samples.union(set([ind_max]))
-                            max_loss.backward()
-                            new_supp=True
-                        #for ind, loss in zip(max_inds, maximising_losses):
-                        #    for opt in optimizer:
-                        #        opt.zero_grad()
-                        #    loss.backward(retain_graph=True)
-                        #    grads = torch.hstack([
-                        #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                        #        for l in learners])
-                        #    inner = torch.inner(grads, supp_grads)
-                        #    #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
-                        #    if inner <= 0:
-                        #        supp_samples = supp_samples.union(set([ind.item()]))
-                        #        new_supp = True
-                        #        break
+                        #if supp_loss == 0:
+                        #    print("zero supp_loss, jumping")
+                        #    supp_samples = supp_samples.union(set([ind_max]))
+                        #    max_loss.backward()
+                        #    new_supp=True
+                        for ind, loss in zip(max_inds, maximising_losses):
+                            for opt in optimizer:
+                                opt.zero_grad()
+                            loss.backward(retain_graph=True)
+                            grads = torch.hstack([
+                                torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                                for l in learners])
+                            inner = torch.inner(grads, supp_grads)
+                            #if torch.abs(supp_loss-prev_supp_loss) < 1e-10: #convergence of support loss check
+                            if inner <= 0:
+                                supp_samples = supp_samples.union(set([ind.item()]))
+                                new_supp = True
+                                break
                     if not new_supp:
                         for opt in optimizer:
                             opt.zero_grad()
@@ -511,7 +515,7 @@ class Dissipativity(Certificate):
                         for opt in optimizer:
                             opt.step()
 
-                
+        #best_nets=copy.deepcopy(learners)        
         learners = copy.deepcopy(best_nets)
         V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
         Q1 = best_nets[1](samples_with_nexts) 
@@ -519,7 +523,7 @@ class Dissipativity(Certificate):
         R1 = best_nets[3](samples_with_nexts)
         #L1 = best_nets[4](torch.ones_like(samples_with_nexts))
         #L1 = best_nets[4](samples_with_nexts)
-        L1 = learners[4](samples_dot)
+        L1 = best_nets[4](samples_dot)
         
         V1 = torch.unsqueeze(V1, 1)
         Vdot = torch.unsqueeze(Vdot, 1)
@@ -552,7 +556,7 @@ class Dissipativity(Certificate):
         L_next = best_nets[4](torch.ones_like(nexts))
         xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
         
-        L_next = learners[4](nexts)
+        L_next = best_nets[4](nexts)
 
         losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, L_next, R1, Sind, xnext_term)
         #losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, L_next, R1, Sind, xnext_term)

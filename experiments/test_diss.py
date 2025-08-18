@@ -30,7 +30,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         DATA=data,
         N_DATA=n_data,
         N_TEST_DATA=100,
-        CERTIFICATE=CertificateType.DISSIPATIVITY,
+        CERTIFICATE=CertificateType.DIRECTCONTROL,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
@@ -82,11 +82,13 @@ def test_lnn():
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
+    #activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
     
     activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
+    activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
-    n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
+    #n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
+    n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()
     traj_data_random = system().generate_trajs(init_data)[1]
@@ -106,11 +108,13 @@ def test_lnn():
     def diss_control(obj, t, x):
         x = torch.tensor(x,dtype=torch.float32)
         if len(x.shape) == 1: 
-            R = res[-1].cert[3](x.unsqueeze(1).T).detach()
-            return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
+            return res[-1].cert[1](x.unsqueeze(1).T).detach().numpy()
+            #R = res[-1].cert[3](x.unsqueeze(1).T).detach()
+            #return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
         else:
-            R = res[-1].cert[3](x.unsqueeze(2).mT).detach()
-            return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT))).detach().numpy()
+            return res[-1].cert[1](x.unsqueeze(2).mT).detach().numpy()
+            #R = res[-1].cert[3](x.unsqueeze(2).mT).detach()
+            #return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT))).detach().numpy()
         
     system.controller = diss_control
     

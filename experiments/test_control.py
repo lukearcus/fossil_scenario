@@ -19,13 +19,14 @@ from functools import partial
 from multiprocessing import Pool
 import torch
 torch.set_num_threads(8)
+torch.manual_seed(0)
 
-def solve(system, sets, n_data, activations, hidden_neurons, data):
+def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
     opts = ScenAppConfig(
         N_VARS=2,
         CONTROL_VARS=1,
-        SYSTEM=system,
+        SYSTEM=systems,
         DOMAINS=sets,
         DATA=data,
         N_DATA=n_data,
@@ -47,8 +48,8 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 100
-    system = models.LTI_disc 
+    n_data = 2
+    system = models.LTI_disc_param 
     
     def random_control(obj, t, x):
         return np.random.random()*(system.u_max-system.u_min)+system.u_min
@@ -81,18 +82,11 @@ def test_lnn():
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
-    #activations = [fossil.ActivationType.SQUARE]
-    
-    #activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
-    
-    #activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
-    
-    #activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
-    #n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}
+    
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()
     traj_data_random = system().generate_trajs(init_data)[1]
@@ -100,10 +94,18 @@ def test_lnn():
     num_runs =5
 
     init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
+   
+    systems = [[system() for i in range(n_data)] for init_datum in init_data] # parameterised systems
+    all_data = [[sys.generate_trajs(np.expand_dims(d,0)) for sys, d in zip(system, init_datum)] for system, init_datum in zip(systems, init_data)]
     
-    all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
-    data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]}} for all_datum in all_data]
-    part_solve = partial(solve, system, dom, n_data, activations, n_hidden_neurons)
+    times = [[datum[0][0] for datum in all_datum] for all_datum in all_data]
+    states = [[datum[1][0] for datum in all_datum] for all_datum in all_data]
+    derivs = [[datum[2][0] for datum in all_datum] for all_datum in all_data]
+    f_vals = [[datum[3][0] for datum in all_datum] for all_datum in all_data]
+    g_vals = [[datum[4][0] for datum in all_datum] for all_datum in all_data]
+    
+    data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
+    part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons) # parallel broken by systems[0]
     res = [part_solve(data[0])]
     import pdb; pdb.set_trace()
     #with Pool(processes=num_runs) as pool:
@@ -113,12 +115,8 @@ def test_lnn():
         x = torch.tensor(x,dtype=torch.float32)
         if len(x.shape) == 1: 
             return res[-1].cert[1](x.unsqueeze(1).T).detach().numpy()
-            #R = res[-1].cert[3](x.unsqueeze(1).T).detach()
-            #return (-torch.inverse(R)@res[-1].cert[2](x.unsqueeze(1).T)).detach().numpy()
         else:
             return res[-1].cert[1](x.unsqueeze(2).mT).detach().numpy()
-            #R = res[-1].cert[3](x.unsqueeze(2).mT).detach()
-            #return (-torch.bmm(torch.inverse(R),res[-1].cert[2](x.unsqueeze(2).mT))).detach().numpy()
         
     system.controller = diss_control
     

@@ -75,6 +75,7 @@ class SingleScenApp:
 
 
     def _initialise_learner(self):
+         
          V = learner.DissV(
             self.config.N_VARS,
             self.certificate.learn,
@@ -83,42 +84,56 @@ class SingleScenApp:
             bias=self.certificate.bias,
             config=self.config,
             )
-         Q = learner.DissQ(
-            self.config.N_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["Q"],
-            activation=self.config.ACTIVATION["Q"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         S = learner.DissS(
-            self.config.N_VARS,
-            self.config.CONTROL_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["S"],
-            activation=self.config.ACTIVATION["S"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         R = learner.DissR(
-            self.config.N_VARS,
-            self.config.CONTROL_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["R"],
-            activation=self.config.ACTIVATION["R"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         L = learner.DissS(
-            self.config.N_VARS,
-            self.config.N_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["L"],
-            activation=self.config.ACTIVATION["L"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         return (V, Q, S, R, L)
+         if self.config.CERTIFICATE == certificate.CertificateType.DISSIPATIVITY:
+            Q = learner.DissQ(
+               self.config.N_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["Q"],
+               activation=self.config.ACTIVATION["Q"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            S = learner.DissS(
+               self.config.N_VARS,
+               self.config.CONTROL_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["S"],
+               activation=self.config.ACTIVATION["S"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            R = learner.DissR(
+               self.config.N_VARS,
+               self.config.CONTROL_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["R"],
+               activation=self.config.ACTIVATION["R"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            L = learner.DissS(
+               self.config.N_VARS,
+               self.config.N_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["L"],
+               activation=self.config.ACTIVATION["L"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            return (V, Q, S, R, L)
+         elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+            u = learner.Controller(
+               self.config.N_VARS,
+               self.config.CONTROL_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["u"],
+               activation=self.config.ACTIVATION["u"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            return (V, u)
+         else:
+            raise NotImplementedError
 
     def _initialise_verifier(self):
         num_params = sum(sum(p.numel() for p in l.parameters() if p.requires_grad) for l in self.learner)
@@ -214,9 +229,23 @@ class SingleScenApp:
         except KeyError:
             test_data = self.config.DOMAINS["lie"]._generate_data(n_data)()
 
-        all_test_data = self.config.SYSTEM().generate_trajs(test_data)
+        new_systems = [self.config.SYSTEM[0].__new__(self.config.SYSTEM[0].__class__) for i in test_data]
+        for sys in new_systems:
+            sys.__init__()
+        all_test_data = [sys.generate_trajs(np.expand_dims(test_datum,0)) for sys, test_datum in zip(new_systems, test_data)]
+        
+        #all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]
+    
+        times =  [datum[0][0] for datum in all_test_data]
+        states = [datum[1][0] for datum in all_test_data]
+        derivs = [datum[2][0] for datum in all_test_data]
+        f_vals = [datum[3][0] for datum in all_test_data]
+        g_vals = [datum[4][0] for datum in all_test_data]
+        
+        #new_traj_data = {"times":times,"states":states,"derivs":derivs, "f_vals":f_vals, "g_vals":g_vals}        
        # data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2]}}
-        data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2], "f_vals":all_test_data[3], "g_vals":all_test_data[4]}}
+        data = {"states_only": None, "full_data": {"times":times,"states":states,"derivs":derivs, "f_vals":f_vals, "g_vals":g_vals}}
+        #data = {"states_only": None, "full_data": {"times":all_test_data[0],"states":all_test_data[1],"derivs":all_test_data[2], "f_vals":all_test_data[3], "g_vals":all_test_data[4]}}
         num_violations, true_violations = self.certificate.get_violations(certs, data["full_data"], state_data)
         k = num_violations
         k = true_violations # use this for direct property validation
@@ -231,19 +260,50 @@ class SingleScenApp:
 
     def update_controller(self, state):
         
-        def diss_control(obj, t, x):
-            x = torch.tensor(x,dtype=torch.float32)
-            if len(x.shape) == 1:
-                R = state["best_net"][3](x.unsqueeze(1).T).detach()
-                return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
-            else:
-                R = state["best_net"][3](x.unsqueeze(2).mT).detach()
-                return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT))).detach().numpy()
-
-        self.config.SYSTEM.controller = diss_control
+        if self.config.CERTIFICATE == certificate.CertificateType.DISSIPATIVITY:
         
-        all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
-        new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
+            def diss_control(t, x):
+                x = torch.tensor(x,dtype=torch.float32)
+                if len(x.shape) == 1:
+                    R = state["best_net"][3](x.unsqueeze(1).T).detach()
+                    return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
+                else:
+                    R = state["best_net"][3](x.unsqueeze(2).mT).detach()
+                    return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT))).detach().numpy()
+
+            for sys in self.config.SYSTEM:
+                sys.controller = diss_control
+        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+
+            def control(t, x):
+                x = torch.tensor(x,dtype=torch.float32)
+                if len(x.shape) == 1:
+                    return state["best_net"][1](x.unsqueeze(1).T).detach().numpy()
+                else:
+                    return state["best_net"][1](x.unsqueeze(2).mT).detach().numpy()
+
+            for sys in self.config.SYSTEM:
+                sys.controller = control
+        else:
+            return
+        all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]
+    
+        times =  [datum[0][0] for datum in all_data]
+        states = [datum[1][0] for datum in all_data]
+        derivs = [datum[2][0] for datum in all_data]
+        f_vals = [datum[3][0] for datum in all_data]
+        g_vals = [datum[4][0] for datum in all_data]
+        
+        new_traj_data = {"times":times,"states":states,"derivs":derivs, "f_vals":f_vals, "g_vals":g_vals}        
+        #all_data = [system.generate_trajs(init_datum) for system, init_datum in zip(systems, init_data)]
+        
+
+        #data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]}} for all_datum in all_data]
+        
+
+        #all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
+        #new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
+        #new_traj_data = [{"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]} for all_datum in all_data]
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]

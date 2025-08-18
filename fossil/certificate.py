@@ -174,7 +174,7 @@ class Direct_control(Certificate):
         self.control = config.CTRLAYER is not None
         self.D = config.DOMAINS
         self.beta = None
-        self.T = config.SYSTEM.time_horizon
+        self.T = config.SYSTEM[0].time_horizon
     
     def compute_state_loss(self, V_D, V_G, V_I, beta):
         relu = torch.nn.ReLU()
@@ -637,11 +637,12 @@ class Dissipativity(Certificate):
         mat = torch.cat((U,B),1)
         eigs = torch.linalg.eigvalsh(-mat)[:,-1]
         
-        #eigs = eigs.reshape((num_repeats, -1))
-        #eigs = eigs.max(axis=0)[0]
+        eigs = eigs.reshape((num_repeats, -1))
+        eigs = eigs.max(axis=0)[0]
         eigs = torch.hstack((eigs, torch.tensor([0])))
         
         stacked_inds = torch.hstack(indices["lie"])
+        #import pdb; pdb.set_trace()
         #stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
         ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
         losses = torch.max(ind_eigs,dim=1)[0]

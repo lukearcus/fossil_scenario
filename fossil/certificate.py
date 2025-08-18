@@ -261,24 +261,33 @@ class Dissipativity(Certificate):
         #UL = torch.min(UL_traj, UL_random) 
         
         #UL = (torch.bmm(big_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
-        UL = (torch.bmm(nexts,L_next.mT)-torch.bmm(f,L_next.mT))-V_next+V+Q
-        UR = S.mT-0.5*torch.bmm(g,L_next.mT)
-        U = torch.cat((UL, UR), 2)
-        BR = R
-
-        B = torch.cat((UR, BR),2)
-
-        mat = torch.cat((U,B),1)
-        eigs = torch.linalg.eigvalsh(-mat)[:,-1]
         
-        #eigs = eigs.reshape((num_repeats, -1))
-        #eigs = eigs.max(axis=0)[0]
-        eigs = torch.hstack((eigs, torch.tensor([0])))
+        #
+        loss = V_next-V-Q+torch.bmm(torch.bmm(S, torch.inverse(R)), S.mT)-Q+relu(L_next[0,0,0])
         
+        # change this if success
+        #UL = (torch.bmm(nexts,L_next.mT)-torch.bmm(f,L_next.mT))-V_next+V+Q
+        #UR = S.mT-0.5*torch.bmm(g,L_next.mT)
+        #U = torch.cat((UL, UR), 2)
+        #BR = R
+
+        #B = torch.cat((UR, BR),2)
+
+        #mat = torch.cat((U,B),1)
+        #eigs = torch.linalg.eigvalsh(-mat)[:,-1]
+        #
+        ##eigs = eigs.reshape((num_repeats, -1))
+        ##eigs = eigs.max(axis=0)[0]
+        #eigs = torch.hstack((eigs, torch.tensor([0])))
+        #
+        #stacked_inds = torch.hstack(indices["lie"])
+        ##stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
+        #ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
+        #losses = torch.max(ind_eigs,dim=1)[0]
         stacked_inds = torch.hstack(indices["lie"])
-        #stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
-        ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
-        losses = torch.max(ind_eigs,dim=1)[0]
+        ##stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
+        ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
+        losses = torch.max(ind_losses,dim=1)[0]
         acc = sum(losses <= 0)/len(losses)
         #max_eig = torch.max(eigs)
         return losses, {"traj_acc":acc.item()*100}

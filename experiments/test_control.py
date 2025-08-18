@@ -107,7 +107,6 @@ def test_lnn():
     data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
     part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons) # parallel broken by systems[0]
     res = [part_solve(data[0])]
-    import pdb; pdb.set_trace()
     #with Pool(processes=num_runs) as pool:
     #    res = pool.map(part_solve, data)
     
@@ -143,11 +142,13 @@ def test_lnn():
     )
 
     init_data = XI._generate_data(num_traj_plots)()
-    traj_data_controlled = system().generate_trajs(init_data)[1]
+    traj_data_controlled = [system().generate_trajs(np.expand_dims(init_datum,0))[1][0] for init_datum in init_data]
+    import pdb; pdb.set_trace()
     for traj in traj_data_controlled:
         axes[0][0].plot(traj[0,:], traj[1,:], 'b')
     #for traj in traj_data_random:
     #    axes[0][0].plot(traj[0,:], traj[1,:], 'r')
+    import pdb; pdb.set_trace()
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
 

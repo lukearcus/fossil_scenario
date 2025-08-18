@@ -263,7 +263,7 @@ class Dissipativity(Certificate):
         #UL = (torch.bmm(big_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
         
         #
-        loss = V_next-V-Q+torch.bmm(torch.bmm(S, torch.inverse(R)), S.mT)-Q+relu(L_next[0,0,0])
+        loss = V_next-V-Q+torch.bmm(torch.bmm(S, torch.inverse(R)), S.mT)-Q+0*relu(L_next[0,0,0])
         
         # change this if success
         #UL = (torch.bmm(nexts,L_next.mT)-torch.bmm(f,L_next.mT))-V_next+V+Q

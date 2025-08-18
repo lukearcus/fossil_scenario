@@ -597,55 +597,58 @@ class Dissipativity(Certificate):
         #import pdb; pdb.set_trace()        
         relu = torch.nn.ReLU()
          
-        #big_nexts = torch.vstack([torch.vstack((nexts,t_next.unsqueeze(0))) for t_next in traj_nexts])
-        #L = torch.vstack([torch.vstack((L_next,L_i.unsqueeze(0))) for L_i in L])
-        #Vdot = torch.vstack([torch.vstack((V_next-V_elem,Vdot_elem.unsqueeze(0))) for V_elem, Vdot_elem in zip(V,Vdot)])
+        big_nexts = torch.vstack([torch.vstack((n,t_next)) for (n, t_next) in zip(nexts, traj_nexts)])
+        L = torch.vstack([torch.vstack((L_n,L_i)) for L_n, L_i in zip(L_next, L)])
+        Vdot = torch.vstack([torch.vstack((V_n-V_elem,Vdot_elem)) for V_n, V_elem, Vdot_elem in zip(V_next, V,Vdot)])
 
-        #num_repeats = nexts.shape[0]+1
+        num_repeats = nexts.shape[1]+1
         #L = L.repeat((num_repeats, 1, 1))
-        #f = f.repeat((num_repeats, 1, 1))
-        #g = g.repeat((num_repeats, 1, 1))
-        #Q = Q.repeat((num_repeats, 1, 1))
-        #V = V.repeat((num_repeats, 1, 1))
-        #S = S.repeat((num_repeats, 1, 1))
-        #R = R.repeat((num_repeats, 1, 1))
+        f = f.repeat((num_repeats, 1, 1))
+        g = g.repeat((num_repeats, 1, 1))
+        Q = Q.repeat((num_repeats, 1, 1))
+        V = V.repeat((num_repeats, 1, 1))
+        S = S.repeat((num_repeats, 1, 1))
+        R = R.repeat((num_repeats, 1, 1))
         #Vdot = Vdot.repeat((num_repeats, 1, 1))
-        
+        L = L.unsqueeze(2).mT
+        big_nexts = big_nexts.unsqueeze(2).mT
+        Vdot = Vdot.unsqueeze(2)
 
 
         #UL_traj = (torch.bmm(traj_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
         #UL_random = xnext_term-torch.bmm(f,L.mT)+Q+V
         #UL = torch.min(UL_traj, UL_random) 
         
-        #UL = (torch.bmm(big_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
+        UL = (torch.bmm(big_nexts,L.mT)-torch.bmm(f,L.mT))-Vdot+Q
         
         #
-        loss = V_next-V+torch.bmm(torch.bmm(S, torch.inverse(R)), S.mT)-Q+0*relu(L_next[0,0,0])
-        loss = V_next-V+0*relu(L_next[0,0,0])
+        #loss = V_next-V+torch.bmm(torch.bmm(S, torch.inverse(R)), S.mT)-Q+0*relu(L_next[0,0,0])
+        #loss = V_next-V+0*relu(L_next[0,0,0])
         
         # change this if success
         #UL = (torch.bmm(nexts,L_next.mT)-torch.bmm(f,L_next.mT))-V_next+V+Q
         #UR = S.mT-0.5*torch.bmm(g,L_next.mT)
-        #U = torch.cat((UL, UR), 2)
-        #BR = R
+        UR = S.mT-0.5*torch.bmm(g,L.mT)
+        U = torch.cat((UL, UR), 2)
+        BR = R
 
-        #B = torch.cat((UR, BR),2)
+        B = torch.cat((UR, BR),2)
 
-        #mat = torch.cat((U,B),1)
-        #eigs = torch.linalg.eigvalsh(-mat)[:,-1]
-        #
-        ##eigs = eigs.reshape((num_repeats, -1))
-        ##eigs = eigs.max(axis=0)[0]
-        #eigs = torch.hstack((eigs, torch.tensor([0])))
-        #
+        mat = torch.cat((U,B),1)
+        eigs = torch.linalg.eigvalsh(-mat)[:,-1]
+        
+        #eigs = eigs.reshape((num_repeats, -1))
+        #eigs = eigs.max(axis=0)[0]
+        eigs = torch.hstack((eigs, torch.tensor([0])))
+        
+        stacked_inds = torch.hstack(indices["lie"])
+        #stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
+        ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
+        losses = torch.max(ind_eigs,dim=1)[0]
         #stacked_inds = torch.hstack(indices["lie"])
         ##stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
-        #ind_eigs = torch.reshape(eigs[stacked_inds], (len(indices["lie"]),-1))
-        #losses = torch.max(ind_eigs,dim=1)[0]
-        stacked_inds = torch.hstack(indices["lie"])
-        ##stacked_inds = stacked_inds.unsqueeze(1).repeat((1,11)).flatten()
-        ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
-        losses = torch.max(ind_losses,dim=1)[0]
+        #ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
+        #losses = torch.max(ind_losses,dim=1)[0]
         acc = sum(losses <= 0)/len(losses)
         #max_eig = torch.max(eigs)
         return losses, {"traj_acc":acc.item()*100}
@@ -742,10 +745,13 @@ class Dissipativity(Certificate):
                 Q2 = torch.unsqueeze(Q2, 1)
                 #S2 = torch.unsqueeze(S2, 1)
                 #nexts = torch.vstack((samples_dot,states_only[:i1-idot1])) #this depends on samples, which we don't want
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
+                #nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
+                u_samples = torch.arange(-1, 1.1, 0.2)
+                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u_samples.unsqueeze(1).repeat(10,1,1).mT)).mT 
                 #nexts = states_only[:i1-idot1] 
-                V_next = learners[0](nexts)
-                V_next = torch.unsqueeze(V_next, 1)
+                V_next = torch.vstack([learners[0](n) for n in nexts]) 
+                #V_next = torch.learners[0](nexts)
+                V_next = torch.unsqueeze(V_next, 2)
                 #L_next = learners[4](torch.ones_like(nexts))
                 #L_next = learners[4](torch.ones_like(nexts))
 
@@ -927,14 +933,27 @@ class Dissipativity(Certificate):
         beta = V_SG.min()
 
 
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
+        #nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
+        u_samples = torch.arange(-1, 1.1, 0.2)
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u_samples.unsqueeze(1).repeat(10,1,1).mT)).mT 
         #nexts = states_only[:i1-idot1] 
-        V_next = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next, 1)
-        L_next = best_nets[4](torch.ones_like(nexts))
-        xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
+        V_next = torch.vstack([learners[0](n) for n in nexts]) 
+        #V_next = torch.learners[0](nexts)
+        V_next = torch.unsqueeze(V_next, 2)
+        #L_next = learners[4](torch.ones_like(nexts))
+        #L_next = learners[4](torch.ones_like(nexts))
+
+        #xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
+        xnext_term = 0
+        L_next = learners[4](nexts)
+
+        #nexts = states_only[:i1-idot1] 
+        #V_next = best_nets[0](nexts)
+        #V_next = torch.unsqueeze(V_next, 1)
+        #L_next = best_nets[4](torch.ones_like(nexts))
+        #xnext_term = torch.min(torch.bmm(L_next.mT, nexts)-V_next)
         
-        L_next = best_nets[4](nexts)
+        #L_next = best_nets[4](nexts)
 
         losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, L_next, R1, Sind, xnext_term)
         #losses, learn_accuracy = self.compute_loss(V1, Vdot, V_next, Q1, S1, f_samples, g_samples, samples_with_nexts, samples_dot, nexts, L, L_next, R1, Sind, xnext_term)

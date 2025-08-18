@@ -83,42 +83,43 @@ class SingleScenApp:
             bias=self.certificate.bias,
             config=self.config,
             )
-         Q = learner.DissQ(
-            self.config.N_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["Q"],
-            activation=self.config.ACTIVATION["Q"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         S = learner.DissS(
+         u = learner.Controller(
             self.config.N_VARS,
             self.config.CONTROL_VARS,
             self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["S"],
-            activation=self.config.ACTIVATION["S"],
+            self.config.N_HIDDEN_NEURONS["u"],
+            activation=self.config.ACTIVATION["u"],
             bias=self.certificate.bias,
             config=self.config,
                             )
-         R = learner.DissR(
-            self.config.N_VARS,
-            self.config.CONTROL_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["R"],
-            activation=self.config.ACTIVATION["R"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         L = learner.DissS(
-            self.config.N_VARS,
-            self.config.N_VARS,
-            self.certificate.learn,
-            self.config.N_HIDDEN_NEURONS["L"],
-            activation=self.config.ACTIVATION["L"],
-            bias=self.certificate.bias,
-            config=self.config,
-                            )
-         return (V, Q, S, R, L)
+         #S = learner.DissS(
+         #   self.config.N_VARS,
+         #   self.config.CONTROL_VARS,
+         #   self.certificate.learn,
+         #   self.config.N_HIDDEN_NEURONS["S"],
+         #   activation=self.config.ACTIVATION["S"],
+         #   bias=self.certificate.bias,
+         #   config=self.config,
+         #                   )
+         #R = learner.DissR(
+         #   self.config.N_VARS,
+         #   self.config.CONTROL_VARS,
+         #   self.certificate.learn,
+         #   self.config.N_HIDDEN_NEURONS["R"],
+         #   activation=self.config.ACTIVATION["R"],
+         #   bias=self.certificate.bias,
+         #   config=self.config,
+         #                   )
+         #L = learner.DissS(
+         #   self.config.N_VARS,
+         #   self.config.N_VARS,
+         #   self.certificate.learn,
+         #   self.config.N_HIDDEN_NEURONS["L"],
+         #   activation=self.config.ACTIVATION["L"],
+         #   bias=self.certificate.bias,
+         #   config=self.config,
+         #                   )
+         return (V, u)#Q, S, R, L)
 
     def _initialise_verifier(self):
         num_params = sum(sum(p.numel() for p in l.parameters() if p.requires_grad) for l in self.learner)
@@ -234,11 +235,13 @@ class SingleScenApp:
         def diss_control(obj, t, x):
             x = torch.tensor(x,dtype=torch.float32)
             if len(x.shape) == 1:
-                R = state["best_net"][3](x.unsqueeze(1).T).detach()
-                return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
+                return state["best_net"][1](x.unsqueeze(1).T).detach().numpy()
+                #R = state["best_net"][3](x.unsqueeze(1).T).detach()
+                #return (-torch.inverse(R)@state["best_net"][2](x.unsqueeze(1).T)).detach().numpy()
             else:
-                R = state["best_net"][3](x.unsqueeze(2).mT).detach()
-                return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT))).detach().numpy()
+                return state["best_net"][1](x.unsqueeze(2).mT).detach().numpy()
+                #R = state["best_net"][3](x.unsqueeze(2).mT).detach()
+                #return (-torch.bmm(torch.inverse(R),state["best_net"][2](x.unsqueeze(2).mT))).detach().numpy()
 
         self.config.SYSTEM.controller = diss_control
         

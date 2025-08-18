@@ -437,8 +437,12 @@ class DissV(LearnerNN):
         config: ScenAppConfig = ScenAppConfig(),
         bias=True,
     ):
-        bias = False
-        config.LLO = True
+        if activation[-1] == ActivationType.SQUARE:
+            bias = False
+            config.LLO = True
+        else:
+            bias = True
+            config.LLO = False
         super().__init__(
             input_size,
             learn_method,

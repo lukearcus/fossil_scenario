@@ -29,7 +29,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         DOMAINS=sets,
         DATA=data,
         N_DATA=n_data,
-        N_TEST_DATA=n_data,
+        N_TEST_DATA=100,
         CERTIFICATE=CertificateType.DISSIPATIVITY,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
@@ -47,7 +47,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 1
+    n_data = 100
     system = models.LTI_disc 
     
     def random_control(obj, t, x):

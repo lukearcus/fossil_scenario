@@ -186,7 +186,7 @@ class Direct_control(Certificate):
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss <= 0))/(2*N_data)
         loss = loss + relu(goal_loss).mean()
-        loss = torch.tensor([0.0]) 
+        #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
         #control = relu(torch.abs(u).max(axis=1)[0])-u_max)
         #loss = loss+control.mean()

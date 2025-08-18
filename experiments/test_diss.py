@@ -82,10 +82,14 @@ def test_lnn():
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
+    
     #activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
     
-    activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
-    activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    #activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "Q":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "S":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "R":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID], "L":[fossil.ActivationType.SIGMOID,fossil.ActivationType.SIGMOID]}
+    
+    #activations = {"V":[fossil.ActivationType.TANH, fossil.ActivationType.SQUARE], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
     #n_hidden_neurons = {"V":[25] * len(activations["V"]), "Q":[25] * len(activations["Q"]), "S":[25] * len(activations["S"]), "R":[25] * len(activations["R"]), "L":[25] * len(activations["L"])}
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}
@@ -125,7 +129,7 @@ def test_lnn():
         DATA=data[-1],
         N_DATA=n_data,
         N_TEST_DATA=n_data,
-        CERTIFICATE=CertificateType.DISSIPATIVITY,
+        CERTIFICATE=CertificateType.DIRECTCONTROL,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,

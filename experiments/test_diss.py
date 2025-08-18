@@ -102,7 +102,6 @@ def test_lnn():
     data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]}} for all_datum in all_data]
     part_solve = partial(solve, system, dom, n_data, activations, n_hidden_neurons)
     res = [part_solve(data[0])]
-    import pdb; pdb.set_trace()
     #with Pool(processes=num_runs) as pool:
     #    res = pool.map(part_solve, data)
     
@@ -126,7 +125,7 @@ def test_lnn():
         DATA=data[-1],
         N_DATA=n_data,
         N_TEST_DATA=n_data,
-        CERTIFICATE=CertificateType.DIRECTCONTROL,
+        CERTIFICATE=CertificateType.DISSIPATIVITY,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
@@ -145,6 +144,7 @@ def test_lnn():
     traj_data_controlled = system().generate_trajs(init_data)[1]
     for traj in traj_data_controlled:
         axes[0][0].plot(traj[0,:], traj[1,:], 'b')
+    import pdb; pdb.set_trace()
     #for traj in traj_data_random:
     #    axes[0][0].plot(traj[0,:], traj[1,:], 'r')
     for ax, name in axes:

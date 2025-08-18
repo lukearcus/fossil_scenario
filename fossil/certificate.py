@@ -746,7 +746,7 @@ class Dissipativity(Certificate):
                 #S2 = torch.unsqueeze(S2, 1)
                 #nexts = torch.vstack((samples_dot,states_only[:i1-idot1])) #this depends on samples, which we don't want
                 #nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
-                u_samples = torch.arange(-1, 1.1, 0.2)
+                u_samples = torch.arange(-1, 1.01, 0.02)
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u_samples.unsqueeze(1).repeat(10,1,1).mT)).mT 
                 #nexts = states_only[:i1-idot1] 
                 V_next = torch.vstack([learners[0](n) for n in nexts]) 
@@ -934,7 +934,7 @@ class Dissipativity(Certificate):
 
 
         #nexts = (f_samples.mT+torch.bmm(g_samples.mT,-torch.bmm(S1,torch.inverse(R1)))).mT 
-        u_samples = torch.arange(-1, 1.1, 0.2)
+        u_samples = torch.arange(-1, 1.01, 0.02)
         nexts = (f_samples.mT+torch.bmm(g_samples.mT,u_samples.unsqueeze(1).repeat(10,1,1).mT)).mT 
         #nexts = states_only[:i1-idot1] 
         V_next = torch.vstack([learners[0](n) for n in nexts]) 

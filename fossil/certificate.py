@@ -198,6 +198,7 @@ class Direct_control(Certificate):
             V,
             V_next,
             indices: list,
+            req_diff: torch.tensor,
     ) -> tuple[torch.Tensor, dict]:
         """_summary_
 
@@ -212,7 +213,7 @@ class Direct_control(Certificate):
 
         relu = torch.nn.ReLU()
          
-        loss = V_next-V        
+        loss = V_next-V+relu(req_diff)
         
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
@@ -310,7 +311,9 @@ class Direct_control(Certificate):
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 beta = V_SG.min()
                 
-                losses, learn_accuracy = self.compute_loss(V1, V_next, Sind)
+                req_diff = ((V_I.max()-beta)/self.T)
+                
+                losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
                 
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, beta)
                 acc = learn_accuracy|state_acc
@@ -445,6 +448,8 @@ class Direct_control(Certificate):
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         beta = V_SG.min()
+        
+        req_diff = ((V_I.max()-beta)/self.T)
 
 
         nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1)).mT 
@@ -452,7 +457,7 @@ class Direct_control(Certificate):
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
 
-        losses, learn_accuracy = self.compute_loss(V1, V_next, Sind)
+        losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
         
         loss,_ = self.compute_state_loss(V_D, V_G, V_I, beta)
         
@@ -476,6 +481,7 @@ class Direct_control(Certificate):
         violated = 0
         true_violated = 0
         
+        req_diff = (nets[0](state_data["init"]).max()-nets[0](state_data["goal_border"]).min())/self.T
         for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
             
             traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
@@ -504,11 +510,12 @@ class Direct_control(Certificate):
             V_next = nets[0](nexts)
             V_next = torch.unsqueeze(V_next, 1)
             
-            losses, learn_accuracy = self.compute_loss(V1, V_next, Sind)
+            
+            losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
             
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))
-            if len(goal_inds) == 0:
+            if len(goal_inds[0]) == 0:
                 true_violated += 1
             # We should check for value violations, but currently don't
             if any(losses > 0):

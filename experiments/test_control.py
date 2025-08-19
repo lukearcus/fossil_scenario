@@ -48,7 +48,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 2
+    n_data = 100
     system = models.LTI_disc_param 
     
     def random_control(obj, t, x):
@@ -143,14 +143,13 @@ def test_lnn():
 
     init_data = XI._generate_data(num_traj_plots)()
     traj_data_controlled = [system().generate_trajs(np.expand_dims(init_datum,0))[1][0] for init_datum in init_data]
-    import pdb; pdb.set_trace()
     for traj in traj_data_controlled:
         axes[0][0].plot(traj[0,:], traj[1,:], 'b')
     #for traj in traj_data_random:
     #    axes[0][0].plot(traj[0,:], traj[1,:], 'r')
-    import pdb; pdb.set_trace()
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
+    import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     # args = main.parse_benchmark_args()

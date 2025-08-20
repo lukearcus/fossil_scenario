@@ -48,7 +48,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 5
+    n_data = 500
     system = models.LTI_disc_param 
     
     def random_control(obj, t, x):

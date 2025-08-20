@@ -61,7 +61,7 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])
     XD = domains.Torus([0,0],5,0.1)
-    XI = domains.Torus([0,0],1,0.2)
+    XI = domains.Torus([0,0],2.5,0.2)
     #XI = domains.Rectangle([-3, -3], [3, 3])
     XG = domains.Sphere([0,0],0.1)
 

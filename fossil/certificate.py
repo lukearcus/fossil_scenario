@@ -176,7 +176,7 @@ class Direct_control(Certificate):
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
     
-    def compute_state_loss(self, V_D, V_G, V_I, beta):
+    def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
         relu = torch.nn.ReLU()
         
         state_loss = -V_D+beta
@@ -186,6 +186,11 @@ class Direct_control(Certificate):
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss <= 0))/(2*N_data)
         loss = loss + relu(goal_loss).mean()
+        
+        border_loss = -V_SD
+        acc = (acc*N_data+ sum(border_loss <= 0))/(2*N_data)
+        loss = loss + relu(border_loss).mean()
+
         #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
         #control = relu(torch.abs(u).max(axis=1)[0])-u_max)
@@ -264,13 +269,13 @@ class Direct_control(Certificate):
 
         idot5 = len(Sdot[XS_BORDER])
 
-        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG]])
+        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG], S[XS_BORDER]])
         f_samples = f_samples[XD]
         g_samples = g_samples[XD]
         samples_dot = Sdot[XD]
 
         samples_with_nexts = samples[:idot1]
-        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4]])
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4], samples[i1+i2+i3+i4+idot5:]])
         times = times[XD]
         
         states_only = torch.unsqueeze(states_only, 1)
@@ -309,13 +314,14 @@ class Direct_control(Certificate):
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                 beta = V_SG.min()
                 
                 req_diff = ((V_I.max()-beta)/self.T)
                 
                 losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
                 
-                loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, beta)
+                loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
                 losses = relu(losses) + loss
                 #if loss > 0:
@@ -415,8 +421,9 @@ class Direct_control(Certificate):
                     V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
                     V_D = V2[:i1-idot1]
                     V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                    V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     beta = V_SG.min()
-                    loss,_ = self.compute_state_loss(V_D, V_G, V_I, beta)
+                    loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
                     if loss == 0:
@@ -447,6 +454,7 @@ class Direct_control(Certificate):
         V_D = V2[:i1-idot1]
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+        V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
         beta = V_SG.min()
         
         req_diff = ((V_I.max()-beta)/self.T)
@@ -459,7 +467,7 @@ class Direct_control(Certificate):
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
         
-        loss,_ = self.compute_state_loss(V_D, V_G, V_I, beta)
+        loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
         
         losses = relu(losses) + loss
         max_loss = torch.max(losses, 0)

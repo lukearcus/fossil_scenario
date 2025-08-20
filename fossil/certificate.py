@@ -247,7 +247,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 100000
+        learn_loops = 1000000
         samples = S[XD]
         
         i1 = S[XD].shape[0]

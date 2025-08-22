@@ -14,8 +14,8 @@ class LTI_disc_param(control.DissDynamicalModel):
     time_horizon=100
     time="discrete"
     T=0.01
-    param_ub = -0.4
-    param_lb = -0.4
+    param_ub = -0.3
+    param_lb = -0.5
     B = np.array([[1],[1]])
     u_min = -1
     u_max = 1

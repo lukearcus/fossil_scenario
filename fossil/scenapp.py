@@ -203,6 +203,14 @@ class SingleScenApp:
                 domained_data["g"][key] = torch.stack(domained_data["g"][key])
             else:
                 domained_data["states"][key] = state_data[key]
+            #domained_data["indices"][key] = [index[index!=-1] for index in domained_data["indices"][key]] 
+            #domained_data["indices"][key] = [index[index!=-1] 
+            new_inds = []
+            for index in domained_data["indices"][key]:
+                index[index==-1] = index[0]
+                new_inds.append(index)
+            domained_data["indices"][key] = new_inds 
+            
         return domained_data, traj_data, inits
 
 
@@ -295,15 +303,6 @@ class SingleScenApp:
         g_vals = [datum[4][0] for datum in all_data]
         
         new_traj_data = {"times":times,"states":states,"derivs":derivs, "f_vals":f_vals, "g_vals":g_vals}        
-        #all_data = [system.generate_trajs(init_datum) for system, init_datum in zip(systems, init_data)]
-        
-
-        #data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]}} for all_datum in all_data]
-        
-
-        #all_data = self.config.SYSTEM().generate_trajs(self.init_S) 
-        #new_traj_data = {"times":all_data[0],"states":all_data[1],"derivs":all_data[2], "f_vals":all_data[3], "g_vals":all_data[4]} 
-        #new_traj_data = [{"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2], "f_vals":all_datum[3], "g_vals":all_datum[4]} for all_datum in all_data]
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
@@ -314,6 +313,11 @@ class SingleScenApp:
         state[ScenAppStateKeys.times] = self.S["times"]
         state[ScenAppStateKeys.f] = self.S["f"]
         state[ScenAppStateKeys.g] = self.S["g"]
+
+        acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
+        print("Controller accuracy: {:.5f}%".format(acc))
+
+        #import pdb; pdb.set_trace()
         return
 
     def discard(self, state):
@@ -337,7 +341,6 @@ class SingleScenApp:
                     return state
                 self.remaining_inds=list(set(self.remaining_inds)-to_remove)
             state["supps"] = set()
-        #new_traj_inds = [i for i in range(len(traj_data["states"])) if i not in state["discarded"]]
         new_traj_inds = self.remaining_inds
         new_traj_data = {}
         for key in traj_data:
@@ -470,6 +473,13 @@ class SingleScenApp:
                 param_sum = new_param_sum
                 if state["best_loss"] == 0:
                     state["best_loss"] = torch.tensor([1e-5])
+                #if iters % 2:
+                #    for param in self.learner[1].parameters():
+                #        param.requires_grad=False
+                #else:
+                #    for param in self.learner[1].parameters():
+                #        param.requires_grad=True
+
                 #state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])

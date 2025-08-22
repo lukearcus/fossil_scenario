@@ -464,9 +464,11 @@ class SetMinus(Set):
         return f["Or"](self.S1.generate_boundary(x), self.S2.generate_boundary(x))
 
     def generate_data(self, batch_size):
-        data = self.S1.generate_data(batch_size)
-        data = data[~self.S2.check_containment(data)]
-        return data
+        data = self.S1.generate_data(1)
+        while len(data) < batch_size:
+            data = torch.vstack((data,self.S1.generate_data(batch_size)))
+            data = data[~self.S2.check_containment(data)]
+        return data[:batch_size]
 
     def plot(self, *args, **kwargs):
         self.S1.plot(*args, **kwargs)

@@ -11,11 +11,11 @@ from fossil import control
 
 class LTI_disc_param(control.DissDynamicalModel):
     n_vars=2
-    time_horizon=10
+    time_horizon=100
     time="discrete"
     T=0.01
-    param_ub = -0.2
-    param_lb = -0.6
+    param_ub = -0.4
+    param_lb = -0.4
     B = np.array([[1],[1]])
     u_min = -1
     u_max = 1

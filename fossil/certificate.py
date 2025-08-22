@@ -179,18 +179,25 @@ class Direct_control(Certificate):
     def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
         relu = torch.nn.ReLU()
         
+        margin = 1e-5
+
         state_loss = -V_D+beta
         N_data = len(state_loss)
-        acc = sum(state_loss <= 0)/(N_data)
-        loss = relu(state_loss).mean()
+        acc = sum(state_loss < 0)/(N_data)
+        loss = relu(state_loss+margin).mean()
+        
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
-        acc = (acc*N_data+ sum(goal_loss <= 0))/(2*N_data)
-        loss = loss + relu(goal_loss).mean()
+        acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
+        loss = loss + relu(goal_loss+margin).mean()
         
         border_loss = -V_SD
-        acc = (acc*N_data+ sum(border_loss <= 0))/(2*N_data)
-        loss = loss + relu(border_loss).mean()
-
+        acc = (acc*N_data+ sum(border_loss < 0))/(2*N_data)
+        loss = loss + relu(border_loss+margin).mean()
+        
+        init_loss = V_I
+        acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
+        loss = loss + relu(init_loss+margin).mean()
+        
         #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
         #control = relu(torch.abs(u).max(axis=1)[0])-u_max)
@@ -202,6 +209,7 @@ class Direct_control(Certificate):
             self, 
             V,
             V_next,
+            beta,
             indices: list,
             req_diff: torch.tensor,
     ) -> tuple[torch.Tensor, dict]:
@@ -222,7 +230,13 @@ class Direct_control(Certificate):
         
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
-        losses = torch.max(ind_losses,dim=1)[0]
+        
+        ind_V = torch.reshape(V[stacked_inds], (len(indices["lie"]),-1))
+       
+        inds = torch.where(ind_V<beta)
+        first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
+
+        losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
         acc = sum(losses <= 0)/len(losses)
         return losses, {"traj_acc":acc.item()*100}
 
@@ -252,7 +266,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 1000000
+        learn_loops = 10000
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -319,7 +333,7 @@ class Direct_control(Certificate):
                 
                 req_diff = ((V_I.max()-beta)/self.T)
                 
-                losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
+                losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
                 
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
@@ -384,18 +398,27 @@ class Direct_control(Certificate):
                     for opt in optimizer:
                         opt.zero_grad()
                     supp_loss.backward(retain_graph=True)
-                    supp_grads = torch.hstack([
-                        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                        for l in learners])
+                    try:
+                        supp_grads = torch.hstack([
+                            torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                            for l in learners])
+                    except TypeError:
+                        supp_grads = torch.hstack(
+                            [torch.flatten(param.grad) for param in learners[0].parameters()])
+
                     new_supp = False
                     if supp_loss != max_loss:
                         for ind, loss in zip(max_inds, maximising_losses):
                             for opt in optimizer:
                                 opt.zero_grad()
                             loss.backward(retain_graph=True)
-                            grads = torch.hstack([
-                                torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                                for l in learners])
+                            try:
+                                grads = torch.hstack([
+                                    torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                                    for l in learners])
+                            except TypeError:
+                                grads = torch.hstack(
+                                    [torch.flatten(param.grad) for param in learners[0].parameters()])
                             inner = torch.inner(grads, supp_grads)
                             if inner <= 0:
                                 supp_samples = supp_samples.union(set([ind.item()]))
@@ -410,8 +433,8 @@ class Direct_control(Certificate):
             else:
                 state_itt = 0
                 while True:
-                    for opt in optimizer:
-                        opt.zero_grad()
+                    #for opt in optimizer:
+                    optimizer[0].zero_grad()
                     V2 = learners[0](states_only)
                     V2 = torch.unsqueeze(V2, 1)
                     #R = torch.eye(Smat.shape[-1]) 
@@ -436,8 +459,8 @@ class Direct_control(Certificate):
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
                             
                         loss.backward()
-                        for opt in optimizer:
-                            opt.step()
+                        #for opt in optimizer:
+                        optimizer[0].step()
 
         #best_nets=copy.deepcopy(learners)        
         learners = copy.deepcopy(best_nets)
@@ -465,7 +488,7 @@ class Direct_control(Certificate):
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
 
-        losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
+        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
         
         loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
         
@@ -490,6 +513,7 @@ class Direct_control(Certificate):
         true_violated = 0
         
         req_diff = (nets[0](state_data["init"]).max()-nets[0](state_data["goal_border"]).min())/self.T
+        beta = nets[0](state_data["goal_border"]).min()
         for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
             
             traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
@@ -517,9 +541,10 @@ class Direct_control(Certificate):
             nexts = traj_deriv
             V_next = nets[0](nexts)
             V_next = torch.unsqueeze(V_next, 1)
+        
             
             
-            losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
+            losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
             
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))

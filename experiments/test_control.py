@@ -48,11 +48,11 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 500
+    n_data = 3
     system = models.LTI_disc_param 
     
     def random_control(obj, t, x):
-        return np.random.random()*(system.u_max-system.u_min)+system.u_min
+        return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
     system.controller = random_control
 
     def uncontrol(obj, t, x):
@@ -60,10 +60,14 @@ def test_lnn():
     #system.controller = uncontrol
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])
-    XD = domains.Torus([0,0],5,0.1)
-    XI = domains.Torus([0,0],2.5,0.2)
-    #XI = domains.Rectangle([-3, -3], [3, 3])
-    XG = domains.Sphere([0,0],0.1)
+    #XD = domains.Sphere([0,0],5)
+    #XI = domains.Torus([0,0],3,2)
+    ##XI = domains.Rectangle([-3, -3], [3, 3])
+    #XG = domains.Sphere([0,0],0.1)
+    
+    XD = domains.Rectangle([-5, -5], [5, 5])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
+    XG = domains.Sphere([0,0],1)
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
@@ -82,7 +86,6 @@ def test_lnn():
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
-    
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}

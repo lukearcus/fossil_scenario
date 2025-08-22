@@ -236,10 +236,18 @@ class SingleScenApp:
             test_data = self.config.DOMAINS["init"]._generate_data(n_data)()
         except KeyError:
             test_data = self.config.DOMAINS["lie"]._generate_data(n_data)()
+        
+        def control(t, x):
+            x = torch.tensor(x,dtype=torch.float32)
+            if len(x.shape) == 1:
+                return certs[1](x.unsqueeze(1).T).detach().numpy()
+            else:
+                return certs[1](x.unsqueeze(2).mT).detach().numpy()
 
         new_systems = [self.config.SYSTEM[0].__new__(self.config.SYSTEM[0].__class__) for i in test_data]
         for sys in new_systems:
             sys.__init__()
+            sys.controller = control
         all_test_data = [sys.generate_trajs(np.expand_dims(test_datum,0)) for sys, test_datum in zip(new_systems, test_data)]
         
         #all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]

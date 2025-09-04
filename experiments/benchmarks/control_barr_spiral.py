@@ -39,6 +39,8 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         VERBOSE=0,
         SCENAPP_MAX_ITERS=250,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
+        U_MAX = system.u_max,
+        U_MIN = system.u_min
         #CONVEX_NET=True,
     )
     
@@ -97,6 +99,15 @@ def test_lnn():
     res = [part_solve(data[0])]
     #with Pool(processes=num_runs) as pool:
     #    res = pool.map(part_solve, data)
+    
+    def diss_control(obj, t, x):
+        x = torch.tensor(x,dtype=torch.float32)
+        if len(x.shape) == 1: 
+            return res[-1].cert[1](x.unsqueeze(1).T).detach().numpy()
+        else:
+            return res[-1].cert[1](x.unsqueeze(2).mT).detach().numpy()
+        
+    system.controller = diss_control
     
     opts = ScenAppConfig(
         N_VARS=2,

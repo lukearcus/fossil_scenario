@@ -520,7 +520,7 @@ class Direct_control_barr(Certificate):
             
             
             unsafe_inds = torch.where(self.D[XU].check_containment(traj))
-            if len(unsafe_inds[0]) != 0:
+            if len(unsafe_inds[0]) >= 0:
                 true_violated += 1
             # We should check for value violations, but currently don't
             if any(losses > 0):

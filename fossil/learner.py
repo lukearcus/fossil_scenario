@@ -754,6 +754,7 @@ class Controller(LearnerNN):
         self.beta = None
         k = 1
         self.u_max = config.U_MAX
+        self.u_min = config.U_MIN
         for n_hid in n_hidden:
             layer = nn.Linear(n_prev, n_hid, bias=bias)
             self.register_parameter("W" + str(k), layer.weight)

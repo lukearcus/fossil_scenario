@@ -132,6 +132,17 @@ class SingleScenApp:
                config=self.config,
                                )
             return (V, u)
+         elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+            u = learner.Controller(
+               self.config.N_VARS,
+               self.config.CONTROL_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["u"],
+               activation=self.config.ACTIVATION["u"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            return (V, u)
          else:
             raise NotImplementedError
 
@@ -459,6 +470,16 @@ class SingleScenApp:
         state["supp_len"] = self.a_priori_supps
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
+            #if iters % 2:
+            #    for param in self.learner[1].parameters():
+            #        param.requires_grad=True
+            #    for param in self.learner[0].parameters():
+            #        param.requires_grad=False
+            #else:
+            #    for param in self.learner[1].parameters():
+            #        param.requires_grad=False
+            #    for param in self.learner[0].parameters():
+            #        param.requires_grad=True
             
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
@@ -474,19 +495,13 @@ class SingleScenApp:
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
-                #if state["best_loss"] <= 0.0:
+           #if state["best_loss"] <= 0.0:
                 if True:
                     print("Updating controller")
                     self.update_controller(state)
                 param_sum = new_param_sum
                 if state["best_loss"] == 0:
                     state["best_loss"] = torch.tensor([1e-5])
-                #if iters % 2:
-                #    for param in self.learner[1].parameters():
-                #        param.requires_grad=False
-                #else:
-                #    for param in self.learner[1].parameters():
-                #        param.requires_grad=True
 
                 #state["best_loss"] = torch.tensor([100])*(iters+1)
             

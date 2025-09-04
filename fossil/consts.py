@@ -108,6 +108,7 @@ class DomainNames(Enum):
 class CertificateType(Enum):
     DISSIPATIVITY = auto()
     DIRECTCONTROL = auto()
+    DIRECTCONTROLBARR = auto()
     BARRIER = auto()
     BARRIERALT = auto()
     LYAPUNOV = auto()

@@ -29,7 +29,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         DATA=data,
         N_DATA=n_data,
         N_TEST_DATA=n_data,
-        CERTIFICATE=CertificateType.PRACTICALLYAPUNOV,
+        CERTIFICATE=CertificateType.DIRECTCONTROLBARR,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
@@ -49,44 +49,53 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 def test_lnn():
     n_data = 1000
-    system = models.Spiral 
+    system = models.SpiralCont 
     system.time_horizon = 100
     #XD = fossil.domains.Sphere([0,0], 1)
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
-    XG = domains.Sphere([0,0],1)
+    XU = domains.Sphere([0,0],1)
 
-    SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
-            fossil.XG: XG,
-            fossil.XG_BORDER: XG,
-            fossil.XS_BORDER: XD,
+            fossil.XU: XU,
             fossil.XI: XI
                 }
     
     n_state_data = 10000
 
-    state_data = {fossil.XD: SD._generate_data(n_state_data)(),
+    state_data = {fossil.XD: XD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
-                  fossil.XG: XG._generate_data(n_state_data)(),
-                  fossil.XG_BORDER: XG._sample_border(n_state_data)(),
-                  fossil.XS_BORDER: XD._sample_border(n_state_data)()}
+                  fossil.XU: XU._generate_data(n_state_data)(),}
     # define NN parameters
     #activations = [fossil.ActivationType.SQUARE]
-    activations = [fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]
-    n_hidden_neurons = [5] * len(activations)
+    
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    
+    n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}
     
     num_runs =5
 
-    init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
+    def random_control(obj, t, x):
+        return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
+    system.controller = random_control
     
-    all_data = [system().generate_trajs(init_datum) for init_datum in init_data]
-    data = [{"states_only": state_data, "full_data": {"times":all_datum[0],"states":all_datum[1],"derivs":all_datum[2]}} for all_datum in all_data]
-    part_solve = partial(solve, system, dom, n_data, activations, n_hidden_neurons)
-    #res = [part_solve(data[0])]
-    with Pool(processes=num_runs) as pool:
-        res = pool.map(part_solve, data)
+    init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
+    systems = [[system() for i in range(n_data)] for init_datum in init_data] # parameterised systems
+    all_data = [[sys.generate_trajs(np.expand_dims(d,0)) for sys, d in zip(system, init_datum)] for system, init_datum in zip(systems, init_data)]
+    
+    times = [[datum[0][0] for datum in all_datum] for all_datum in all_data]
+    states = [[datum[1][0] for datum in all_datum] for all_datum in all_data]
+    derivs = [[datum[2][0] for datum in all_datum] for all_datum in all_data]
+    f_vals = [[datum[3][0] for datum in all_datum] for all_datum in all_data]
+    g_vals = [[datum[4][0] for datum in all_datum] for all_datum in all_data]
+    
+    data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
+    
+    part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons)
+    res = [part_solve(data[0])]
+    #with Pool(processes=num_runs) as pool:
+    #    res = pool.map(part_solve, data)
     
     opts = ScenAppConfig(
         N_VARS=2,

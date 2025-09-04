@@ -83,7 +83,7 @@ class LTI_disc(control.DissDynamicalModel):
 
 class InvPendulum(control.DissDynamicalModel):
     n_vars=2
-    time_horizon=100
+    time_horizon=10
     time="discrete"
     T=0.01
     
@@ -93,8 +93,8 @@ class InvPendulum(control.DissDynamicalModel):
     gr = 9.81  # Gravitational acceleration (m/s^2)
     #I = (self.m * self.l ** 2) / 3  # Moment of inertia around the pivot
     I = 1 / 3
-    u_min = -1
-    u_max = 1
+    u_min = -10
+    u_max = 10
 
     def f(self, t, x):
         if len(x.shape) == 1:
@@ -164,6 +164,37 @@ class Barr4D(control.DynamicalModel):
         else:
             x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
         return [x1 + 0.2 * x1 * x2 -0.5*x3*x4, np.cos(x4), 0.01*np.sqrt(np.abs(x1)), -x1 - x2**2 + np.sin(x4)]
+
+class Barr4D_DT_controlled(control.DissDynamicalModel):
+    n_vars = 4
+    time_horizon = 40
+    time="discrete"
+    T=0.1
+    u_max=5
+    u_min=-5
+
+    def f(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
+        else:
+            x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
+        return [x1+self.T*(x1 + 0.2 * x1 * x2 -0.5*x3*x4), x2+self.T*(np.cos(x4)), x3+self.T*0.01*np.sqrt(np.abs(x1)), x4+self.T*(-x1 - x2**2 + np.sin(x4))]
+    
+    def g(self, t, v):
+        if len(v.shape) == 1:
+            x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
+        else:
+            x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
+        return np.array([[0, self.T*(x1**2), np.sqrt(x2), 1],[1,0,0,0]]).T
+
+    def f_torch(self, t, x):
+        u = self.controller(t, x)
+        if type(u) is not float:
+            u = u.squeeze()
+        f = self.f(t,x) 
+        g = self.g(t,x)
+        gu = g@u
+        return [f[0]+gu[0], f[1]+gu[1], f[2]+gu[2], f[3]+gu[3]]
 
 class Barr4D_DT(control.DynamicalModel):
     n_vars = 4
@@ -347,6 +378,35 @@ class Spiral(control.DynamicalModel):
             x1, x2 = v[:, 0], v[:, 1]
 
         return [x1-T*x2, x2+T*(x1-x2)]
+
+class SpiralCont(control.DissDynamicalModel):
+    n_vars = 2
+    time_horizon = 50
+    time = "discrete"
+    T=0.5
+    u_min = -1
+    u_max = 1
+
+    def f(self, t, v):
+        T=self.T
+        if len(v.shape) == 1:
+            x1, x2 = v[0], v[1]
+        else:
+            x1, x2 = v[:, 0], v[:, 1]
+
+        return [x1-T*x2, x2+T*(x1-x2)]
+    
+    def g(self, t, v):
+        T=self.T
+
+        return [0, T]
+    def f_torch(self, t, x):
+        u = self.controller(t, x)
+        if type(u) is not float:
+            u = u.squeeze()
+        f = self.f(t,x) 
+        g = self.g(t,x)
+        return [f[0]+g[0]*u, f[1]+g[1]*u]
 
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of

@@ -48,8 +48,8 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 300
-    system = models.LTI_disc_param 
+    n_data = 30
+    system = models.InvPendulum 
     
     def random_control(obj, t, x):
         return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
@@ -66,7 +66,7 @@ def test_lnn():
     #XG = domains.Sphere([0,0],0.1)
     
     XD = domains.Rectangle([-5, -5], [5, 5])
-    XI = domains.Rectangle([-1, 4], [1, 4.5])
+    XI = domains.Rectangle([2.5, -.1], [2.6, 0.1])
     XG = domains.Sphere([0,0],1)
 
     SD =domains.SetMinus(XD, XG) 

@@ -53,7 +53,7 @@ def test_lnn():
     system = models.SpiralCont 
     system.time_horizon = 100
     #XD = fossil.domains.Sphere([0,0], 1)
-    XD = domains.Rectangle([-5, -5], [5, 5])
+    XD = domains.Rectangle([-15, -15], [15, 15])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
     XU = domains.Sphere([0,0],1)
 

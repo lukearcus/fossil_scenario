@@ -493,13 +493,13 @@ class Direct_control_barr(Certificate):
             
             traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
             
-            #valid_inds = torch.where(self.D[XD].check_containment(traj))
-            #traj = traj[valid_inds]
-            #traj_deriv = traj_deriv[valid_inds]
-            #time = time[valid_inds]
-            #valid_inds = valid_inds[0]
-            #f = f[:,valid_inds]
-            #g = g[:,:,valid_inds]
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+            time = time[valid_inds]
+            valid_inds = valid_inds[0]
+            f = f[:,valid_inds]
+            g = g[:,:,valid_inds]
 
             traj = torch.unsqueeze(traj, 1)
             traj_deriv = torch.unsqueeze(traj_deriv, 1)

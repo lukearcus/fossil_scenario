@@ -128,6 +128,12 @@ def test_lnn():
     axes = plotting.benchmark(
         system(), res[-1].cert, domains=opts.DOMAINS, xrange=[-5, 5], yrange=[-5, 5]
     )
+    
+    num_traj_plots = 5
+    init_data = XI._generate_data(num_traj_plots)()
+    traj_data_controlled = [system().generate_trajs(np.expand_dims(init_datum,0))[1][0] for init_datum in init_data]
+    for traj in traj_data_controlled:
+        axes[0][0].plot(traj[0,:], traj[1,:], 'b')
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
     import pdb; pdb.set_trace()

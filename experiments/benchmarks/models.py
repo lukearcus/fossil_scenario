@@ -384,8 +384,17 @@ class SpiralCont(control.DissDynamicalModel):
     time_horizon = 50
     time = "discrete"
     T=0.5
-    u_min = -2
-    u_max = 2
+    u_min = -5
+    u_max = 5
+    param_ub = 1
+    param_lb = -1
+    
+    def __init__(self, param = None):
+        if param == None:
+            self.param = np.random.rand()*(self.param_ub-self.param_lb)+self.param_lb
+        else:
+            self.param = param
+        super().__init__()
 
     def f(self, t, v):
         T=self.T
@@ -394,7 +403,7 @@ class SpiralCont(control.DissDynamicalModel):
         else:
             x1, x2 = v[:, 0], v[:, 1]
 
-        return [x1-T*x2, x2+T*(x1-x2)]
+        return [x1-T*x2, x2+T*(x1+self.param*x2)]
     
     def g(self, t, v):
         T=self.T

@@ -386,8 +386,8 @@ class SpiralCont(control.DissDynamicalModel):
     T=0.5
     u_min = -5
     u_max = 5
-    param_ub = 1
-    param_lb = -1
+    param_ub = 0
+    param_lb = -2
     
     def __init__(self, param = None):
         if param == None:

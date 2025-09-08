@@ -130,6 +130,7 @@ def test_lnn():
     )
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
+    import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     # args = main.parse_benchmark_args()

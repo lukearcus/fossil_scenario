@@ -384,8 +384,8 @@ class SpiralCont(control.DissDynamicalModel):
     time_horizon = 50
     time = "discrete"
     T=0.5
-    u_min = -5
-    u_max = 5
+    u_min = -2
+    u_max = 2
 
     def f(self, t, v):
         T=self.T

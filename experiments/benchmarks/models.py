@@ -398,7 +398,7 @@ class SpiralCont(control.DissDynamicalModel):
     
     def g(self, t, v):
         T=self.T
-        g= np.diag([0, T])
+        g= np.diag([T, T])
         if len(v.shape) == 1:
             return g
         else:

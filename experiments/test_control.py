@@ -40,6 +40,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         VERBOSE=2,
         SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
+
         #CONVEX_NET=True,
     )
     PAC = ScenApp(opts)

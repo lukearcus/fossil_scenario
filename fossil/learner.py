@@ -753,8 +753,8 @@ class Controller(LearnerNN):
         self._take_abs = config.LLO and not self.is_final_polynomial()
         self.beta = None
         k = 1
-        self.u_max = config.U_MAX
-        self.u_min = config.U_MIN
+        self.u_max = config.SYSTEM[0].u_max
+        self.u_min = config.SYSTEM[0].u_min
         for n_hid in n_hidden:
             layer = nn.Linear(n_prev, n_hid, bias=bias)
             self.register_parameter("W" + str(k), layer.weight)
@@ -827,7 +827,7 @@ class Controller(LearnerNN):
 
         y = self.layers[-1](y)
         tanh = torch.nn.Tanh()
-        y = tanh(y)*self.u_max
+        y = tanh(y)*(self.u_max-self.u_min)/2+(self.u_max+self.u_min)/2
         return y
     
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:

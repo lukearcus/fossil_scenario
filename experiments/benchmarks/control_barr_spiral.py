@@ -39,8 +39,6 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
         VERBOSE=0,
         SCENAPP_MAX_ITERS=250,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
-        U_MAX = system.u_max,
-        U_MIN = system.u_min
         #CONVEX_NET=True,
     )
     

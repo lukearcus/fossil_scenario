@@ -24,7 +24,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
     opts = ScenAppConfig(
         N_VARS=2,
-        CONTROL_VARS=1,
+        CONTROL_VARS=2,
         SYSTEM=system,
         DOMAINS=sets,
         DATA=data,
@@ -78,7 +78,7 @@ def test_lnn():
     num_runs =5
 
     def random_control(obj, t, x):
-        return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
+        return .1*(np.random.random(2)-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
     system.controller = random_control
     
     init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
@@ -90,7 +90,7 @@ def test_lnn():
     derivs = [[datum[2][0] for datum in all_datum] for all_datum in all_data]
     f_vals = [[datum[3][0] for datum in all_datum] for all_datum in all_data]
     g_vals = [[datum[4][0] for datum in all_datum] for all_datum in all_data]
-    
+
     data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
     
     part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons)

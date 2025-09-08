@@ -264,7 +264,7 @@ class DissDynamicalModel(DynamicalModel):
                 state_trajs.append(np.vstack(traj).T)
                 nexts.append(np.vstack(next_s).T)
                 fs.append(np.vstack(fs_elem).T)
-                gs.append(np.vstack(gs_elem).T)
+                gs.append(np.stack(gs_elem).T)
             times = [list(range(time_horizon)) for traj in state_trajs]
         return times, state_trajs, nexts, fs, gs
 

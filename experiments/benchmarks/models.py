@@ -384,8 +384,8 @@ class SpiralCont(control.DissDynamicalModel):
     time_horizon = 50
     time = "discrete"
     T=0.5
-    u_min = -1
-    u_max = 1
+    u_min = -5
+    u_max = 5
 
     def f(self, t, v):
         T=self.T
@@ -398,15 +398,25 @@ class SpiralCont(control.DissDynamicalModel):
     
     def g(self, t, v):
         T=self.T
-
-        return [0, T]
+        g= np.diag([T, T])
+        if len(v.shape) == 1:
+            return g
+        else:
+            return np.tile(g, (v.shape[0],1,1))
+    
     def f_torch(self, t, x):
         u = self.controller(t, x)
         if type(u) is not float:
             u = u.squeeze()
         f = self.f(t,x) 
         g = self.g(t,x)
-        return [f[0]+g[0]*u, f[1]+g[1]*u]
+        if u.shape == (2,):
+            next_s=f+g@u
+            return next_s.tolist()
+        else:
+            next_s=np.vstack(f).T+np.matmul(g,u[:,:,None]).squeeze(-1)
+            return (torch.tensor(next_s[:,0]),torch.tensor(next_s[:,1]))
+        #return [next_s[0], next_s[1]]
 
 class TwoRoomTemp(control.DynamicalModel):
     # from Data-Driven Safety Verification of

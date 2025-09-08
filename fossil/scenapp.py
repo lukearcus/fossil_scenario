@@ -161,7 +161,8 @@ class SingleScenApp:
 
 
     def _initialise_data(self, traj_data, state_data):
-        lumped_data = {key: torch.tensor(np.hstack(traj_data[key]), dtype=torch.float32 ) for key in traj_data} 
+        lumped_data = {key: torch.tensor(np.concatenate(traj_data[key], axis=-1), dtype=torch.float32 ) for key in traj_data} 
+        #lumped_data["g_vals"] = torch.tensor(np.stack(traj_data["g_vals"]), dtype=torch.float32)
         inits = np.stack(traj_data["states"])[:,:,0]
         traj_inds = [] 
         curr_ind = 0
@@ -198,8 +199,7 @@ class SingleScenApp:
                     domained_data["derivs"][key].append(lumped_data["derivs"][:,ind])
                     domained_data["times"][key].append(lumped_data["times"][ind])
                     domained_data["f"][key].append(lumped_data["f_vals"][:,ind])
-                    domained_data["g"][key].append(lumped_data["g_vals"][:,ind])
-            #import pdb; pdb.set_trace()
+                    domained_data["g"][key].append(lumped_data["g_vals"][:,:,ind])
             #extra = torch.ones(max_len)*(-1)
             #domained_data["indices"][key] = [torch.tensor(elem) for elem in domained_data["indices"][key]]
 

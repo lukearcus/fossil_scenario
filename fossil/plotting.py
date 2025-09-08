@@ -100,9 +100,10 @@ def benchmark_plane(
     ax = model.plot(ax, xrange=xrange, yrange=yrange)
     ax = plot_domains(domains, ax=ax)
 
-    for cert, lev in zip(certificate, levels):
-        if cert is not None:
-            ax = certificate_countour(cert, ax=ax, levels=lev, xrange=xrange, yrange=yrange)
+    ax = certificate_countour(certificate[0], ax=ax, levels=levels[0], xrange=xrange, yrange=yrange)
+    #for cert, lev in zip(certificate, levels):
+    #    if cert is not None:
+    #        ax = certificate_countour(cert, ax=ax, levels=lev, xrange=xrange, yrange=yrange)
 
 
     ax = add_legend(ax)
@@ -131,15 +132,16 @@ def benchmark_3d(certificate, domains={}, levels=[[0]], xrange=[-5, 5], yrange=[
     l = len(certificate)
     pos = 1
 
-    for cert, lev in zip(certificate, levels):
-        ax = fig.add_subplot(1, l, pos, projection="3d")
+    #for cert, lev in zip(certificate, levels):
+    cert, lev = certificate[0], levels[0]
+    ax = fig.add_subplot(1, l, pos, projection="3d")
 
-        ax = certificate_surface(cert, ax=ax, levels=lev, xrange=xrange, yrange=yrange)
-        ax = plot_domains(domains, ax)
-        ax = add_legend(ax)
-        ax.set_title("{} Certificate".format(cert._type))
-        axs.append(ax)
-        pos += 1
+    ax = certificate_surface(cert, ax=ax, levels=lev, xrange=xrange, yrange=yrange)
+    ax = plot_domains(domains, ax)
+    ax = add_legend(ax)
+    ax.set_title("{} Certificate".format(cert._type))
+    axs.append(ax)
+    pos += 1
     return axs
 
 
@@ -159,15 +161,16 @@ def benchmark_lie(
     axs = []
     l = len(certificate)
     pos = 1
-    for cert, lev in zip(certificate, levels):
-        ax = fig.add_subplot(1, l, pos, projection="3d")
+    #for cert, lev in zip(certificate, levels):
+    cert, lev = certificate[0], levels[0]
+    ax = fig.add_subplot(1, l, pos, projection="3d")
 
-        ax = certificate_lie(cert, model, ax=ax, xrange=xrange, yrange=yrange)
-        ax = plot_domains(domains, ax)
-        ax = add_legend(ax)
-        ax.set_title("{} Lie Derivative".format(cert._type))
-        axs.append(ax)
-        pos += 1
+    ax = certificate_lie(cert, model, ax=ax, xrange=xrange, yrange=yrange)
+    ax = plot_domains(domains, ax)
+    ax = add_legend(ax)
+    ax.set_title("{} Lie Derivative".format(cert._type))
+    axs.append(ax)
+    pos += 1
     return axs
 
 
@@ -291,6 +294,8 @@ def certificate_countour(certificate, ax=None, levels=[0], xrange=[-5,5], yrange
     XT = torch.tensor(X, dtype=torch.float32)
     YT = torch.tensor(Y, dtype=torch.float32)
     ZT = certificate(torch.cat((XT.reshape(-1, 1), YT.reshape(-1, 1)), dim=1))
+    if ZT.shape[-1] == 2:
+        return ax
     try:
         Z = ZT.detach().numpy().reshape(X.shape)
     except AttributeError:

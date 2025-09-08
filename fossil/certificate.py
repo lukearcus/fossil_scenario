@@ -277,7 +277,8 @@ class Direct_control_barr(Certificate):
         samples_with_nexts = torch.unsqueeze(samples_with_nexts, 1)
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
-        g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        g_samples = g_samples[:idot1]
+        #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
@@ -301,7 +302,7 @@ class Direct_control_barr(Certificate):
                 u2 = learners[1](states_only)[:i1-idot1]
                 
                 V2 = torch.unsqueeze(V2, 1)
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1)).mT 
+                nexts = (f_samples.mT+torch.bmm(g_samples,u1.mT)).mT 
                 V_next = learners[0](nexts)
                 V_next = torch.unsqueeze(V_next, 1)
 
@@ -459,7 +460,7 @@ class Direct_control_barr(Certificate):
         req_diff = -((V_U.min()-V_I.max())/self.T)
         
         
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1)).mT 
+        nexts = (f_samples.mT+torch.bmm(g_samples,u1.mT)).mT 
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
@@ -498,7 +499,7 @@ class Direct_control_barr(Certificate):
             time = time[valid_inds]
             valid_inds = valid_inds[0]
             f = f[:,valid_inds]
-            g = g[:,valid_inds]
+            g = g[:,:,valid_inds]
 
             traj = torch.unsqueeze(traj, 1)
             traj_deriv = torch.unsqueeze(traj_deriv, 1)

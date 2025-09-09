@@ -221,9 +221,12 @@ class Direct_control_barr(Certificate):
        
         #inds = torch.where(ind_V<beta)
         #first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
-        losses = torch.max(loss, axis=1)[0].squeeze()
+        losses = torch.max(ind_losses, axis=1)[0].squeeze()
         #losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
-        acc = sum(losses <= 0)/len(losses)
+        if ind_losses.shape[0] > 1:
+            acc = sum(losses <= 0)/len(losses)
+        else:
+            acc = (losses <= 0)
         return losses, {"traj_acc":acc.item()*100}
 
     def learn(
@@ -524,7 +527,10 @@ class Direct_control_barr(Certificate):
             if len(unsafe_inds[0]) > 0:
                 true_violated += 1
             # We should check for value violations, but currently don't
-            if any(losses > 0):
+            if losses.size() == torch.Size([]):
+                if losses > 0:
+                    violated += 1
+            elif any(losses > 0):
                 violated += 1
         return violated, true_violated
 class Direct_control(Certificate):

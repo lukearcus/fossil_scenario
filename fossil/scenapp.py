@@ -300,7 +300,7 @@ class SingleScenApp:
 
             for sys in self.config.SYSTEM:
                 sys.controller = diss_control
-        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL or self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
 
             def control(t, x):
                 x = torch.tensor(x,dtype=torch.float32)
@@ -312,7 +312,7 @@ class SingleScenApp:
             for sys in self.config.SYSTEM:
                 sys.controller = control
         else:
-            return
+            return state
         all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]
     
         times =  [datum[0][0] for datum in all_data]
@@ -333,11 +333,13 @@ class SingleScenApp:
         state[ScenAppStateKeys.f] = self.S["f"]
         state[ScenAppStateKeys.g] = self.S["g"]
 
-        acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
+        if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+            acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
+        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+            acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
         print("Controller accuracy: {:.5f}%".format(acc))
 
-        #import pdb; pdb.set_trace()
-        return
+        return state
 
     def discard(self, state):
         # Discard all samples that were of support for last run...
@@ -498,7 +500,7 @@ class SingleScenApp:
            #if state["best_loss"] <= 0.0:
                 if True:
                     print("Updating controller")
-                    self.update_controller(state)
+                    state = self.update_controller(state)
                 param_sum = new_param_sum
                 if state["best_loss"] == 0:
                     state["best_loss"] = torch.tensor([1e-5])

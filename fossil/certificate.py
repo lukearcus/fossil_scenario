@@ -918,7 +918,7 @@ class Direct_control(Certificate):
             
             
             losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-            
+            import pdb; pdb.set_trace() 
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))
             if len(goal_inds[0]) == 0:

@@ -671,7 +671,7 @@ class Direct_control(Certificate):
         samples_with_nexts = torch.unsqueeze(samples_with_nexts, 1)
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
-        g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
@@ -903,7 +903,7 @@ class Direct_control(Certificate):
             time = time[valid_inds]
             valid_inds = valid_inds[0]
             f = f[:,valid_inds]
-            g = g[:,valid_inds]
+            g = g[:,:,valid_inds]
 
             traj = torch.unsqueeze(traj, 1)
             traj_deriv = torch.unsqueeze(traj_deriv, 1)
@@ -924,7 +924,6 @@ class Direct_control(Certificate):
             
             
             losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-            import pdb; pdb.set_trace() 
             
             goal_inds = torch.where(self.D[XG].check_containment(traj))
             if len(goal_inds[0]) == 0:

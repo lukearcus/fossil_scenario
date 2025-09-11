@@ -17,8 +17,8 @@ class LTI_disc_param(control.DissDynamicalModel):
     param_ub = -0.3
     param_lb = -0.5
     B = np.array([[1],[1]])
-    u_min = -1
-    u_max = 1
+    u_min = -5
+    u_max = 5
 
     def __init__(self, param = None):
         if param == None:
@@ -39,7 +39,7 @@ class LTI_disc_param(control.DissDynamicalModel):
     
     def g(self, t, x):
         B = self.B
-        return [B[0].item(), B[1].item()]
+        return np.array([[B[0].item()], [B[1].item()]])
 
     def f_torch(self, t, x):
         u = self.controller(t, x)

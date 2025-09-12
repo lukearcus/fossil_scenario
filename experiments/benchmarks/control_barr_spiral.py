@@ -94,9 +94,9 @@ def test_lnn():
     data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
     
     part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons)
-    res = [part_solve(data[0])]
-    #with Pool(processes=num_runs) as pool:
-    #    res = pool.map(part_solve, data)
+    #res = [part_solve(data[0])]
+    with Pool(processes=num_runs) as pool:
+        res = pool.map(part_solve, data)
     
     def diss_control(obj, t, x):
         x = torch.tensor(x,dtype=torch.float32)

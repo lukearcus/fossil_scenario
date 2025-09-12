@@ -37,7 +37,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
-        VERBOSE=2,
+        VERBOSE=0,
         SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
 
@@ -110,9 +110,9 @@ def test_lnn():
     
     data = [{"states_only": state_data, "full_data": {"times":time,"states":state,"derivs":deriv, "f_vals":f_val, "g_vals":g_val}} for time, state, deriv, f_val, g_val in zip(times, states, derivs, f_vals, g_vals)]
     part_solve = partial(solve, systems[0], dom, n_data, activations, n_hidden_neurons) # parallel broken by systems[0]
-    res = [part_solve(data[0])]
-    #with Pool(processes=num_runs) as pool:
-    #    res = pool.map(part_solve, data)
+    #res = [part_solve(data[0])]
+    with Pool(processes=num_runs) as pool:
+        res = pool.map(part_solve, data)
     
     def diss_control(obj, t, x):
         x = torch.tensor(x,dtype=torch.float32)

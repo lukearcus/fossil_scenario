@@ -66,6 +66,7 @@ def test_lnn():
     ##XI = domains.Rectangle([-3, -3], [3, 3])
     #XG = domains.Sphere([0,0],0.1)
     
+    XD = domains.Rectangle([-15, -15], [15, 15])
     XD = domains.Rectangle([-5, -5], [5, 5])
     XI = domains.Rectangle([-1, 4], [1, 4.5])
     XG = domains.Sphere([0,0],1)
@@ -146,7 +147,9 @@ def test_lnn():
     )
 
     init_data = XI._generate_data(num_traj_plots)()
-    traj_data_controlled = [system().generate_trajs(np.expand_dims(init_datum,0))[1][0] for init_datum in init_data]
+    traj_data_controlled = []
+    for init_datum in init_data:
+        traj_data_controlled.append(system().generate_trajs(np.expand_dims(init_datum,0))[1][0])
     for traj in traj_data_controlled:
         axes[0][0].plot(traj[0,:], traj[1,:], 'b')
     #for traj in traj_data_random:

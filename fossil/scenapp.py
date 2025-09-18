@@ -337,7 +337,7 @@ class SingleScenApp:
             acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
         elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
             acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
-        print("Controller accuracy: {:.5f}%".format(acc))
+        scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
 
         return state
 
@@ -499,7 +499,7 @@ class SingleScenApp:
             if not converged_controller:
            #if state["best_loss"] <= 0.0:
                 if True:
-                    print("Updating controller")
+                    scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
                 param_sum = new_param_sum
                 if state["best_loss"] == 0:

@@ -333,7 +333,7 @@ class Direct_control_barr(Certificate):
                     if discrete:
                         if max_loss <= 0:
                             best_nets = copy.deepcopy(learners)
-                            print("No supports, max loss is zero")
+                            cert_log.info("No supports, max loss is zero")
                             break
                     max_loss.backward()
                     for opt in optimizer:
@@ -362,10 +362,10 @@ class Direct_control_barr(Certificate):
                             if true_max_loss <= 0:
                                 best_loss = true_max_loss
                                 best_nets = copy.deepcopy(learners)
-                                print("Zero loss, breaking loop")
+                                cert_log.info("Zero loss, breaking loop")
                                 break
                             else:
-                                print("zero supp_loss, jumping")
+                                cert_log.info("zero supp_loss, jumping")
                                 best_loss = true_max_loss
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
@@ -388,28 +388,27 @@ class Direct_control_barr(Certificate):
                         for l_grad in l_grads if len(l_grad) > 0 ])
 
                     new_supp = False
-                    if supp_loss != max_loss:
-                        for ind, loss in zip(max_inds, maximising_losses):
-                            for opt in optimizer:
-                                opt.zero_grad()
-                            loss.backward(retain_graph=True)
-                            l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                                for l in learners]
-                            grads = torch.hstack([
-                                torch.hstack(l_grad)
-                                for l_grad in l_grads if len(l_grad) > 0 ])
-                            #try:
-                            #    grads = torch.hstack([
-                            #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                            #        for l in learners])
-                            #except TypeError:
-                            #    grads = torch.hstack(
-                            #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                            inner = torch.inner(grads, supp_grads)
-                            if inner <= 0:
-                                supp_samples = supp_samples.union(set([ind.item()]))
-                                new_supp = True
-                                break
+                    #for ind, loss in zip(max_inds, maximising_losses):
+                    #    for opt in optimizer:
+                    #        opt.zero_grad()
+                    #    loss.backward(retain_graph=True)
+                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
+                    #        for l in learners]
+                    #    grads = torch.hstack([
+                    #        torch.hstack(l_grad)
+                    #        for l_grad in l_grads if len(l_grad) > 0 ])
+                    #    #try:
+                    #    #    grads = torch.hstack([
+                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                    #    #        for l in learners])
+                    #    #except TypeError:
+                    #    #    grads = torch.hstack(
+                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
+                    #    inner = torch.inner(grads, supp_grads)
+                    #    if inner <= 0:
+                    #        supp_samples = supp_samples.union(set([ind.item()]))
+                    #        new_supp = True
+                    #        break
                     if not new_supp:
                         for opt in optimizer:
                             opt.zero_grad()
@@ -434,7 +433,7 @@ class Direct_control_barr(Certificate):
                     #    import pdb; pdb.set_trace()
                     if loss == 0:
                         state_sol=True
-                        print("State sol at iteration {}".format(state_itt))
+                        cert_log.info("State sol at iteration {}".format(state_itt))
                         break
                     else:
                         if state_itt % 100 == 0:
@@ -478,7 +477,7 @@ class Direct_control_barr(Certificate):
         
         #if max_loss <= best_loss:
         best_loss = max_loss 
-        print("Loss is {:.10f}".format(best_loss))
+        cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
         #else:
         #    if best_supp_defd:
@@ -606,7 +605,7 @@ class Direct_control(Certificate):
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
         
-        ind_V = torch.reshape(V[stacked_inds], (len(indices["lie"]),-1))
+        ind_V = torch.reshape(V_next[stacked_inds], (len(indices["lie"]),-1))
        
         inds = torch.where(ind_V<beta)
         first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
@@ -726,7 +725,7 @@ class Direct_control(Certificate):
                     if discrete:
                         if max_loss <= 0:
                             best_nets = copy.deepcopy(learners)
-                            print("No supports, max loss is zero")
+                            cert_log.info("No supports, max loss is zero")
                             break
                     max_loss.backward()
                     for opt in optimizer:
@@ -755,10 +754,10 @@ class Direct_control(Certificate):
                             if true_max_loss <= 0:
                                 best_loss = true_max_loss
                                 best_nets = copy.deepcopy(learners)
-                                print("Zero loss, breaking loop")
+                                cert_log.info("Zero loss, breaking loop")
                                 break
                             else:
-                                print("zero supp_loss, jumping")
+                                cert_log.info("zero supp_loss, jumping")
                                 best_loss = true_max_loss
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
@@ -781,28 +780,27 @@ class Direct_control(Certificate):
                         for l_grad in l_grads if len(l_grad) > 0 ])
 
                     new_supp = False
-                    if supp_loss != max_loss:
-                        for ind, loss in zip(max_inds, maximising_losses):
-                            for opt in optimizer:
-                                opt.zero_grad()
-                            loss.backward(retain_graph=True)
-                            l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                                for l in learners]
-                            grads = torch.hstack([
-                                torch.hstack(l_grad)
-                                for l_grad in l_grads if len(l_grad) > 0 ])
-                            #try:
-                            #    grads = torch.hstack([
-                            #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                            #        for l in learners])
-                            #except TypeError:
-                            #    grads = torch.hstack(
-                            #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                            inner = torch.inner(grads, supp_grads)
-                            if inner <= 0:
-                                supp_samples = supp_samples.union(set([ind.item()]))
-                                new_supp = True
-                                break
+                    for ind, loss in zip(max_inds, maximising_losses):
+                        for opt in optimizer:
+                            opt.zero_grad()
+                        loss.backward(retain_graph=True)
+                        l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
+                            for l in learners]
+                        grads = torch.hstack([
+                            torch.hstack(l_grad)
+                            for l_grad in l_grads if len(l_grad) > 0 ])
+                        #try:
+                        #    grads = torch.hstack([
+                        #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                        #        for l in learners])
+                        #except TypeError:
+                        #    grads = torch.hstack(
+                        #        [torch.flatten(param.grad) for param in learners[0].parameters()])
+                        inner = torch.inner(grads, supp_grads)
+                        if inner <= 0:
+                            supp_samples = supp_samples.union(set([ind.item()]))
+                            new_supp = True
+                            break
                     if not new_supp:
                         for opt in optimizer:
                             opt.zero_grad()
@@ -830,7 +828,7 @@ class Direct_control(Certificate):
                     #    import pdb; pdb.set_trace()
                     if loss == 0:
                         state_sol=True
-                        print("State sol at iteration {}".format(state_itt))
+                        cert_log.info("State sol at iteration {}".format(state_itt))
                         break
                     else:
                         if state_itt % 100 == 0:
@@ -878,7 +876,7 @@ class Direct_control(Certificate):
         
         #if max_loss <= best_loss:
         best_loss = max_loss 
-        print("Loss is {:.10f}".format(best_loss))
+        cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
         #else:
         #    if best_supp_defd:

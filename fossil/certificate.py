@@ -780,27 +780,27 @@ class Direct_control(Certificate):
                         for l_grad in l_grads if len(l_grad) > 0 ])
 
                     new_supp = False
-                    for ind, loss in zip(max_inds, maximising_losses):
-                        for opt in optimizer:
-                            opt.zero_grad()
-                        loss.backward(retain_graph=True)
-                        l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                            for l in learners]
-                        grads = torch.hstack([
-                            torch.hstack(l_grad)
-                            for l_grad in l_grads if len(l_grad) > 0 ])
-                        #try:
-                        #    grads = torch.hstack([
-                        #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                        #        for l in learners])
-                        #except TypeError:
-                        #    grads = torch.hstack(
-                        #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                        inner = torch.inner(grads, supp_grads)
-                        if inner <= 0:
-                            supp_samples = supp_samples.union(set([ind.item()]))
-                            new_supp = True
-                            break
+                    #for ind, loss in zip(max_inds, maximising_losses):
+                    #    for opt in optimizer:
+                    #        opt.zero_grad()
+                    #    loss.backward(retain_graph=True)
+                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
+                    #        for l in learners]
+                    #    grads = torch.hstack([
+                    #        torch.hstack(l_grad)
+                    #        for l_grad in l_grads if len(l_grad) > 0 ])
+                    #    #try:
+                    #    #    grads = torch.hstack([
+                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                    #    #        for l in learners])
+                    #    #except TypeError:
+                    #    #    grads = torch.hstack(
+                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
+                    #    inner = torch.inner(grads, supp_grads)
+                    #    if inner <= 0:
+                    #        supp_samples = supp_samples.union(set([ind.item()]))
+                    #        new_supp = True
+                    #        break
                     if not new_supp:
                         for opt in optimizer:
                             opt.zero_grad()

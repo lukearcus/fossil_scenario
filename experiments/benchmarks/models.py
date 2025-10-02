@@ -106,7 +106,7 @@ class InvPendulum(control.DissDynamicalModel):
     
     def g(self, t, x):
         g= 1/self.I
-        return [0, self.T*(g)]
+        return np.array([[0], [self.T*(g)]])
 
     def f_torch(self, t, x):
         u = self.controller(t, x)

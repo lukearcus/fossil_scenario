@@ -109,6 +109,7 @@ class CertificateType(Enum):
     DISSIPATIVITY = auto()
     DIRECTCONTROL = auto()
     DIRECTCONTROLBARR = auto()
+    DIRECTCONTROLRWA = auto()
     BARRIER = auto()
     BARRIERALT = auto()
     LYAPUNOV = auto()

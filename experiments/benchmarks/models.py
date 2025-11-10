@@ -13,10 +13,10 @@ class LTI_disc_param(control.DissDynamicalModel):
     n_vars=2
     time_horizon=100
     time="discrete"
-    T=0.01
-    param_ub = -0.3
-    param_lb = -0.5
-    B = np.array([[1],[1]])
+    T=0.001
+    param_ub = -30
+    param_lb = -50
+    B = T*np.array([[100],[100]])
     u_min = -5
     u_max = 5
 
@@ -25,7 +25,7 @@ class LTI_disc_param(control.DissDynamicalModel):
             self.param = np.random.rand()*(self.param_ub-self.param_lb)+self.param_lb
         else:
             self.param = param
-        self.A = np.array([[0.7,0.8],[self.param,1.4]])
+        self.A = np.array([[1-30*self.T,80*self.T],[self.param*self.T,1 + 40*self.T]])
         super().__init__()
 
     def f(self, t, x):
@@ -83,29 +83,29 @@ class LTI_disc(control.DissDynamicalModel):
 
 class InvPendulum(control.DissDynamicalModel):
     n_vars=2
-    time_horizon=10
+    time_horizon=50
     time="discrete"
     T=0.01
     
             # Physical parameters for the inverted pendulum
-    m = 0.1  # Mass of the pendulum (kg)
-    l = 2  # Length of the pendulum (m)
+    m = 2  # Mass of the pendulum (kg)
+    l = 1  # Length of the pendulum (m)
     gr = 9.81  # Gravitational acceleration (m/s^2)
-    #I = (self.m * self.l ** 2) / 3  # Moment of inertia around the pivot
-    I = 1 / 3
-    u_min = -10
-    u_max = 10
+    I = (m * l ** 2) / 3  # Moment of inertia around the pivot
+    #I = 1 / 3
+    u_min = -3
+    u_max = 3
 
     def f(self, t, x):
         if len(x.shape) == 1:
             th, th_dot = x[0], x[1]
         else:
             th, th_dot = x[:, 0], x[:, 1]
-        f = (self.m * self.gr * self.l / (2 * self.I)) * np.sin(th)
+        f = (self.gr / self.l ) * np.sin(th)
         return [th+self.T*th_dot, th_dot+self.T*(f)]
     
     def g(self, t, x):
-        g= 1/self.I
+        g= 3/self.I
         return np.array([[0], [self.T*(g)]])
 
     def f_torch(self, t, x):
@@ -170,8 +170,8 @@ class Barr4D_DT_controlled(control.DissDynamicalModel):
     time_horizon = 40
     time="discrete"
     T=0.1
-    u_max=5
-    u_min=-5
+    u_max=10
+    u_min=-10
 
     def f(self, t, v):
         if len(v.shape) == 1:
@@ -185,7 +185,7 @@ class Barr4D_DT_controlled(control.DissDynamicalModel):
             x1, x2, x3, x4 = v[0], v[1], v[2], v[3]
         else:
             x1, x2, x3, x4 = v[:, 0], v[:, 1], v[:, 2], v[:, 3]
-        return np.array([[0, self.T*(x1**2), np.sqrt(x2), 1],[1,0,0,0]]).T
+        return np.array([[0, 1*(x1**2), 1*np.sqrt(np.abs(x2)), 1],[1,0,0,0]]).T
 
     def f_torch(self, t, x):
         u = self.controller(t, x)

@@ -258,7 +258,8 @@ class DissDynamicalModel(DynamicalModel):
                 for k in range(time_horizon):
                     fs_elem.append(self.f(k, traj[-1]))
                     gs_elem.append(self.g(k, traj[-1]))
-                    traj.append(np.hstack(self.f_torch(k, traj[-1])))
+                    new_s = np.hstack(self.f_torch(k, traj[-1]))
+                    traj.append(new_s)
                     next_s.append(traj[-1])
                 traj.pop(-1)
                 state_trajs.append(np.vstack(traj).T)

@@ -396,7 +396,7 @@ class Union(Set):
     def sample_border(self, batch_size):
         warnings.warn(
             "Assuming that border of S1 and S2 is the union of the two borders. This is not true in general, eg if the sets intersect."
-        )
+        ) #Solution (not implemented) only use samples not contained in other set
         X1 = self.S1.sample_border(int(batch_size / 2))
         X2 = self.S2.sample_border(int(batch_size / 2))
         return torch.cat([X1, X2])
@@ -406,7 +406,10 @@ class Union(Set):
         self.S2.plot(*args, **kwargs)
     
     def check_containment(self, x):
-        return self.S1.check_containment(x) or self.S2.check_containment(x)
+        if type(x) is torch.Tensor:
+            return torch.logical_or(self.S1.check_containment(x), self.S2.check_containment(x))
+        else:    
+            return self.S1.check_containment(x) or self.S2.check_containment(x)
 
 
 class Intersection(Set):
@@ -425,17 +428,46 @@ class Intersection(Set):
     def generate_domain(self, x):
         f = self.set_functions(x)
         return f["And"](self.S1.generate_domain(x), self.S2.generate_domain(x))
+    
+    def generate_boundary(self, x):
+        f = self.set_functions(x)
+        
+        return f["Or"](f["And"](self.S1.generate_boundary(x),self.S2.generate_domain(x)), f["And"](self.S2.generate_boundary(x),self.S1.generate_domain(x)))
 
     def generate_data(self, batch_size):
         s1 = self.S1.generate_data(batch_size)
         s1 = s1[self.S2.check_containment(s1)]
         s2 = self.S2.generate_data(batch_size)
         s2 = s2[self.S1.check_containment(s2)]
-        return torch.cat([s1, s2])
+        data = torch.cat([s1, s2])
+        data = data[torch.randperm(len(data))]
+        while len(data) < batch_size:
+            s1 = self.S1.generate_data(batch_size)
+            s1 = s1[self.S2.check_containment(s1)]
+            s2 = self.S2.generate_data(batch_size)
+            s2 = s2[self.S1.check_containment(s2)]
+            data = torch.cat([data,s1,s2])
+            data = data[torch.randperm(len(data))]
+        return data[:batch_size] 
     
     def check_containment(self, x):
         return self.S1.check_containment(x) & self.S2.check_containment(x)
 
+    def sample_border(self, batch_size):
+        s1 = self.S1.sample_border(batch_size)
+        s1 = s1[self.S2.check_containment(s1)]
+        s2 = self.S2.sample_border(batch_size)
+        s2 = s2[self.S1.check_containment(s2)]
+        data = torch.cat([s1,s2])
+        data = data[torch.randperm(len(data))]
+        while len(data) < batch_size:
+            s1 = self.S1.sample_border(batch_size)
+            s1 = s1[self.S2.check_containment(s1)]
+            s2 = self.S2.sample_border(batch_size)
+            s2 = s2[self.S1.check_containment(s2)]
+            data = torch.cat([data,s1,s2])
+            data = data[torch.randperm(len(data))]
+        return data[:batch_size] 
 
 class SetMinus(Set):
     """
@@ -460,7 +492,7 @@ class SetMinus(Set):
         f = self.set_functions(x)
         warnings.warn(
             "Assuming that boundary of S1 and S2 is the union of the two boundaries. This is not true in general, eg if the boundaries intersect."
-        )
+        ) # samples from boundary of S1 that are not in S2, and from S2 that are in S1
         return f["Or"](self.S1.generate_boundary(x), self.S2.generate_boundary(x))
 
     def generate_data(self, batch_size):

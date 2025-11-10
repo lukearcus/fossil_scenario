@@ -532,6 +532,425 @@ class Direct_control_barr(Certificate):
             elif any(losses > 0):
                 violated += 1
         return violated, true_violated
+class Direct_control_RWA(Certificate):
+    """
+    Certificies stability for CT and DT models
+    bool LLO: last layer of ones in network
+    XD: Symbolic formula of domain
+    XG: Goal region (around origin)
+    """
+
+    bias = True
+
+    def __init__(self, domains, config: ScenAppConfig) -> None:
+        self.domain = domains[XD]
+        self.llo = config.LLO
+        self.control = config.CTRLAYER is not None
+        self.D = config.DOMAINS
+        self.beta = None
+        self.T = config.SYSTEM[0].time_horizon
+    
+    def compute_state_loss(self, V_D, V_G, V_I, V_U, beta):
+        
+        relu = torch.nn.ReLU()
+        
+        margin = 1e-5
+
+        state_loss = -V_D+beta
+        N_data = len(state_loss)
+        acc = sum(state_loss < 0)/(N_data)
+        loss = relu(state_loss+margin).mean()
+        
+        goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
+        acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
+        loss = loss + relu(goal_loss+margin).mean()
+        
+        unsafe_loss = -V_U
+        acc = (acc*N_data+ sum(unsafe_loss < 0))/(2*N_data)
+        loss = loss + relu(unsafe_loss+margin).mean()
+        
+        init_loss = V_I
+        acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
+        loss = loss + relu(init_loss+margin).mean()
+        
+        #loss = torch.tensor([0.0]) 
+        #u_max=1 # this shouldn't be hardcoced in future
+        #control = relu(torch.abs(u).max(axis=1)[0])-u_max)
+        #loss = loss+control.mean()
+        
+        return loss, {"state_acc":acc.item()*100}
+
+    def compute_loss(
+            self, 
+            V,
+            V_next,
+            beta,
+            indices: list,
+            req_diff: torch.tensor,
+            req_diff_2: torch.tensor,
+    ) -> tuple[torch.Tensor, dict]:
+        """_summary_
+
+        Args:
+            V (torch.Tensor): Lyapunov samples over domain
+            Vdot (torch.Tensor): Lyapunov derivative samples over domain
+            circle (torch.Tensor): Circle
+
+        Returns:
+            tuple[torch.Tensor, float]: loss and accuracy
+        """
+
+        relu = torch.nn.ReLU()
+         
+        loss = V_next-V+relu(req_diff)
+        
+        stacked_inds = torch.hstack(indices["lie"])
+        ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
+        
+        ind_V = torch.reshape(V_next[stacked_inds], (len(indices["lie"]),-1))
+       
+        inds = torch.where(ind_V<beta)
+        first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
+
+        losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
+        acc = sum(losses <= 0)/len(losses)
+
+        loss = V_next-V+req_diff_2
+        ind_losses_2 = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
+        
+        losses_2 = torch.max(ind_losses_2, axis=1)[0].squeeze()
+        if ind_losses_2.shape[0] > 1:
+            acc = sum(losses <= 0)/len(losses)
+        else:
+            acc = (losses <= 0)
+        losses = torch.max(losses,losses_2)
+        return losses, {"traj_acc":acc.item()*100}
+
+    def learn(
+        self,
+        learners: tuple,
+        optimizer: Optimizer,
+        S: list,
+        Sdot: list,
+        Sind: list,
+        f_samples: list,
+        g_samples: list,
+        times: list,
+        best_loss: float,
+        best_nets: learner.LearnerNN,
+        f_torch=None,
+        discrete=False
+    ) -> dict:
+        """
+        :param learner: learner object
+        :param optimizer: torch optimiser
+        :param S: dict of tensors of data
+        :param Sdot: dict of tensors containing f(data)
+        :return: --
+        """
+        torch.set_num_threads(8)
+        relu = torch.nn.ReLU()
+
+        batch_size = len(S[XD])
+        learn_loops = 10000
+        samples = S[XD]
+        
+        i1 = S[XD].shape[0]
+        idot1 = Sdot[XD].shape[0]
+        
+        i2 = S[XI].shape[0]
+        idot2 = Sdot[XI].shape[0]
+
+        i3 = S[XG_BORDER].shape[0]
+        idot3 = len(Sdot[XG_BORDER])
+
+        i4 = S[XG].shape[0]
+        idot4 = len(Sdot[XG])
+
+        idot5 = len(Sdot[XU])
+
+        samples = torch.cat([S[XD], S[XI], S[XG_BORDER],  S[XG], S[XU]])
+        f_samples = f_samples[XD]
+        g_samples = g_samples[XD]
+        samples_dot = Sdot[XD]
+
+        samples_with_nexts = samples[:idot1]
+        states_only = torch.cat([samples[idot1:i1], samples[i1+idot2:i1+i2], samples[i1+i2+idot3:i1+i2+i3], samples[i1+i2+i3+idot4:i1+i2+i3+i4], samples[i1+i2+i3+i4+idot5:]])
+        times = times[XD]
+        
+        states_only = torch.unsqueeze(states_only, 1)
+        samples_with_nexts = torch.unsqueeze(samples_with_nexts, 1)
+        samples_dot = torch.unsqueeze(samples_dot, 1)
+        f_samples = torch.unsqueeze(f_samples[:idot1], 1)
+        #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        supp_samples = set()
+        state_sol = not all([p.requires_grad for p in learners[0].parameters()])
+        #state_sol = False
+        best_supp_defd = False
+        for t in range(learn_loops):
+            if state_sol:
+                for opt in optimizer:
+                    opt.zero_grad()
+                V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
+                u1 = learners[1](samples_with_nexts) 
+                
+
+                V1 = torch.unsqueeze(V1, 1)
+                Vdot = torch.unsqueeze(Vdot, 1)
+                #u1 = torch.unsqueeze(u1, 1)
+                samples = torch.unsqueeze(samples, 2)
+                
+                
+    
+                V2 = learners[0](states_only)
+                u2 = learners[1](states_only)[:i1-idot1]
+                
+                V2 = torch.unsqueeze(V2, 1)
+                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                V_next = learners[0](nexts)
+                V_next = torch.unsqueeze(V_next, 1)
+
+
+                V_I = V2[i1-idot1:i1+i2-idot1-idot2]
+                V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                V_D = V2[:i1-idot1]
+                V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                V_U = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                beta = V_SG.min()
+                
+                req_diff = ((V_I.max()-beta)/self.T)
+                req_diff_2 = (beta-V_U.min())/self.T
+                
+                losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
+                
+                loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_U, beta)
+                acc = learn_accuracy|state_acc
+                losses = relu(losses) + loss
+                #if loss > 0:
+                #    losses = relu(losses) + loss
+
+                max_loss = torch.max(losses, 0)
+                ind_max = max_loss[1].item()
+                max_loss = max_loss[0]
+                if len(supp_samples) == 0:
+                    log_loss_acc(t, max_loss, acc, learners[0].verbose)
+                    supp_samples.add(ind_max)
+                    if discrete:
+                        if max_loss <= 0:
+                            best_nets = copy.deepcopy(learners)
+                            cert_log.info("No supports, max loss is zero")
+                            break
+                    max_loss.backward()
+                    for opt in optimizer:
+                        opt.step()
+                else:
+                    supp_loss = torch.max(losses[list(supp_samples)])
+                    max_inds = (losses >= supp_loss).nonzero()
+                    maximising_losses = losses[max_inds]
+                    
+                    maximising_losses, max_inds = zip(*sorted(zip(maximising_losses, max_inds), reverse=True))
+                    supps = list(supp_samples)
+                    max_loss = torch.max(losses[supps], 0)
+                    ind_max = supps[max_loss[1]]
+                    max_loss = max_loss[0]
+                    if max_loss < best_loss:
+                        #best_supp_defd = True
+                        #best_supp_sample = set([ind_max])
+                        best_loss = max_loss
+                        best_nets = copy.deepcopy(learners)
+    
+                    if discrete:
+                        if max_loss <= 0:
+                            true_max_loss = torch.max(losses, 0)
+                            ind_true_max = true_max_loss[1].item()
+                            true_max_loss = true_max_loss[0]
+                            if true_max_loss <= 0:
+                                best_loss = true_max_loss
+                                best_nets = copy.deepcopy(learners)
+                                cert_log.info("Zero loss, breaking loop")
+                                break
+                            else:
+                                cert_log.info("zero supp_loss, jumping")
+                                best_loss = true_max_loss
+                                supp_samples = supp_samples.union(set([ind_true_max]))
+                                max_loss = true_max_loss
+
+                    #if (max_loss-best_loss) >= 1e-2: 
+                    #    if ind_max in supp_samples:
+                    #        break
+                    #    else:
+                    #        supp_samples = supp_samples.union(set([ind_max]))
+
+                    if t % 100 == 0 or t == learn_loops - 1:
+                        log_loss_acc(t, max_loss, acc, learners[0].verbose)
+                    for opt in optimizer:
+                        opt.zero_grad()
+                    supp_loss.backward(retain_graph=True)
+                    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
+                        for l in learners]
+                    supp_grads = torch.hstack([
+                        torch.hstack(l_grad)
+                        for l_grad in l_grads if len(l_grad) > 0 ])
+
+                    new_supp = False
+                    #for ind, loss in zip(max_inds, maximising_losses):
+                    #    for opt in optimizer:
+                    #        opt.zero_grad()
+                    #    loss.backward(retain_graph=True)
+                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
+                    #        for l in learners]
+                    #    grads = torch.hstack([
+                    #        torch.hstack(l_grad)
+                    #        for l_grad in l_grads if len(l_grad) > 0 ])
+                    #    #try:
+                    #    #    grads = torch.hstack([
+                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
+                    #    #        for l in learners])
+                    #    #except TypeError:
+                    #    #    grads = torch.hstack(
+                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
+                    #    inner = torch.inner(grads, supp_grads)
+                    #    if inner <= 0:
+                    #        supp_samples = supp_samples.union(set([ind.item()]))
+                    #        new_supp = True
+                    #        break
+                    if not new_supp:
+                        for opt in optimizer:
+                            opt.zero_grad()
+                        supp_loss.backward()
+                    for opt in optimizer:
+                        opt.step()
+            else:
+                state_itt = 0
+                while True:
+                    #for opt in optimizer:
+                    optimizer[0].zero_grad()
+                    V2 = learners[0](states_only)
+                    V2 = torch.unsqueeze(V2, 1)
+                    #R = torch.eye(Smat.shape[-1]) 
+
+                    state_itt += 1
+                    V_I = V2[i1-idot1:i1+i2-idot1-idot2]
+                    V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                    V_D = V2[:i1-idot1]
+                    V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                    V_U = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                    beta = V_SG.min()
+                    loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_U, beta)
+                    #if state_itt % 100 == 0:
+                    #    import pdb; pdb.set_trace()
+                    if loss == 0:
+                        state_sol=True
+                        cert_log.info("State sol at iteration {}".format(state_itt))
+                        break
+                    else:
+                        if state_itt % 100 == 0:
+                            loss_v = loss.item() if hasattr(loss, "item") else loss
+                            cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
+                            
+                        loss.backward()
+                        #for opt in optimizer:
+                        optimizer[0].step()
+
+        #best_nets=copy.deepcopy(learners)        
+        learners = copy.deepcopy(best_nets)
+        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
+        u1 = best_nets[1](samples_with_nexts) 
+        
+        V1 = torch.unsqueeze(V1, 1)
+
+        V2 = best_nets[0](states_only)
+        
+        V2 = torch.unsqueeze(V2, 1)
+        
+        V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+        V_D = V2[:i1-idot1]
+        V_I = V2[i1-idot1:i1+i2-idot1-idot2]
+        V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+        V_U = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+        beta = V_SG.min()
+        
+        req_diff = ((V_I.max()-beta)/self.T)
+
+
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+        #nexts = states_only[:i1-idot1] 
+        V_next = best_nets[0](nexts)
+        V_next = torch.unsqueeze(V_next, 1)
+        req_diff_2 = relu((V_U.min()-beta)/self.T)
+        
+        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
+                
+        
+        loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_U, beta)
+        
+        losses = relu(losses) + loss
+        max_loss = torch.max(losses, 0)
+        ind_max = max_loss[1].item()
+        max_loss = max_loss[0]
+        
+        #if max_loss <= best_loss:
+        best_loss = max_loss 
+        cert_log.info("Loss is {:.10f}".format(best_loss))
+        supp_samples = supp_samples.union(set([ind_max]))
+        #else:
+        #    if best_supp_defd:
+        #        supp_samples = supp_samples.union(best_supp_sample)
+        supp_samples.discard(-1)
+        log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
+        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+
+    def get_violations(self, nets, S, state_data):
+        violated = 0
+        true_violated = 0
+        
+        req_diff = (nets[0](state_data["init"]).max()-nets[0](state_data["goal_border"]).min())/self.T
+        req_diff = (nets[0](state_data["unsafe"]).max()-nets[0](state_data["goal_border"]).min())/self.T
+        beta = nets[0](state_data["goal_border"]).min()
+        for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
+            
+            traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
+            
+            valid_inds = torch.where(self.D[XD].check_containment(traj))
+            traj = traj[valid_inds]
+            traj_deriv = traj_deriv[valid_inds]
+            time = time[valid_inds]
+            valid_inds = valid_inds[0]
+            f = f[:,valid_inds]
+            g = g[:,:,valid_inds]
+
+            traj = torch.unsqueeze(traj, 1)
+            traj_deriv = torch.unsqueeze(traj_deriv, 1)
+            V1, Vdot, circle = nets[0].get_all(traj, traj_deriv, time) 
+            u1= nets[1](traj) 
+            
+            V1 = torch.unsqueeze(V1, 1)
+            
+            f = torch.unsqueeze(f.T, 2).mT
+            g = torch.unsqueeze(g.T, 2).mT
+            
+            Sind = {"lie":[torch.arange(len(traj))]}
+            
+            nexts = traj_deriv
+            V_next = nets[0](nexts)
+            V_next = torch.unsqueeze(V_next, 1)
+        
+            
+            
+            losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
+            
+            if len(traj.shape) == 3:
+                traj = torch.squeeze(traj,1)
+            goal_inds = torch.where(self.D[XG].check_containment(traj))
+            
+            unsafe_inds = torch.where(self.D[XU].check_containment(traj))
+            
+            if len(goal_inds[0]) == 0 or len(unsafe_inds[0])>0:
+                true_violated += 1
+            # We should check for value violations, but currently don't
+            if any(losses > 0):
+                violated += 1
+        return violated, true_violated
 class Direct_control(Certificate):
     """
     Certificies stability for CT and DT models
@@ -694,7 +1113,7 @@ class Direct_control(Certificate):
                 u2 = learners[1](states_only)[:i1-idot1]
                 
                 V2 = torch.unsqueeze(V2, 1)
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1)).mT 
+                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
                 V_next = learners[0](nexts)
                 V_next = torch.unsqueeze(V_next, 1)
 
@@ -860,7 +1279,7 @@ class Direct_control(Certificate):
         req_diff = ((V_I.max()-beta)/self.T)
 
 
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1)).mT 
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
@@ -895,6 +1314,7 @@ class Direct_control(Certificate):
             
             traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
             
+            import pdb; pdb.set_trace()
             valid_inds = torch.where(self.D[XD].check_containment(traj))
             traj = traj[valid_inds]
             traj_deriv = traj_deriv[valid_inds]
@@ -923,6 +1343,8 @@ class Direct_control(Certificate):
             
             losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
             
+            if len(traj.shape) == 3:
+                traj = torch.squeeze(traj,1)
             goal_inds = torch.where(self.D[XG].check_containment(traj))
             if len(goal_inds[0]) == 0:
                 true_violated += 1
@@ -2868,6 +3290,8 @@ class AutoSets:
             return self.auto_direct_control()
         elif self.certificate == CertificateType.DIRECTCONTROLBARR:
             return self.auto_direct_control_barr()
+        elif self.certificate == CertificateType.DIRECTCONTROLRWA:
+            return self.auto_direct_control_rwa()
         elif self.certificate == CertificateType.PRACTICALLYAPUNOV:
             return self.auto_practical_lyap()
         elif self.certificate == CertificateType.SEQUENTIALREACH:
@@ -2896,6 +3320,8 @@ def get_certificate(
         return Direct_control
     elif certificate == CertificateType.DIRECTCONTROLBARR:
         return Direct_control_barr
+    elif certificate == CertificateType.DIRECTCONTROLRWA:
+        return Direct_control_RWA
     elif certificate == CertificateType.PRACTICALLYAPUNOV:
         return Practical_Lyapunov
     elif certificate == CertificateType.SEQUENTIALREACH:

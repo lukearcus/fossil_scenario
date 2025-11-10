@@ -143,6 +143,17 @@ class SingleScenApp:
                config=self.config,
                                )
             return (V, u)
+         elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+            u = learner.Controller(
+               self.config.N_VARS,
+               self.config.CONTROL_VARS,
+               self.certificate.learn,
+               self.config.N_HIDDEN_NEURONS["u"],
+               activation=self.config.ACTIVATION["u"],
+               bias=self.certificate.bias,
+               config=self.config,
+                               )
+            return (V, u)
          else:
             raise NotImplementedError
 
@@ -300,7 +311,7 @@ class SingleScenApp:
 
             for sys in self.config.SYSTEM:
                 sys.controller = diss_control
-        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL or self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+        elif (self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL or self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR) or self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
 
             def control(t, x):
                 x = torch.tensor(x,dtype=torch.float32)
@@ -337,8 +348,12 @@ class SingleScenApp:
             acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
         elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
             acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
+        elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+            acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) and not any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
+            #acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
         scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
-
+        if acc > 99:
+            import pdb; pdb.set_trace()
         return state
 
     def discard(self, state):

@@ -46,12 +46,16 @@ class UnsafeDomain(domains.Set):
         return points
     
     def check_containment(self, x):
-        return x[:,0] + x[:,1]**2 <= 0
+        if len(x.shape) == 2:
+            return x[:,0] + x[:,1]**2 <= 0
+        else:
+            return x[0] + x[1]**2 <= 0
+
 
 def test_lnn(args):
-    XD = domains.Rectangle([-2] * 4, [2] * 4)
+    XD = domains.Rectangle([-5] * 4, [5] * 4)
     XI = domains.Rectangle([0.75, 1.5, 1.5, 1.5], [1, 2, 2, 2])
-    XG = UnsafeDomain()
+    XG = domains.Intersection(domains.Rectangle([-2]*4,[2]*4), UnsafeDomain())
     
 
     n_data = 1000
@@ -80,7 +84,6 @@ def test_lnn(args):
     init_data = [XI._generate_data(n_data)() for j in range(num_runs)]
     systems = [[system() for i in range(n_data)] for init_datum in init_data] # parameterised systems
     all_data = [[sys.generate_trajs(np.expand_dims(d,0)) for sys, d in zip(system, init_datum)] for system, init_datum in zip(systems, init_data)]
-    
     times = [[datum[0][0] for datum in all_datum] for all_datum in all_data]
     states = [[datum[1][0] for datum in all_datum] for all_datum in all_data]
     derivs = [[datum[2][0] for datum in all_datum] for all_datum in all_data]

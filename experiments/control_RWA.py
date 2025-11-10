@@ -31,15 +31,16 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         DATA=data,
         N_DATA=n_data,
         N_TEST_DATA=100,
-        CERTIFICATE=CertificateType.DIRECTCONTROL,
+        CERTIFICATE=CertificateType.DIRECTCONTROLRWA,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=100,
+        SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
+
         #CONVEX_NET=True,
     )
     PAC = ScenApp(opts)
@@ -48,8 +49,8 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 30
-    system = models.InvPendulum 
+    n_data = 1000
+    system = models.LTI_disc_param 
     
     def random_control(obj, t, x):
         return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2
@@ -65,17 +66,17 @@ def test_lnn():
     ##XI = domains.Rectangle([-3, -3], [3, 3])
     #XG = domains.Sphere([0,0],0.1)
     
-    XD = domains.Rectangle([-0.3, -0.6], [0.3, 0.6])
-    #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
-    XI = domains.Sphere([-0.1,-0.3],0.01)
-    XG = domains.Sphere([0,0],0.05)
-
+    XD = domains.Rectangle([-15, -15], [15, 15])
+    XI = domains.Rectangle([-1, 4], [1, 4.5])
+    XG = domains.Sphere([0,0],1)
+    XU = domains.Union(domains.Sphere([0,2],0.5), domains.SetMinus(XD, domains.Rectangle([-10,-10],[10,10])))
+    
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
     dom = {fossil.XD: XD,
             fossil.XG: XG,
             fossil.XG_BORDER: XG,
-            fossil.XS_BORDER: XD,
+            fossil.XU: XU,
             fossil.XI: XI
                 }
     
@@ -85,7 +86,7 @@ def test_lnn():
                   fossil.XI: XI._generate_data(n_state_data)(), 
                   fossil.XG: XG._generate_data(n_state_data)(),
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
-                  fossil.XS_BORDER: XD._sample_border(n_state_data)()}
+                  fossil.XU: XU._generate_data(n_state_data)()}
     # define NN parameters
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
@@ -130,7 +131,7 @@ def test_lnn():
         DATA=data[-1],
         N_DATA=n_data,
         N_TEST_DATA=n_data,
-        CERTIFICATE=CertificateType.DIRECTCONTROL,
+        CERTIFICATE=CertificateType.DIRECTCONTROLRWA,
         TIME_DOMAIN=TimeDomain.DISCRETE,
         #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
@@ -146,7 +147,9 @@ def test_lnn():
     )
 
     init_data = XI._generate_data(num_traj_plots)()
-    traj_data_controlled = [system().generate_trajs(np.expand_dims(init_datum,0))[1][0] for init_datum in init_data]
+    traj_data_controlled = []
+    for init_datum in init_data:
+        traj_data_controlled.append(system().generate_trajs(np.expand_dims(init_datum,0))[1][0])
     for traj in traj_data_controlled:
         axes[0][0].plot(traj[0,:], traj[1,:], 'b')
     #for traj in traj_data_random:

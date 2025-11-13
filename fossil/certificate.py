@@ -652,7 +652,7 @@ class Direct_control_RWA(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 10000
+        learn_loops = 1000
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -877,8 +877,10 @@ class Direct_control_RWA(Certificate):
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
-        req_diff_2 = relu((V_U.min()-beta)/self.T)
-        
+        #req_diff_2 = relu((V_U.min()-beta)/self.T)
+        req_diff_2 = (beta-V_U.min())/self.T
+        #if best_loss == 0:
+        #    import pdb; pdb.set_trace()
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
                 
         
@@ -905,7 +907,7 @@ class Direct_control_RWA(Certificate):
         true_violated = 0
         
         req_diff = (nets[0](state_data["init"]).max()-nets[0](state_data["goal_border"]).min())/self.T
-        req_diff = (nets[0](state_data["unsafe"]).max()-nets[0](state_data["goal_border"]).min())/self.T
+        req_diff_2 = (nets[0](-state_data["unsafe"]).max()+nets[0](state_data["goal_border"]).min())/self.T
         beta = nets[0](state_data["goal_border"]).min()
         for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
             

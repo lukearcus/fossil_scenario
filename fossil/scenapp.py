@@ -352,8 +352,8 @@ class SingleScenApp:
             acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) and not any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
             #acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
         scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
-        if acc > 99:
-            import pdb; pdb.set_trace()
+        #if acc > 99:
+        #    import pdb; pdb.set_trace()
         return state
 
     def discard(self, state):
@@ -485,18 +485,20 @@ class SingleScenApp:
         else:
             state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
+        start_switch = False
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
-            #if iters % 2:
-            #    for param in self.learner[1].parameters():
-            #        param.requires_grad=True
-            #    for param in self.learner[0].parameters():
-            #        param.requires_grad=False
-            #else:
-            #    for param in self.learner[1].parameters():
-            #        param.requires_grad=False
-            #    for param in self.learner[0].parameters():
-            #        param.requires_grad=True
+            #if start_switch:
+            #    if iters % 2:
+            #        for param in self.learner[1].parameters():
+            #            param.requires_grad=True
+            #        for param in self.learner[0].parameters():
+            #            param.requires_grad=False
+            #    else:
+            #        for param in self.learner[1].parameters():
+            #            param.requires_grad=False
+            #        for param in self.learner[0].parameters():
+            #            param.requires_grad=True
             
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
@@ -505,6 +507,7 @@ class SingleScenApp:
                 scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
                 scenapp_log.info("Zero Best Loss")
+                start_switch = True
             if type(old_best) is float:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:

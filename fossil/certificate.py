@@ -255,7 +255,7 @@ class Direct_control_barr(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 10000
+        learn_loops = 1000
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -1061,7 +1061,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 10000
+        learn_loops = 1000
         samples = S[XD]
         
         i1 = S[XD].shape[0]

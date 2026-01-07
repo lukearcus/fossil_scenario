@@ -63,7 +63,7 @@ def test_lnn():
             x = x.numpy()
         u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - (x[0])
         return u
-    system.controller = stab_control
+    #system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one
 
     #system.controller = uncontrol

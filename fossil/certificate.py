@@ -1136,7 +1136,7 @@ class Direct_control(Certificate):
                 V2 = learners[0](states_only)
                 
                 V2 = torch.unsqueeze(V2, 1)
-                
+                border_mix = 0.75
 
                 #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
                 #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
@@ -1157,7 +1157,8 @@ class Direct_control(Certificate):
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-                beta = (V_SG.min()*9+V_G.min())/10
+                #beta = (V_SG.min()*9+V_G.min())/10
+                beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
                 
                 req_diff = ((V_I.max()-beta)/self.T)
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
@@ -1278,7 +1279,8 @@ class Direct_control(Certificate):
                     V_D = V2[:i1-idot1]
                     V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                     V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-                    beta = (V_SG.min()*9+V_G.min())/10
+                    #beta = (V_SG.min()*9+V_G.min())/10
+                    beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
                     loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
@@ -1324,7 +1326,7 @@ class Direct_control(Certificate):
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-        beta = V_SG.min()
+        beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
         
         req_diff = ((V_I.max()-beta)/self.T)
 
@@ -1369,7 +1371,6 @@ class Direct_control(Certificate):
             
             traj, traj_deriv, time, f, g = torch.tensor(traj.T, dtype=torch.float32), torch.tensor(np.array(traj_deriv).T, dtype=torch.float32), torch.tensor(time, dtype=torch.float32), torch.tensor(f, dtype=torch.float32), torch.tensor(g, dtype=torch.float32)
             
-            import pdb; pdb.set_trace()
             valid_inds = torch.where(self.D[XD].check_containment(traj))
             traj = traj[valid_inds]
             traj_deriv = traj_deriv[valid_inds]

@@ -1157,7 +1157,7 @@ class Direct_control(Certificate):
                 V_D = V2[:i1-idot1]
                 V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                 V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-                beta = V_SG.min()
+                beta = (V_SG.min()*9+V_G.min())/10
                 
                 req_diff = ((V_I.max()-beta)/self.T)
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
@@ -1278,7 +1278,7 @@ class Direct_control(Certificate):
                     V_D = V2[:i1-idot1]
                     V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                     V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
-                    beta = V_SG.min()
+                    beta = (V_SG.min()*9+V_G.min())/10
                     loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()

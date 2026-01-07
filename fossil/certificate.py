@@ -1119,6 +1119,7 @@ class Direct_control(Certificate):
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
         best_supp_defd = False
+        border_mix = 0.75
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1136,7 +1137,6 @@ class Direct_control(Certificate):
                 V2 = learners[0](states_only)
                 
                 V2 = torch.unsqueeze(V2, 1)
-                border_mix = 0.75
 
                 #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
                 #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]

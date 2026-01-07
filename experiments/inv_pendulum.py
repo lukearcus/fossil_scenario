@@ -61,9 +61,9 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - (x[0])
+        u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - 0.1*(x[0])
         return u
-    #system.controller = stab_control
+    system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one
 
     #system.controller = uncontrol

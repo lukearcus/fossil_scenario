@@ -48,7 +48,7 @@ class SingleScenApp:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
     def _pretrain_controller(self):
-        num_pretrain_loops = 100000
+        num_pretrain_loops = 10000
         all_data = torch.cat([self.S["states"][key] for key in self.S["states"]])
         exp_control = torch.tensor([self.config["SYSTEM"][0].controller(0,datum) for datum in all_data])[:,None] # to mahe 2d, shouldn't be needed really
         for i in range(num_pretrain_loops):

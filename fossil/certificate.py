@@ -291,6 +291,19 @@ class Direct_control_barr(Certificate):
                 for opt in optimizer:
                     opt.zero_grad()
                 V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
+                
+                num_inn_steps = 100
+                if len(supp_samples) > 0:
+                    for inn_step in range(num_inn_steps):
+                        u1 = learners[1](samples_with_nexts) 
+                        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                        V_next = learners[0](nexts)
+
+                        V_next = torch.unsqueeze(V_next, 1)
+                        u_loss = V_next[list(supp_samples)].sum()
+                        optimizer[1].zero_grad()
+                        u_loss.backward()
+                        optimizer[1].step()
                 u1 = learners[1](samples_with_nexts) 
                 
 
@@ -302,7 +315,6 @@ class Direct_control_barr(Certificate):
                 
     
                 V2 = learners[0](states_only)
-                u2 = learners[1](states_only)[:i1-idot1]
                 
                 V2 = torch.unsqueeze(V2, 1)
                 nexts = (f_samples.mT+torch.bmm(g_samples,u1.mT)).mT 
@@ -692,6 +704,18 @@ class Direct_control_RWA(Certificate):
                 for opt in optimizer:
                     opt.zero_grad()
                 V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
+                num_inn_steps = 100
+                if len(supp_samples) > 0:
+                    for inn_step in range(num_inn_steps):
+                        u1 = learners[1](samples_with_nexts) 
+                        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                        V_next = learners[0](nexts)
+
+                        V_next = torch.unsqueeze(V_next, 1)
+                        u_loss = V_next[list(supp_samples)].sum()
+                        optimizer[1].zero_grad()
+                        u_loss.backward()
+                        optimizer[1].step()
                 u1 = learners[1](samples_with_nexts) 
                 
 
@@ -703,7 +727,6 @@ class Direct_control_RWA(Certificate):
                 
     
                 V2 = learners[0](states_only)
-                u2 = learners[1](states_only)[:i1-idot1]
                 
                 V2 = torch.unsqueeze(V2, 1)
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
@@ -1101,7 +1124,6 @@ class Direct_control(Certificate):
                 for opt in optimizer:
                     opt.zero_grad()
                 V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-                u1 = learners[1](samples_with_nexts) 
                 
 
                 V1 = torch.unsqueeze(V1, 1)
@@ -1112,13 +1134,23 @@ class Direct_control(Certificate):
                 
     
                 V2 = learners[0](states_only)
-                u2 = learners[1](states_only)[:i1-idot1]
                 
                 V2 = torch.unsqueeze(V2, 1)
+                
+
+                #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
+                #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
+                #V_next_min_space = V_next_min_space.unsqueeze(1)
+                #V_next_min_space = V_next_min_space.unsqueeze(1)
+                num_inn_steps = 100
+                u1 = learners[1](samples_with_nexts) 
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
                 V_next = learners[0](nexts)
+
                 V_next = torch.unsqueeze(V_next, 1)
 
+                #print((V_next-V_next_min_space).max())
+                #V_next = V_next_min_space
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1128,7 +1160,6 @@ class Direct_control(Certificate):
                 beta = V_SG.min()
                 
                 req_diff = ((V_I.max()-beta)/self.T)
-                
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
                 
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
@@ -1151,6 +1182,7 @@ class Direct_control(Certificate):
                     max_loss.backward()
                     for opt in optimizer:
                         opt.step()
+                    #optimizer[0].step()
                 else:
                     supp_loss = torch.max(losses[list(supp_samples)])
                     max_inds = (losses >= supp_loss).nonzero()
@@ -1223,16 +1255,19 @@ class Direct_control(Certificate):
                     #        new_supp = True
                     #        break
                     if not new_supp:
+                        #optimizer[0].zero_grad()
                         for opt in optimizer:
                             opt.zero_grad()
                         supp_loss.backward()
+                    #optimizer[0].step()
                     for opt in optimizer:
                         opt.step()
             else:
                 state_itt = 0
                 while True:
-                    #for opt in optimizer:
-                    optimizer[0].zero_grad()
+                    for opt in optimizer:
+                        opt.zero_grad()
+                    #optimizer[0].zero_grad()
                     V2 = learners[0](states_only)
                     V2 = torch.unsqueeze(V2, 1)
                     #R = torch.eye(Smat.shape[-1]) 
@@ -1257,11 +1292,24 @@ class Direct_control(Certificate):
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
                             
                         loss.backward()
-                        #for opt in optimizer:
-                        optimizer[0].step()
+                        for opt in optimizer:
+                            opt.step()
+                        #optimizer[0].step()
 
         #best_nets=copy.deepcopy(learners)        
-        learners = copy.deepcopy(best_nets)
+        #learners = copy.deepcopy(best_nets)
+        #if len(supp_samples) > 0:
+        #    for inn_step in range(num_inn_steps):
+        #        u1 = learners[1](samples_with_nexts) 
+        #        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+        #        V_next = learners[0](nexts)
+#
+        #        V_next = torch.unsqueeze(V_next, 1)
+        #        u_loss = V_next[list(supp_samples)].sum()
+        #        optimizer[1].zero_grad()
+        #        u_loss.backward()
+        #        optimizer[1].step()
+        best_nets = copy.deepcopy(learners)
         V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
         u1 = best_nets[1](samples_with_nexts) 
         
@@ -1285,6 +1333,11 @@ class Direct_control(Certificate):
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
+        #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
+        #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
+        #V_next_min_space = V_next_min_space.unsqueeze(1)
+        #V_next_min_space = V_next_min_space.unsqueeze(1)
+        #V_next = V_next_min_space
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
         
@@ -1340,6 +1393,12 @@ class Direct_control(Certificate):
             nexts = traj_deriv
             V_next = nets[0](nexts)
             V_next = torch.unsqueeze(V_next, 1)
+            
+            #nexts_spaced = (f.mT+torch.bmm(g.mT, torch.arange(nets[1].u_min,nets[1].u_max,0.01).unsqueeze(0).repeat(g.shape[0],1,1))).mT
+            #V_next_min_space = nets[0](nexts_spaced.flatten(0,1)).reshape(g.shape[0],-1).min(axis=1)[0]
+            #V_next_min_space = V_next_min_space.unsqueeze(1)
+            #V_next_min_space = V_next_min_space.unsqueeze(1)
+            #V_next = V_next_min_space
         
             
             

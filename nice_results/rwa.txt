@@ -1,0 +1,39 @@
+Epsilon: 0.19690
+Found a valid DIRECTCONTROLRWA certificate
+Learner times: total=62519.760536155314s,min=1.878058518981561s,max=4218.71964625502s,avg=500.15808428924254s, N=125
+Direct Property scenario approach risk: 0.10875
+Certificate violation rate: 1.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.89396s
+
+Epsilon: 0.16015
+Found a valid DIRECTCONTROLRWA certificate
+Learner times: total=74385.02467786951s,min=1.48536053893622s,max=4158.521090726019s,avg=641.2502127402545s, N=116
+Direct Property scenario approach risk: 0.10875
+Certificate violation rate: 1.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.87098s
+
+Epsilon: 0.24170
+Found a valid DIRECTCONTROLRWA certificate
+Learner times: total=89688.97369879694s,min=1.3398145649116486s,max=4175.875660928083s,avg=467.1300713479007s, N=192
+Direct Property scenario approach risk: 0.10875
+Certificate violation rate: 1.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.38752s
+
+Epsilon: 0.31166
+Found a valid DIRECTCONTROLRWA certificate
+Learner times: total=173953.75218216353s,min=1.5914281320292503s,max=4202.092264598003s,avg=466.3639468690711s, N=373
+Direct Property scenario approach risk: 0.10875
+Certificate violation rate: 1.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.21725s
+
+Epsilon: 0.34846
+Found a valid DIRECTCONTROLRWA certificate
+Learner times: total=246783.26042019692s,min=1.4893604379612952s,max=4103.9737640609965s,avg=422.57407606198103s, N=584
+Direct Property scenario approach risk: 0.10875
+Certificate violation rate: 1.000
+Property violation rate: 0.000
+Direct property guarantee time: 2.63787s

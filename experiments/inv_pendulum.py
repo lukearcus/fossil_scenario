@@ -38,7 +38,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=100,
+        SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )
@@ -57,6 +57,15 @@ def test_lnn():
 
     def uncontrol(obj, t, x):
         return np.array([0])
+    
+    def stab_control(obj, t, x):
+        if type(x) is torch.Tensor:
+            x = x.numpy()
+        u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - (x[0])
+        return u
+    system.controller = stab_control
+    # next: in scenapp, initialise controller nn to be like this one
+
     #system.controller = uncontrol
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])
@@ -65,10 +74,10 @@ def test_lnn():
     ##XI = domains.Rectangle([-3, -3], [3, 3])
     #XG = domains.Sphere([0,0],0.1)
     
-    XD = domains.Rectangle([-0.3, -0.6], [0.3, 0.6])
+    XD = domains.Rectangle([-5.3, -5.6], [5.3, 5.6])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     XI = domains.Sphere([-0.1,-0.3],0.01)
-    XG = domains.Sphere([0,0],0.05)
+    XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

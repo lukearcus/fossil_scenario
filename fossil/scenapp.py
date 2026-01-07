@@ -43,9 +43,25 @@ class SingleScenApp:
         self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
+        self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
+    def _pretrain_controller(self):
+        num_pretrain_loops = 100000
+        all_data = torch.cat([self.S["states"][key] for key in self.S["states"]])
+        exp_control = torch.tensor([self.config["SYSTEM"][0].controller(0,datum) for datum in all_data])[:,None] # to mahe 2d, shouldn't be needed really
+        for i in range(num_pretrain_loops):
+            self.optimizer[1].zero_grad()
+            nn_control = self.learner[1](all_data)
+            loss = torch.norm(exp_control-nn_control, dim=1).sum()
+            loss.backward()
+            self.optimizer[1].step()
+            if i % 100 == 0:
+                print("Pretrain loss on step {}: {}".format(i,loss))
+
+
+
     def _initialise_domains(self):
         x = verifier.get_verifier_type(self.config.VERIFIER).new_vars(
             self.config.N_VARS
@@ -315,6 +331,13 @@ class SingleScenApp:
 
             def control(t, x):
                 x = torch.tensor(x,dtype=torch.float32)
+                
+                #nexts_spaced = (self.f.mT+torch.bmm(self.g.mT, torch.arange(self.u_min,self.u_max,0.01).unsqueeze(0).repeat(1,1,1))).mT
+                #V_next_min_space = state["best_net"][0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
+                #V_next_min_space = V_next_min_space.unsqueeze(1)
+                #V_next_min_space = V_next_min_space.unsqueeze(1)
+                #V_next = V_next_min_space # need to know f,g to do this, instead use training loop to opt u in loop
+                
                 if len(x.shape) == 1:
                     return state["best_net"][1](x.unsqueeze(1).T).detach().numpy()
                 else:

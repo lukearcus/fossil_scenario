@@ -737,7 +737,7 @@ class Sphere(Set):
         if self.dim_select:
             x = [x[:, i] for i in self.dim_select]
         c = torch.tensor(self.centre).reshape(1, -1)
-        return (x - c).norm(2, dim=-1) <= self.radius**2
+        return (x - c).norm(2, dim=-1) <= self.radius
 
     def check_containment_grad(self, x: torch.Tensor) -> torch.Tensor:
         # check containment and return a tensor with gradient
@@ -753,7 +753,7 @@ class Sphere(Set):
         if self.dimension != 2:
             raise NotImplementedError("Plotting only supported for 2D sets")
         colour, label = get_plot_colour(label)
-        r = self.radius
+        r = self.radius**2
         theta = np.linspace(0, 2 * np.pi, 50)
         xc = self.centre[0] + r * np.cos(theta)
         yc = self.centre[1] + r * np.sin(theta)

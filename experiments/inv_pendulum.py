@@ -78,7 +78,7 @@ def test_lnn():
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     XI = domains.Sphere([-0.1,-0.3],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
-    XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
+    XG_enlarged = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

@@ -78,6 +78,7 @@ def test_lnn():
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     XI = domains.Sphere([-0.1,-0.3],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
+    XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
@@ -96,6 +97,12 @@ def test_lnn():
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
                   fossil.XS_BORDER: XD._sample_border(n_state_data)()}
     # define NN parameters
+    dom = {fossil.XD: XD,
+            fossil.XG: XG_enlarged,
+            fossil.XG_BORDER: XG,
+            fossil.XS_BORDER: XD,
+            fossil.XI: XI
+                }
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
     n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}

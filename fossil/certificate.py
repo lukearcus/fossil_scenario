@@ -1119,7 +1119,7 @@ class Direct_control(Certificate):
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
         best_supp_defd = False
-        border_mix = 0.1
+        border_mix = 1
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:

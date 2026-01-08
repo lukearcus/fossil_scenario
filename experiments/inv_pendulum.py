@@ -63,7 +63,7 @@ def test_lnn():
             x = x.numpy()
         u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - 0.1*(x[0])
         return u
-    system.controller = stab_control
+    #system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one
 
     #system.controller = uncontrol
@@ -76,9 +76,10 @@ def test_lnn():
     
     XD = domains.Rectangle([-5.3, -5.6], [5.3, 5.6])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
-    XI = domains.Sphere([-0.1,-0.3],0.01)
+    #XI = domains.Sphere([-1.57,-0.3],0.01)
+    XI = domains.Sphere([-0.1, -0.3],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
-    XG_enlarged = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
+    XG_enlarged = domains.Sphere([0,0],0.11) # can we converge to bottom? # back to top, start with stab controller
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states

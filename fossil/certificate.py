@@ -1120,6 +1120,8 @@ class Direct_control(Certificate):
         #state_sol = False
         best_supp_defd = False
         border_mix = 1
+        parallel = False
+        #parallel = True
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1181,9 +1183,11 @@ class Direct_control(Certificate):
                             cert_log.info("No supports, max loss is zero")
                             break
                     max_loss.backward()
-                    for opt in optimizer:
-                        opt.step()
-                    #optimizer[0].step()
+                    if parallel:
+                        for opt in optimizer:
+                            opt.step()
+                    else:
+                        optimizer[0].step()
                 else:
                     supp_loss = torch.max(losses[list(supp_samples)])
                     max_inds = (losses >= supp_loss).nonzero()
@@ -1261,8 +1265,13 @@ class Direct_control(Certificate):
                             opt.zero_grad()
                         supp_loss.backward()
                     #optimizer[0].step()
-                    for opt in optimizer:
-                        opt.step()
+                    #for opt in optimizer:
+                    #    opt.step()
+                    if parallel:
+                        for opt in optimizer:
+                            opt.step()
+                    else:
+                        optimizer[0].step()
             else:
                 state_itt = 0
                 while True:
@@ -1294,23 +1303,12 @@ class Direct_control(Certificate):
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
                             
                         loss.backward()
-                        for opt in optimizer:
-                            opt.step()
-                        #optimizer[0].step()
+                        #for opt in optimizer:
+                        #    opt.step()
+                        optimizer[0].step()
 
-        #best_nets=copy.deepcopy(learners)        
+        best_nets=copy.deepcopy(learners)        
         #learners = copy.deepcopy(best_nets)
-        #if len(supp_samples) > 0:
-        #    for inn_step in range(num_inn_steps):
-        #        u1 = learners[1](samples_with_nexts) 
-        #        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        #        V_next = learners[0](nexts)
-#
-        #        V_next = torch.unsqueeze(V_next, 1)
-        #        u_loss = V_next[list(supp_samples)].sum()
-        #        optimizer[1].zero_grad()
-        #        u_loss.backward()
-        #        optimizer[1].step()
         best_nets = copy.deepcopy(learners)
         V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
         u1 = best_nets[1](samples_with_nexts) 
@@ -1354,9 +1352,37 @@ class Direct_control(Certificate):
         best_loss = max_loss 
         cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
+        #if not parallel and best_loss > 0:
+        #    if len(supp_samples) > 0:
+        #        for inn_step in range(num_inn_steps):
+        #            u1 = learners[1](samples_with_nexts) 
+        #            nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+        #            V_next = learners[0](nexts)
+#
+        #            V_next = torch.unsqueeze(V_next, 1)
+        #            u_loss = V_next[list(supp_samples)].sum()
+        #            optimizer[1].zero_grad()
+        #            u_loss.backward()
+        #            optimizer[1].step()
         #else:
         #    if best_supp_defd:
         #        supp_samples = supp_samples.union(best_supp_sample)
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+        V_next = best_nets[0](nexts)
+        V_next = torch.unsqueeze(V_next, 1)
+
+        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
+        
+        losses = relu(losses) + loss
+        max_loss = torch.max(losses, 0)
+        ind_max = max_loss[1].item()
+        max_loss = max_loss[0]
+        
+        #if max_loss <= best_loss:
+        best_loss = max_loss 
+        cert_log.info("Loss is {:.10f}".format(best_loss))
+        supp_samples = supp_samples.union(set([ind_max]))
+        
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}

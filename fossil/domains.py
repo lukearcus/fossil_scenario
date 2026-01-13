@@ -753,7 +753,7 @@ class Sphere(Set):
         if self.dimension != 2:
             raise NotImplementedError("Plotting only supported for 2D sets")
         colour, label = get_plot_colour(label)
-        r = self.radius**2
+        r = self.radius
         theta = np.linspace(0, 2 * np.pi, 50)
         xc = self.centre[0] + r * np.cos(theta)
         yc = self.centre[1] + r * np.sin(theta)

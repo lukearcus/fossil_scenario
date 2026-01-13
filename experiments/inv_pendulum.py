@@ -61,9 +61,9 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -(system.gr / system.l ) * np.sin(x[0])* (3/system.I) - 0.1*(x[0])
+        u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*(x[0]+0.25*x[1])
         return u
-    #system.controller = stab_control
+    system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one
 
     #system.controller = uncontrol
@@ -77,9 +77,9 @@ def test_lnn():
     XD = domains.Rectangle([-5.3, -5.6], [5.3, 5.6])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     #XI = domains.Sphere([-1.57,-0.3],0.01)
-    XI = domains.Sphere([-0.1, -0.3],0.01)
+    XI = domains.Sphere([-0.5, -0.0],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
-    XG_enlarged = domains.Sphere([0,0],0.11) # can we converge to bottom? # back to top, start with stab controller
+    XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
@@ -104,9 +104,9 @@ def test_lnn():
             fossil.XS_BORDER: XD,
             fossil.XI: XI
                 }
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
-    n_hidden_neurons = {"V":[25] * len(activations["V"]), "u":[25] * len(activations["u"])}
+    n_hidden_neurons = {"V":[50] * len(activations["V"]), "u":[50] * len(activations["u"])}
     
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()

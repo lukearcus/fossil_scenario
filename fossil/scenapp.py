@@ -43,7 +43,7 @@ class SingleScenApp:
         self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
-        #self._pretrain_controller()
+        self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
@@ -375,6 +375,7 @@ class SingleScenApp:
             acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) and not any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
             #acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
         scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
+        print(self.S_traj["states"][-1].T)
         #if acc > 99:
         #    import pdb; pdb.set_trace()
         return state
@@ -491,6 +492,7 @@ class SingleScenApp:
         # Initialize CEGIS state
         state = self.init_state(Sdot, S, S_traj, S_inds, times, f, g)
         param_sum = 1
+        print(self.S_traj["states"][-1].T)
 
         # Reset timers for components
         for l in self.learner:

@@ -83,7 +83,7 @@ class LTI_disc(control.DissDynamicalModel):
 
 class InvPendulum(control.DissDynamicalModel):
     n_vars=2
-    time_horizon=100
+    time_horizon=200
     time="discrete"
     T=0.01
     

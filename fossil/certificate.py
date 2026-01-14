@@ -997,7 +997,7 @@ class Direct_control(Certificate):
     def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
         relu = torch.nn.ReLU()
         
-        margin = 1e-5
+        margin = 1e-4
 
         state_loss = -V_D+beta
         N_data = len(state_loss)
@@ -1044,7 +1044,8 @@ class Direct_control(Certificate):
 
         relu = torch.nn.ReLU()
          
-        loss = V_next-V+relu(req_diff)
+        margin = 1e-5
+        loss = V_next-V+relu(req_diff)+margin
         
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
@@ -1121,7 +1122,7 @@ class Direct_control(Certificate):
         best_supp_defd = False
         border_mix = 1
         parallel = False
-        #parallel = True
+        parallel = True
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:

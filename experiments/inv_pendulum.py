@@ -90,7 +90,7 @@ def test_lnn():
             fossil.XI: XI
                 }
     
-    n_state_data = 10000
+    n_state_data = 50000
 
     state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
@@ -106,7 +106,7 @@ def test_lnn():
                 }
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
-    n_hidden_neurons = {"V":[50] * len(activations["V"]), "u":[50] * len(activations["u"])}
+    n_hidden_neurons = {"V":[50,250,50,50], "u":[50,250,50,50]}
     
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()

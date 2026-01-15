@@ -1365,24 +1365,24 @@ class Direct_control(Certificate):
         #            optimizer[1].zero_grad()
         #            u_loss.backward()
         #            optimizer[1].step()
+        #        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+        #        V_next = best_nets[0](nexts)
+        #        V_next = torch.unsqueeze(V_next, 1)
+
+        #        beta = self.beta
+        #        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
+        
+        #        losses = relu(losses) + loss
+        #        max_loss = torch.max(losses, 0)
+        #        ind_max = max_loss[1].item()
+        #        max_loss = max_loss[0]
+        
+        #        best_loss = max_loss 
+        #        cert_log.info("Loss is {:.10f}".format(best_loss))
+        #        supp_samples = supp_samples.union(set([ind_max]))
         #else:
         #    if best_supp_defd:
         #        supp_samples = supp_samples.union(best_supp_sample)
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        V_next = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next, 1)
-
-        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-        
-        losses = relu(losses) + loss
-        max_loss = torch.max(losses, 0)
-        ind_max = max_loss[1].item()
-        max_loss = max_loss[0]
-        
-        #if max_loss <= best_loss:
-        best_loss = max_loss 
-        cert_log.info("Loss is {:.10f}".format(best_loss))
-        supp_samples = supp_samples.union(set([ind_max]))
         
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)

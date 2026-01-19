@@ -48,7 +48,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 30
+    n_data = 1#30
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -96,9 +96,10 @@ def test_lnn():
                   fossil.XI: XI._generate_data(n_state_data)(), 
                   fossil.XG: XG._generate_data(n_state_data)(),
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
-                  fossil.XS_BORDER: XD._sample_border(n_state_data)()}
+                  fossil.XS_BORDER: domains.SetMinus(domains.Rectangle([-10,-10],[10,10]),XD)._generate_data(n_state_data)()}
     # define NN parameters
-    dom = {fossil.XD: XD,
+    XD_enlarged = domains.Rectangle([-10,-10],[10,10])
+    dom = {fossil.XD: XD_enlarged,
             fossil.XG: XG_enlarged,
             fossil.XG_BORDER: XG,
             fossil.XS_BORDER: XD,

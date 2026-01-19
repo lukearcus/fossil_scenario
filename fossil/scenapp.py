@@ -491,7 +491,7 @@ class SingleScenApp:
         g = self.S["g"]
         # Initialize CEGIS state
         state = self.init_state(Sdot, S, S_traj, S_inds, times, f, g)
-        param_sum = 1
+        param_sum = 100
         print(self.S_traj["states"][-1].T)
 
         # Reset timers for components
@@ -511,7 +511,7 @@ class SingleScenApp:
             state["supps"] = set()
         state["supp_len"] = self.a_priori_supps
         start_switch = False
-        margin = 1e-5
+        margin = self.config.MARGIN
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
             #if start_switch:
@@ -546,14 +546,14 @@ class SingleScenApp:
                     scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
                 param_sum = new_param_sum
-                if state["best_loss"] == 0:
-                    state["best_loss"] = torch.tensor([1e-5])
+                if state["best_loss"] < margin:
+                    state["best_loss"] = torch.tensor([margin*2])
 
                 #state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
-            if state["best_loss"] <= margin:
+            if state["best_loss"] < margin:
             #if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")

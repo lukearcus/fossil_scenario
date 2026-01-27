@@ -41,6 +41,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         SCENAPP_MAX_ITERS=1000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
+        MARGIN=1e-1,
     )
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -74,10 +75,10 @@ def test_lnn():
     ##XI = domains.Rectangle([-3, -3], [3, 3])
     #XG = domains.Sphere([0,0],0.1)
     
-    XD = domains.Rectangle([-5.3, -5.6], [5.3, 5.6])
+    XD = domains.Rectangle([-5, -5], [5, 5])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     #XI = domains.Sphere([-1.57,-0.3],0.01)
-    XI = domains.Sphere([-0.5, -0.0],0.01)
+    XI = domains.Sphere([0.5, -0.0],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
     XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
 
@@ -90,15 +91,15 @@ def test_lnn():
             fossil.XI: XI
                 }
     
-    n_state_data = 50000
+    n_state_data = 10000
+    XD_enlarged = domains.Rectangle([-10,-10],[10,10])
 
     state_data = {fossil.XD: SD._generate_data(n_state_data)(),
                   fossil.XI: XI._generate_data(n_state_data)(), 
                   fossil.XG: XG._generate_data(n_state_data)(),
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
-                  fossil.XS_BORDER: domains.SetMinus(domains.Rectangle([-10,-10],[10,10]),XD)._generate_data(n_state_data)()}
+                  fossil.XS_BORDER: domains.SetMinus(XD_enlarged,XD)._generate_data(n_state_data)()}
     # define NN parameters
-    XD_enlarged = domains.Rectangle([-10,-10],[10,10])
     dom = {fossil.XD: XD_enlarged,
             fossil.XG: XG_enlarged,
             fossil.XG_BORDER: XG,

@@ -1003,19 +1003,19 @@ class Direct_control(Certificate):
         state_loss = -V_D+beta
         N_data = len(state_loss)
         acc = sum(state_loss < 0)/(N_data)
-        loss = relu(state_loss+margin).mean()
+        loss = relu(state_loss+margin).sum()
         
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
-        loss = loss + relu(goal_loss+margin).mean()
+        loss = loss + relu(goal_loss+margin).sum() # + margim).mean() leads to incorrect value, as many can be <-margin so mean < margin
         
         border_loss = -V_SD
         acc = (acc*N_data+ sum(border_loss < 0))/(2*N_data)
-        loss = loss + relu(border_loss+margin).mean()
+        loss = loss + relu(border_loss+margin).sum()
         
         init_loss = V_I
         acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
-        loss = loss + relu(init_loss+margin).mean()
+        loss = loss + relu(init_loss+margin).sum()
         
         #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
@@ -1163,7 +1163,6 @@ class Direct_control(Certificate):
                 V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                 #beta = (V_SG.min()*9+V_G.min())/10
                 beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
-                
                 req_diff = ((V_I.max()-beta)/self.T)
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
                 
@@ -1385,6 +1384,7 @@ class Direct_control(Certificate):
         #    if best_supp_defd:
         #        supp_samples = supp_samples.union(best_supp_sample)
         
+        #self.beta=beta 
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}

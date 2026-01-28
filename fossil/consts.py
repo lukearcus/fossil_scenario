@@ -214,7 +214,7 @@ class ScenAppConfig:
     )  # For DoubleCegis
     SEED: int = 0
     CUSTOM_CERTIFICATE: Any = None
-    MARGIN: float = 1e-1
+    MARGIN: float = 1e-5
 
     def __getitem__(self, item):
         return getattr(self, item)

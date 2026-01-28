@@ -93,8 +93,8 @@ class InvPendulum(control.DissDynamicalModel):
     gr = 9.81  # Gravitational acceleration (m/s^2)
     I = (m * l ** 2) / 3  # Moment of inertia around the pivot
     #I = 1 / 3
-    u_min = -3
-    u_max = 3
+    u_min = -6
+    u_max = 6
 
     def f(self, t, x):
         if len(x.shape) == 1:

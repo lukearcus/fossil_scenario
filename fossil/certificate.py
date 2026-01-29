@@ -1056,7 +1056,7 @@ class Direct_control(Certificate):
         first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
 
         losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
-        acc = sum(losses <= 0)/len(losses)
+        acc = sum(losses <= margin)/len(losses)
         return losses, {"traj_acc":acc.item()*100}
 
     def learn(
@@ -1122,6 +1122,7 @@ class Direct_control(Certificate):
         best_supp_defd = False
         border_mix = 1
         parallel = False
+        #verify_only = True
         parallel = True
         for t in range(learn_loops):
             if state_sol:
@@ -1353,38 +1354,36 @@ class Direct_control(Certificate):
         best_loss = max_loss 
         cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        #if not parallel and best_loss > 0:
-        #    if len(supp_samples) > 0:
-        #        for inn_step in range(num_inn_steps):
-        #            u1 = learners[1](samples_with_nexts) 
-        #            nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        #            V_next = learners[0](nexts)
+        if not (parallel or verify_only) and best_loss > 0:
+            if len(supp_samples) > 0:
+                for inn_step in range(num_inn_steps):
+                    u1 = learners[1](samples_with_nexts) 
+                    nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                    V_next = learners[0](nexts)
 #
-        #            V_next = torch.unsqueeze(V_next, 1)
-        #            u_loss = V_next[list(supp_samples)].sum()
-        #            optimizer[1].zero_grad()
-        #            u_loss.backward()
-        #            optimizer[1].step()
-        #        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        #        V_next = best_nets[0](nexts)
-        #        V_next = torch.unsqueeze(V_next, 1)
-
-        #        beta = self.beta
-        #        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
+                    V_next = torch.unsqueeze(V_next, 1)
+                    u_loss = V_next[list(supp_samples)].sum()
+                    optimizer[1].zero_grad()
+                    u_loss.backward()
+                    optimizer[1].step()
+                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                V_next = best_nets[0](nexts)
+                V_next = torch.unsqueeze(V_next, 1)
+                beta = self.beta
+                losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
         
-        #        losses = relu(losses) + loss
-        #        max_loss = torch.max(losses, 0)
-        #        ind_max = max_loss[1].item()
-        #        max_loss = max_loss[0]
+                losses = relu(losses) + loss
+                max_loss = torch.max(losses, 0)
+                ind_max = max_loss[1].item()
+                max_loss = max_loss[0]
         
-        #        best_loss = max_loss 
-        #        cert_log.info("Loss is {:.10f}".format(best_loss))
-        #        supp_samples = supp_samples.union(set([ind_max]))
-        #else:
-        #    if best_supp_defd:
-        #        supp_samples = supp_samples.union(best_supp_sample)
+                best_loss = max_loss 
+                cert_log.info("Loss is {:.10f}".format(best_loss))
+                supp_samples = supp_samples.union(set([ind_max]))
+        else:
+            if best_supp_defd:
+                supp_samples = supp_samples.union(best_supp_sample)
         
-        #self.beta=beta 
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}

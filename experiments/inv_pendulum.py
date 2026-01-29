@@ -38,7 +38,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=1000,
+        SCENAPP_MAX_ITERS=2000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
         MARGIN=1e-1,
@@ -49,7 +49,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 1#30
+    n_data = 30
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -63,6 +63,8 @@ def test_lnn():
         if type(x) is torch.Tensor:
             x = x.numpy()
         u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*(x[0]+0.25*x[1])
+        u = max(u,obj.u_min)
+        u = min(u,obj.u_max)
         return u
     system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one

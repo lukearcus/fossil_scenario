@@ -1122,8 +1122,8 @@ class Direct_control(Certificate):
         best_supp_defd = False
         border_mix = 1
         parallel = False
-        #verify_only = True
-        parallel = True
+        verify_only = False
+        #parallel = True
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1369,7 +1369,6 @@ class Direct_control(Certificate):
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
                 V_next = best_nets[0](nexts)
                 V_next = torch.unsqueeze(V_next, 1)
-                beta = self.beta
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
         
                 losses = relu(losses) + loss

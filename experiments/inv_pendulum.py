@@ -38,7 +38,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=2000,
+        SCENAPP_MAX_ITERS=5000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
         MARGIN=1e-1,
@@ -49,7 +49,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 30
+    n_data = 300
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -80,7 +80,7 @@ def test_lnn():
     XD = domains.Rectangle([-5, -5], [5, 5])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     #XI = domains.Sphere([-1.57,-0.3],0.01)
-    XI = domains.Sphere([0.5, -0.0],0.01)
+    XI = domains.Sphere([0.5, -0.0],0.2)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
     XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
 

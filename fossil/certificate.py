@@ -1123,7 +1123,7 @@ class Direct_control(Certificate):
         border_mix = 1
         parallel = False
         verify_only = False
-        #parallel = True
+        parallel = True
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1362,7 +1362,7 @@ class Direct_control(Certificate):
                     V_next = learners[0](nexts)
 #
                     V_next = torch.unsqueeze(V_next, 1)
-                    u_loss = V_next[list(supp_samples)].sum()
+                    u_loss = V_next[list(supp_samples)].sum() # is this right??
                     optimizer[1].zero_grad()
                     u_loss.backward()
                     optimizer[1].step()

@@ -512,28 +512,50 @@ class SingleScenApp:
         state["supp_len"] = self.a_priori_supps
         start_switch = False
         margin = self.config.MARGIN
+        j = 0
+        old_nets = copy.deepcopy(self.learner)
+        reverted=False
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
             #if start_switch:
-            #    if iters % 2:
-            #        for param in self.learner[1].parameters():
-            #            param.requires_grad=True
-            #        for param in self.learner[0].parameters():
-            #            param.requires_grad=False
-            #    else:
-            #        for param in self.learner[1].parameters():
-            #            param.requires_grad=False
-            #        for param in self.learner[0].parameters():
-            #            param.requires_grad=True
+            #    if j == 0:
+            #        state["parallel"] = False
+            #    elif j == 10:
+            #        state["parallel"] = True
+            #        j= 0
+            #        start_switch = False
+            #    j += 1
+                #if iters % 2:
+                #    for param in self.learner[1].parameters():
+                #        param.requires_grad=True
+                #    for param in self.learner[0].parameters():
+                #        param.requires_grad=False
+                #else:
+                #    for param in self.learner[1].parameters():
+                #        param.requires_grad=False
+                #    for param in self.learner[0].parameters():
+                #        param.requires_grad=True
             
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
+            if old_best < state["best_loss"] and state["best_loss"]>margin:
+                print("Increased loss, reverting")
+                state["best_loss"] = old_best
+                self.learner = copy.deepcopy(old_nets)
+                state["best_net"] = copy.deepcopy(old_nets)
+                reverted=True # check this is needed??? Seems to work without??..
+                #Also had old_best updating on reversion before when success?
+            else:
+                old_best = state["best_loss"]
+                old_nets = copy.deepcopy(state["best_net"])
+                reverted=False
 
             if state["best_loss"] >margin:
                 scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
                 scenapp_log.info("Zero Best Loss")
-                start_switch = True
+                #if state["parallel"]==True:
+                #    start_switch = True
             if type(old_best) is float:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
@@ -546,14 +568,14 @@ class SingleScenApp:
                     scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
                 param_sum = new_param_sum
-                if state["best_loss"] < margin:
-                    state["best_loss"] = torch.tensor([margin*2])
+                #if state["best_loss"] < margin:
+                #    state["best_loss"] = torch.tensor([margin*2])
 
                 #state["best_loss"] = torch.tensor([100])*(iters+1)
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
-            if state["best_loss"] < margin:
+            if state["best_loss"] < margin and (converged_controller and not reverted):
             #if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
@@ -657,6 +679,7 @@ class SingleScenApp:
                 ScenAppStateKeys.discarded: set(),
                 ScenAppStateKeys.convex: self.config.CONVEX_NET,
                 ScenAppStateKeys.discrete: self.config.TIME_DOMAIN != TimeDomain.CONTINUOUS,
+                ScenAppStateKeys.parallel: self.config.PARALLEL
                 }
 
         return state

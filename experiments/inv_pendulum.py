@@ -41,7 +41,8 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         SCENAPP_MAX_ITERS=5000,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
-        MARGIN=1e-1,
+        MARGIN=1e-3,
+        PARALLEL=True
     )
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -49,7 +50,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 300
+    n_data = 100
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -73,14 +74,14 @@ def test_lnn():
     #XD = fossil.domains.Sphere([0,0], 1)
     #XD = domains.Rectangle([-5, -5], [5, 5])
     #XD = domains.Sphere([0,0],5)
-    #XI = domains.Torus([0,0],3,2)
+    XI = domains.Torus([0,0],1.0,0.5)
     ##XI = domains.Rectangle([-3, -3], [3, 3])
     #XG = domains.Sphere([0,0],0.1)
     
     XD = domains.Rectangle([-5, -5], [5, 5])
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     #XI = domains.Sphere([-1.57,-0.3],0.01)
-    XI = domains.Sphere([0.5, -0.0],0.2)
+    XI = domains.Sphere([0.5, -0.0],0.01)
     XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
     XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
 
@@ -102,10 +103,10 @@ def test_lnn():
                   fossil.XG_BORDER: XG._sample_border(n_state_data)(),
                   fossil.XS_BORDER: domains.SetMinus(XD_enlarged,XD)._generate_data(n_state_data)()}
     # define NN parameters
-    dom = {fossil.XD: XD_enlarged,
+    dom = {fossil.XD: XD,
             fossil.XG: XG_enlarged,
             fossil.XG_BORDER: XG,
-            fossil.XS_BORDER: XD,
+            fossil.XS_BORDER: XD_enlarged,
             fossil.XI: XI
                 }
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}

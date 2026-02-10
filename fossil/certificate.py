@@ -1072,7 +1072,8 @@ class Direct_control(Certificate):
         best_loss: float,
         best_nets: learner.LearnerNN,
         f_torch=None,
-        discrete=False
+        discrete=False,
+        parallel=True
     ) -> dict:
         """
         :param learner: learner object
@@ -1121,9 +1122,8 @@ class Direct_control(Certificate):
         #state_sol = False
         best_supp_defd = False
         border_mix = 1
-        parallel = False
         verify_only = False
-        parallel = True
+        #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)  
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1232,7 +1232,13 @@ class Direct_control(Certificate):
                         log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     for opt in optimizer:
                         opt.zero_grad()
+                    #supp_inds = torch.hstack([Sind["lie"][i] for i in supp_samples])
+                    #norm_loss = (nexts[supp_inds]-goal_centre).norm(dim=2).mean() # should be - centre of X_G but haven't implemented yet
+
+                    #supp_loss = supp_loss + norm_loss
+                    #loss = loss + norm_loss
                     supp_loss.backward(retain_graph=True)
+                    
                     l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
                         for l in learners]
                     supp_grads = torch.hstack([
@@ -1240,27 +1246,6 @@ class Direct_control(Certificate):
                         for l_grad in l_grads if len(l_grad) > 0 ])
 
                     new_supp = False
-                    #for ind, loss in zip(max_inds, maximising_losses):
-                    #    for opt in optimizer:
-                    #        opt.zero_grad()
-                    #    loss.backward(retain_graph=True)
-                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                    #        for l in learners]
-                    #    grads = torch.hstack([
-                    #        torch.hstack(l_grad)
-                    #        for l_grad in l_grads if len(l_grad) > 0 ])
-                    #    #try:
-                    #    #    grads = torch.hstack([
-                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                    #    #        for l in learners])
-                    #    #except TypeError:
-                    #    #    grads = torch.hstack(
-                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                    #    inner = torch.inner(grads, supp_grads)
-                    #    if inner <= 0:
-                    #        supp_samples = supp_samples.union(set([ind.item()]))
-                    #        new_supp = True
-                    #        break
                     if not new_supp:
                         #optimizer[0].zero_grad()
                         for opt in optimizer:
@@ -1354,7 +1339,7 @@ class Direct_control(Certificate):
         best_loss = max_loss 
         cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        if not (parallel or verify_only) and best_loss > 0:
+        if not (parallel or verify_only) and best_loss > self.margin:
             if len(supp_samples) > 0:
                 for inn_step in range(num_inn_steps):
                     u1 = learners[1](samples_with_nexts) 
@@ -1362,7 +1347,10 @@ class Direct_control(Certificate):
                     V_next = learners[0](nexts)
 #
                     V_next = torch.unsqueeze(V_next, 1)
-                    u_loss = V_next[list(supp_samples)].sum() # is this right??
+                    supp_inds = torch.hstack([Sind["lie"][i] for i in supp_samples])
+                    #norm_loss = (nexts[supp_inds]-goal_centre).norm(dim=2).sum() # should be - centre of X_G but haven't implemented yet
+                    u_loss = V_next[supp_inds].sum() # is this right??
+                    #u_loss = u_loss + norm_loss
                     optimizer[1].zero_grad()
                     u_loss.backward()
                     optimizer[1].step()

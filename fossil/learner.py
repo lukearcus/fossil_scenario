@@ -101,9 +101,10 @@ class LearnerNN(nn.Module, Learner):
         times: dict,
         best_loss: float,
         best_net: "LearnerNN",
-        convex: bool
+        discrete: bool,
+        parallel: bool
     ) -> dict:
-        return self.learn_method(net, optimizer, S, Sdot, Sind, f, g, times, best_loss, best_net, None, convex)
+        return self.learn_method(net, optimizer, S, Sdot, Sind, f, g, times, best_loss, best_net, None, discrete, parallel)
 
     def get(self, **kw):
         return self.learn(
@@ -117,7 +118,8 @@ class LearnerNN(nn.Module, Learner):
             kw[ScenAppStateKeys.times],
             kw[ScenAppStateKeys.best_loss],
             kw[ScenAppStateKeys.best_net],
-            kw[ScenAppStateKeys.discrete]
+            kw[ScenAppStateKeys.discrete],
+            kw[ScenAppStateKeys.parallel]
             # I think this could actually still pass xdot_func, since there's no pytorch parameters to learn
         )
 

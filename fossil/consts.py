@@ -215,6 +215,7 @@ class ScenAppConfig:
     SEED: int = 0
     CUSTOM_CERTIFICATE: Any = None
     MARGIN: float = 1e-5
+    PARALLEL: bool = True
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -258,7 +259,7 @@ class ScenAppStateKeys:
     discarded = "discarded"
     convex = "convex"
     discrete = "discrete"
-
+    parallel = "parallel"
 
 class ScenAppComponentsState:
     name = "name"

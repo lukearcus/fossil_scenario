@@ -43,7 +43,7 @@ class SingleScenApp:
         self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
-        self._pretrain_controller()
+        #self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     

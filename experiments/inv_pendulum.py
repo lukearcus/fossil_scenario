@@ -64,8 +64,8 @@ def test_lnn():
         if type(x) is torch.Tensor:
             x = x.numpy()
         u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*(x[0]+0.25*x[1])
-        u = max(u,obj.u_min)
-        u = min(u,obj.u_max)
+        u = max(u,.9*obj.u_min)
+        u = min(u,.9*obj.u_max)
         return u
     system.controller = stab_control
     # next: in scenapp, initialise controller nn to be like this one
@@ -109,9 +109,9 @@ def test_lnn():
             fossil.XS_BORDER: XD_enlarged,
             fossil.XI: XI
                 }
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
-    n_hidden_neurons = {"V":[50,250,50,50], "u":[50,250,50,50]}
+    n_hidden_neurons = {"V":[50,50,50], "u":[50,50,50]}
     
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()

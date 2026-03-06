@@ -1003,20 +1003,22 @@ class Direct_control(Certificate):
         state_loss = -V_D+beta
         N_data = len(state_loss)
         acc = sum(state_loss < 0)/(N_data)
-        loss = relu(state_loss+margin).sum()
+        loss = relu(state_loss).mean()
         
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
-        loss = loss + relu(goal_loss+margin).sum() # + margim).mean() leads to incorrect value, as many can be <-margin so mean < margin
+        loss = loss + relu(goal_loss+margin).mean() # + margin).mean() leads to incorrect value, as many can be <-margin so mean < margin
         
         border_loss = -V_SD
         acc = (acc*N_data+ sum(border_loss < 0))/(2*N_data)
-        loss = loss + relu(border_loss+margin).sum()
+        loss = loss + relu(border_loss+margin).mean()
         
         init_loss = V_I
         acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
-        loss = loss + relu(init_loss+margin).sum()
-        
+        loss = loss + relu(init_loss+margin).mean()
+        if loss == 0:
+            loss = loss + (init_loss+margin).mean() # + margin).mean() 
+
         #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
         #control = relu(torch.abs(u).max(axis=1)[0])-u_max)
@@ -1046,7 +1048,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
          
         margin = self.margin
-        loss = V_next-V+relu(req_diff)+margin
+        loss = V_next-V+relu(req_diff)#+margin
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
         
@@ -1057,7 +1059,7 @@ class Direct_control(Certificate):
 
         losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
         acc = sum(losses <= margin)/len(losses)
-        return losses, {"traj_acc":acc.item()*100}
+        return relu(losses), {"traj_acc":acc.item()*100}
 
     def learn(
         self,
@@ -1086,7 +1088,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 1000
+        learn_loops = 10000
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -1123,6 +1125,7 @@ class Direct_control(Certificate):
         best_supp_defd = False
         border_mix = 1
         verify_only = False
+        best_loss = 999
         #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)  
         for t in range(learn_loops):
             if state_sol:
@@ -1169,7 +1172,14 @@ class Direct_control(Certificate):
                 
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
-                losses = relu(losses) + loss
+                losses = losses+loss
+                if losses.max() > 0:
+                    losses = losses + relu(loss)
+                else:
+                    losses = losses+loss
+
+                #if loss > 0:
+                #    losses = relu(losses) + loss
                 #if loss > 0:
                 #    losses = relu(losses) + loss
 
@@ -1180,7 +1190,7 @@ class Direct_control(Certificate):
                     log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     supp_samples.add(ind_max)
                     if discrete:
-                        if max_loss < self.margin:
+                        if max_loss <= 0:#self.margin:
                             best_nets = copy.deepcopy(learners)
                             cert_log.info("No supports, max loss is zero")
                             break
@@ -1207,11 +1217,11 @@ class Direct_control(Certificate):
                         best_nets = copy.deepcopy(learners)
     
                     if discrete:
-                        if max_loss < self.margin:
+                        if max_loss <=  0:#self.margin:
                             true_max_loss = torch.max(losses, 0)
                             ind_true_max = true_max_loss[1].item()
                             true_max_loss = true_max_loss[0]
-                            if true_max_loss < self.margin:
+                            if true_max_loss <= 0:# self.margin:
                                 best_loss = true_max_loss
                                 best_nets = copy.deepcopy(learners)
                                 cert_log.info("Zero loss, breaking loop")
@@ -1280,7 +1290,7 @@ class Direct_control(Certificate):
                     loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
-                    if loss < self.margin:
+                    if loss <=  0:#self.margin:
                         state_sol=True
                         cert_log.info("State sol at iteration {}".format(state_itt))
                         break
@@ -1339,7 +1349,7 @@ class Direct_control(Certificate):
         best_loss = max_loss 
         cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        if not (parallel or verify_only) and best_loss > self.margin:
+        if not (parallel or verify_only) and best_loss >  0:#self.margin:
             if len(supp_samples) > 0:
                 for inn_step in range(num_inn_steps):
                     u1 = learners[1](samples_with_nexts) 

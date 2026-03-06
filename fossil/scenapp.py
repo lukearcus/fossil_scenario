@@ -43,7 +43,7 @@ class SingleScenApp:
         self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
-        #self._pretrain_controller()
+        self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
@@ -356,6 +356,8 @@ class SingleScenApp:
         g_vals = [datum[4][0] for datum in all_data]
         
         new_traj_data = {"times":times,"states":states,"derivs":derivs, "f_vals":f_vals, "g_vals":g_vals}        
+        #import pdb; pdb.set_trace()
+        #if state["learners"][0](new_traj_data["states"]).min() < state["learners"][0](self.S_traj["states"]).min(): 
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
@@ -405,8 +407,7 @@ class SingleScenApp:
         new_traj_data = {}
         for key in traj_data:
             new_traj_data[key] = [traj_data[key][ind] for ind in new_traj_inds]
-        
-        self.S, self.S_traj, self.init_S = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
+            self.S, self.S_traj, self.init_S = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         
         state[ScenAppStateKeys.S] = self.S["states"]
         state[ScenAppStateKeys.S_dot] = self.S["derivs"]
@@ -515,6 +516,7 @@ class SingleScenApp:
         j = 0
         old_nets = copy.deepcopy(self.learner)
         reverted=False
+        state = self.update_controller(state)
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
             #if start_switch:
@@ -538,7 +540,7 @@ class SingleScenApp:
             
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
-            if old_best < state["best_loss"] and state["best_loss"]>margin:
+            if old_best < state["best_loss"] and state["best_loss"]>0:
                 print("Increased loss, reverting")
                 state["best_loss"] = old_best
                 self.learner = copy.deepcopy(old_nets)
@@ -550,7 +552,7 @@ class SingleScenApp:
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
-            if state["best_loss"] >margin:
+            if state["best_loss"] >0:
                 scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
                 scenapp_log.info("Zero Best Loss")
@@ -563,8 +565,8 @@ class SingleScenApp:
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
-           #if state["best_loss"] <= 0.0:
-                if True:
+                if state["best_loss"] <= 0.0:
+                    #if True:
                     scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
                 param_sum = new_param_sum
@@ -575,7 +577,7 @@ class SingleScenApp:
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
-            if state["best_loss"] < margin and (converged_controller and not reverted):
+            if state["best_loss"] <= 0 and (converged_controller and not reverted):
             #if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
@@ -675,7 +677,7 @@ class SingleScenApp:
                 ScenAppStateKeys.trajectory: None,
                 ScenAppStateKeys.ENet: self.config.ENET,
                 ScenAppStateKeys.best_loss: np.inf,
-                ScenAppStateKeys.best_net: None,
+                ScenAppStateKeys.best_net: self.learner,
                 ScenAppStateKeys.discarded: set(),
                 ScenAppStateKeys.convex: self.config.CONVEX_NET,
                 ScenAppStateKeys.discrete: self.config.TIME_DOMAIN != TimeDomain.CONTINUOUS,

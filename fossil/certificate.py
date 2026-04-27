@@ -1003,21 +1003,21 @@ class Direct_control(Certificate):
         state_loss = -V_D+beta
         N_data = len(state_loss)
         acc = sum(state_loss < 0)/(N_data)
-        loss = relu(state_loss).mean()
+        loss = relu(state_loss+margin).max()
         
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
-        loss = loss + relu(goal_loss+margin).mean() # + margin).mean() leads to incorrect value, as many can be <-margin so mean < margin
+        loss = loss + relu(goal_loss+margin).max() # + margin).mean() leads to incorrect value, as many can be <-margin so mean < margin
         
         border_loss = -V_SD
         acc = (acc*N_data+ sum(border_loss < 0))/(2*N_data)
-        loss = loss + relu(border_loss+margin).mean()
+        loss = loss + relu(border_loss+margin).max()
         
         init_loss = V_I
         acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
-        loss = loss + relu(init_loss+margin).mean()
-        if loss == 0:
-            loss = loss + (init_loss+margin).mean() # + margin).mean() 
+        loss = loss + relu(init_loss+margin).max()
+        #if loss == 0:
+        #    loss = loss + (init_loss+margin).mean() # + margin).mean() 
 
         #loss = torch.tensor([0.0]) 
         #u_max=1 # this shouldn't be hardcoced in future
@@ -1048,7 +1048,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
          
         margin = self.margin
-        loss = V_next-V+relu(req_diff)#+margin
+        loss = V_next-V+relu(req_diff)+margin
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
         
@@ -1059,7 +1059,7 @@ class Direct_control(Certificate):
 
         losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
         acc = sum(losses <= margin)/len(losses)
-        return relu(losses), {"traj_acc":acc.item()*100}
+        return losses, {"traj_acc":acc.item()*100}
 
     def learn(
         self,
@@ -1124,7 +1124,9 @@ class Direct_control(Certificate):
         #state_sol = False
         best_supp_defd = False
         border_mix = 1
-        verify_only = False
+        verify_only = True
+        if verify_only:
+            parallel = False
         best_loss = 999
         #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)  
         for t in range(learn_loops):
@@ -1153,6 +1155,7 @@ class Direct_control(Certificate):
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts) 
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                reg_loss = torch.norm(nexts-samples_dot)
                 V_next = learners[0](nexts)
 
                 V_next = torch.unsqueeze(V_next, 1)
@@ -1169,17 +1172,16 @@ class Direct_control(Certificate):
                 beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
                 req_diff = ((V_I.max()-beta)/self.T)
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-                
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
-                losses = losses+loss
-                if losses.max() > 0:
-                    losses = losses + relu(loss)
-                else:
-                    losses = losses+loss
+                #losses = losses+loss
+                #if losses.max() > 0:
+                #    losses = losses + relu(loss)
+                #else:
+                #    losses = losses+loss
 
-                #if loss > 0:
-                #    losses = relu(losses) + loss
+                if loss > 0:
+                    losses = relu(losses) + loss
                 #if loss > 0:
                 #    losses = relu(losses) + loss
 
@@ -1190,7 +1192,7 @@ class Direct_control(Certificate):
                     log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     supp_samples.add(ind_max)
                     if discrete:
-                        if max_loss <= 0:#self.margin:
+                        if max_loss <= self.margin:
                             best_nets = copy.deepcopy(learners)
                             cert_log.info("No supports, max loss is zero")
                             break
@@ -1217,11 +1219,11 @@ class Direct_control(Certificate):
                         best_nets = copy.deepcopy(learners)
     
                     if discrete:
-                        if max_loss <=  0:#self.margin:
+                        if max_loss <= self.margin:
                             true_max_loss = torch.max(losses, 0)
                             ind_true_max = true_max_loss[1].item()
                             true_max_loss = true_max_loss[0]
-                            if true_max_loss <= 0:# self.margin:
+                            if true_max_loss <=  self.margin:
                                 best_loss = true_max_loss
                                 best_nets = copy.deepcopy(learners)
                                 cert_log.info("Zero loss, breaking loop")
@@ -1231,6 +1233,7 @@ class Direct_control(Certificate):
                                 best_loss = true_max_loss
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
+                    #supp_loss = supp_loss + reg_loss
 
                     #if (max_loss-best_loss) >= 1e-2: 
                     #    if ind_max in supp_samples:
@@ -1290,7 +1293,7 @@ class Direct_control(Certificate):
                     loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
-                    if loss <=  0:#self.margin:
+                    if loss <=  self.margin:
                         state_sol=True
                         cert_log.info("State sol at iteration {}".format(state_itt))
                         break

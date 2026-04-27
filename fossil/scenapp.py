@@ -43,7 +43,7 @@ class SingleScenApp:
         self.a_priori_supps = None
         self.verifier = self._initialise_verifier() 
         self.optimizer = self._initialise_optimizer() 
-        self._pretrain_controller()
+        #self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
     
@@ -516,9 +516,13 @@ class SingleScenApp:
         j = 0
         old_nets = copy.deepcopy(self.learner)
         reverted=False
-        state = self.update_controller(state)
+        #state = self.update_controller(state)
+        for param in self.learner[1].parameters():
+            param.requires_grad=False
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
+            # Maybe switching is a good idea???
+
             #if start_switch:
             #    if j == 0:
             #        state["parallel"] = False
@@ -527,20 +531,21 @@ class SingleScenApp:
             #        j= 0
             #        start_switch = False
             #    j += 1
-                #if iters % 2:
-                #    for param in self.learner[1].parameters():
-                #        param.requires_grad=True
-                #    for param in self.learner[0].parameters():
-                #        param.requires_grad=False
-                #else:
-                #    for param in self.learner[1].parameters():
-                #        param.requires_grad=False
-                #    for param in self.learner[0].parameters():
-                #        param.requires_grad=True
+            if iters % 2:
+                for param in self.learner[0].parameters():
+                    param.requires_grad=False
+                for param in self.learner[1].parameters():
+                    param.requires_grad=True
+            else:
+                for param in self.learner[1].parameters():
+                    param.requires_grad=False
+                for param in self.learner[0].parameters():
+                    param.requires_grad=True
             
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
-            if old_best < state["best_loss"] and state["best_loss"]>0:
+            #if old_best < state["best_loss"] and state["best_loss"]>margin:
+            if False:
                 print("Increased loss, reverting")
                 state["best_loss"] = old_best
                 self.learner = copy.deepcopy(old_nets)
@@ -552,10 +557,10 @@ class SingleScenApp:
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
-            if state["best_loss"] >0:
+            if state["best_loss"] >margin:
                 scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
-                scenapp_log.info("Zero Best Loss")
+                scenapp_log.info("Best Loss below margin")
                 #if state["parallel"]==True:
                 #    start_switch = True
             if type(old_best) is float:
@@ -565,7 +570,7 @@ class SingleScenApp:
             new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
             converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
             if not converged_controller:
-                if state["best_loss"] <= 0.0:
+                if state["best_loss"] <= margin:#0.0:
                     #if True:
                     scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
@@ -577,7 +582,7 @@ class SingleScenApp:
             
             state["supps"] = state["supps"].union(outputs["new_supps"])
             
-            if state["best_loss"] <= 0 and (converged_controller and not reverted):
+            if state["best_loss"] <= margin and (converged_controller and not reverted):
             #if True: 
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")

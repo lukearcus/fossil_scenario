@@ -3,4 +3,5 @@
 *.json
 .ipynb_checkpoints
 plots
-
+fossil_test.e*
+fossil_test.o*

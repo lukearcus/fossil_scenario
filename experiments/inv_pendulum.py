@@ -33,7 +33,6 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_TEST_DATA=100,
         CERTIFICATE=CertificateType.DIRECTCONTROL,
         TIME_DOMAIN=TimeDomain.DISCRETE,
-        #VERIFIER=VerifierType.DREAL,
         ACTIVATION=activations,
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
@@ -82,8 +81,8 @@ def test_lnn():
     #XI = domains.Rectangle([-0.11, -0.31], [-0.09, -0.29])
     #XI = domains.Sphere([-1.57,-0.3],0.01)
     XI = domains.Sphere([0.5, -0.0],0.01)
-    XG = domains.Sphere([0,0],0.1) # can we converge to bottom? # back to top, start with stab controller
-    XG_enlarged = domains.Sphere([0,0],0.15) # can we converge to bottom? # back to top, start with stab controller
+    XG = domains.Sphere([0,0],0.1) 
+    XG_enlarged = domains.Sphere([0,0],0.15) 
 
     SD =domains.SetMinus(XD, XG) 
     # Need to have XD does not contain XG (at least for data generation) otherwise might have conflicting requirements on states
@@ -175,7 +174,6 @@ def test_lnn():
     #    axes[0][0].plot(traj[0,:], traj[1,:], 'r')
     for ax, name in axes:
         plotting.save_plot_with_tags(ax, opts, name)
-    import pdb; pdb.set_trace()
 
 if __name__ == "__main__":
     # args = main.parse_benchmark_args()

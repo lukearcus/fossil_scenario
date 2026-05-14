@@ -49,7 +49,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 1
+    n_data = 30
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -62,7 +62,7 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*(x[0]+0.25*x[1])
+        u= -1.1*(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0]-0.2)+0.25*x[1])
         u = max(u,.9*obj.u_min)
         u = min(u,.9*obj.u_max)
         return u

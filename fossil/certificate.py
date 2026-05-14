@@ -1124,7 +1124,7 @@ class Direct_control(Certificate):
         #state_sol = False
         best_supp_defd = False
         border_mix = 1
-        verify_only = True
+        verify_only = False #True
         if verify_only:
             parallel = False
         best_loss = 999

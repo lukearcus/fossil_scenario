@@ -1007,7 +1007,7 @@ class Direct_control(Certificate):
         
         goal_loss = V_G-(V_I.min()+V_D.min())/2#minus since V_I<0
         acc = (acc*N_data+ sum(goal_loss < 0))/(2*N_data)
-        loss = loss + relu(goal_loss+margin).max() # + margin).mean() leads to incorrect value, as many can be <-margin so mean < margin
+        loss = loss + relu(goal_loss + margin).max() #ean() leads to incorrect value, as many can be <-margin so mean < margin
         
         border_loss = -V_SD
         acc = (acc*N_data+ sum(border_loss < 0))/(2*N_data)
@@ -1048,17 +1048,26 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
          
         margin = self.margin
+        
+        
         loss = V_next-V+relu(req_diff)+margin
+
         stacked_inds = torch.hstack(indices["lie"])
         ind_losses = torch.reshape(loss[stacked_inds], (len(indices["lie"]),-1))
         
+        #final_reg_loss = torch.reshape(reg_loss[stacked_inds], (len(indices["lie"]),-1))[:,-1] # push final ind to origin
+
         ind_V = torch.reshape(V_next[stacked_inds], (len(indices["lie"]),-1))
        
         inds = torch.where(ind_V<beta)
         first_inds = [range(inds[1][torch.where(inds[0]==i)[0][0]]+1) if i in inds[0] else range(len(ind_V[0])) for i in range(len(ind_V))]
 
         losses = torch.hstack([torch.max(ind_losses[i, inds]) for i, inds in enumerate(first_inds)])
+        #losses = losses + 10*torch.sigmoid(10*losses) * final_reg_loss
+
         acc = sum(losses <= margin)/len(losses)
+        
+        
         return losses, {"traj_acc":acc.item()*100}
 
     def learn(
@@ -1148,20 +1157,20 @@ class Direct_control(Certificate):
                 
                 V2 = torch.unsqueeze(V2, 1)
 
-                #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
-                #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
-                #V_next_min_space = V_next_min_space.unsqueeze(1)
-                #V_next_min_space = V_next_min_space.unsqueeze(1)
+                nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
+                V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
+                V_next_min_space = V_next_min_space.unsqueeze(1)
+                V_next_min_space = V_next_min_space.unsqueeze(1)
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts) 
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                reg_loss = torch.norm(nexts-samples_dot)
+
                 V_next = learners[0](nexts)
 
                 V_next = torch.unsqueeze(V_next, 1)
 
                 #print((V_next-V_next_min_space).max())
-                #V_next = V_next_min_space
+                V_next = V_next_min_space
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1171,6 +1180,9 @@ class Direct_control(Certificate):
                 #beta = (V_SG.min()*9+V_G.min())/10
                 beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
                 req_diff = ((V_I.max()-beta)/self.T)
+                
+                reg_loss = torch.norm(nexts)
+                
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
@@ -1338,8 +1350,9 @@ class Direct_control(Certificate):
         #V_next_min_space = V_next_min_space.unsqueeze(1)
         #V_next_min_space = V_next_min_space.unsqueeze(1)
         #V_next = V_next_min_space
+        reg_loss = torch.norm(nexts)
 
-        losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
+        losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
         
         loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
         
@@ -1352,37 +1365,8 @@ class Direct_control(Certificate):
         best_loss = max_loss 
         cert_log.info("Loss is {:.10f}".format(best_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        if not (parallel or verify_only) and best_loss >  0:#self.margin:
-            if len(supp_samples) > 0:
-                for inn_step in range(num_inn_steps):
-                    u1 = learners[1](samples_with_nexts) 
-                    nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                    V_next = learners[0](nexts)
-#
-                    V_next = torch.unsqueeze(V_next, 1)
-                    supp_inds = torch.hstack([Sind["lie"][i] for i in supp_samples])
-                    #norm_loss = (nexts[supp_inds]-goal_centre).norm(dim=2).sum() # should be - centre of X_G but haven't implemented yet
-                    u_loss = V_next[supp_inds].sum() # is this right??
-                    #u_loss = u_loss + norm_loss
-                    optimizer[1].zero_grad()
-                    u_loss.backward()
-                    optimizer[1].step()
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                V_next = best_nets[0](nexts)
-                V_next = torch.unsqueeze(V_next, 1)
-                losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-        
-                losses = relu(losses) + loss
-                max_loss = torch.max(losses, 0)
-                ind_max = max_loss[1].item()
-                max_loss = max_loss[0]
-        
-                best_loss = max_loss 
-                cert_log.info("Loss is {:.10f}".format(best_loss))
-                supp_samples = supp_samples.union(set([ind_max]))
-        else:
-            if best_supp_defd:
-                supp_samples = supp_samples.union(best_supp_sample)
+        if best_supp_defd:
+            supp_samples = supp_samples.union(best_supp_sample)
         
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)

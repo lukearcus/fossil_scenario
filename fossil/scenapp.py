@@ -255,10 +255,10 @@ class SingleScenApp:
     def _initialise_optimizer(self):
         #return torch.optim.SGD(
         optimizers = []
-        for l in self.learner:
+        for i, l in enumerate(self.learner):
             optimizers.append(torch.optim.AdamW(
                 [{"params": l.parameters()}], # Might need to change this to consider controller parameters
-                lr=self.config.LEARNING_RATE,
+                lr=self.config.LEARNING_RATE[i],
                 ))
         return optimizers
         #return (torch.optim.AdamW(
@@ -377,6 +377,8 @@ class SingleScenApp:
             acc = sum([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) and not any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"]) * 100
             #acc = (1-sum([any(self.config.DOMAINS[DomainNames.XU.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]])/ len(self.S_traj["states"])) * 100
         scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
+        scenapp_log.info(self.S_traj["states"][-1].T)
+        
         print(self.S_traj["states"][-1].T)
         #if acc > 99:
         #    import pdb; pdb.set_trace()
@@ -516,9 +518,9 @@ class SingleScenApp:
         j = 0
         old_nets = copy.deepcopy(self.learner)
         reverted=False
-        #state = self.update_controller(state)
-        for param in self.learner[1].parameters():
-            param.requires_grad=False
+        state = self.update_controller(state)
+        #for param in self.learner[1].parameters():
+        #    param.requires_grad=False
         while not stop:
             scenapp_log.debug("\033[1m Learner \033[0m")
             # Maybe switching is a good idea???
@@ -531,17 +533,27 @@ class SingleScenApp:
             #        j= 0
             #        start_switch = False
             #    j += 1
-            if iters % 2:
-                for param in self.learner[0].parameters():
-                    param.requires_grad=False
+            
+            #if iters % 2:
+            #    for param in self.learner[0].parameters():
+            #        param.requires_grad=False
+            #    for param in self.learner[1].parameters():
+            #        param.requires_grad=True
+            #else:
+            #    for param in self.learner[1].parameters():
+            #        param.requires_grad=False
+            #    for param in self.learner[0].parameters():
+            #        param.requires_grad=True
+            beta = self.learner[0](self.S["states"]["goal_border"]).max()
+            if all([any(self.learner[0](torch.tensor(traj.T, dtype=torch.float))<beta) for traj in self.S_traj["states"]]):
                 for param in self.learner[1].parameters():
-                    param.requires_grad=True
+                    param.requires_grad=False
+                scenapp_log.info("Controller update off")
             else:
                 for param in self.learner[1].parameters():
-                    param.requires_grad=False
-                for param in self.learner[0].parameters():
                     param.requires_grad=True
-            
+                scenapp_log.info("Controller update on")
+
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
             #if old_best < state["best_loss"] and state["best_loss"]>margin:

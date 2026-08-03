@@ -49,7 +49,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 30
+    n_data = 1
     system = models.InvPendulum 
     
     def random_control(obj, t, x):
@@ -62,12 +62,11 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -1.1*(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0]-0.2)+0.25*x[1])
+        u= -0*(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0])+0.00*x[1])  #0.25 speed
         u = max(u,.9*obj.u_min)
         u = min(u,.9*obj.u_max)
         return u
     system.controller = stab_control
-    # next: in scenapp, initialise controller nn to be like this one
 
     #system.controller = uncontrol
     #XD = fossil.domains.Sphere([0,0], 1)
@@ -107,7 +106,9 @@ def test_lnn():
             fossil.XG_BORDER: XG,
             fossil.XS_BORDER: XD_enlarged,
             fossil.XI: XI
-                }
+                
+            }
+
     activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
     
     n_hidden_neurons = {"V":[50,50,50], "u":[50,50,50]}

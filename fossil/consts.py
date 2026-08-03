@@ -195,7 +195,7 @@ class ScenAppConfig:
     N_TEST_DATA: int = 5000
     BETA: float = 1e-5,
     EPS: float = 0.1
-    LEARNING_RATE: float = 0.01
+    LEARNING_RATE: tuple[float] = (0.01, 0.01)
     SUPPORT_TOL: float = 1e-1
     FACTORS: Literal = LearningFactors.NONE
     LLO: bool = False  # last layer of ones

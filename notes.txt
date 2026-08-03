@@ -1,0 +1,3 @@
+Trying with minimiser over controllers (loses sample independency though)
+Controller was maybe working? Found a valid controller eventually, but then never managed to verify
+With stabilising contrller init, can verify and terminate

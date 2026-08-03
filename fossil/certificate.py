@@ -1162,6 +1162,7 @@ class Direct_control(Certificate):
                 V_next_min_space = V_next_min_space.unsqueeze(1)
                 V_next_min_space = V_next_min_space.unsqueeze(1)
                 num_inn_steps = 100
+                
                 u1 = learners[1](samples_with_nexts) 
                 nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
 
@@ -1170,7 +1171,7 @@ class Direct_control(Certificate):
                 V_next = torch.unsqueeze(V_next, 1)
 
                 #print((V_next-V_next_min_space).max())
-                V_next = V_next_min_space
+                #V_next = V_next_min_space
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1345,12 +1346,12 @@ class Direct_control(Certificate):
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
-        #nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
-        #V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
-        #V_next_min_space = V_next_min_space.unsqueeze(1)
-        #V_next_min_space = V_next_min_space.unsqueeze(1)
+        nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
+        V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
+        V_next_min_space = V_next_min_space.unsqueeze(1)
+        V_next_min_space = V_next_min_space.unsqueeze(1)
         #V_next = V_next_min_space
-        reg_loss = torch.norm(nexts)
+        #reg_loss = torch.norm(nexts)
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
         

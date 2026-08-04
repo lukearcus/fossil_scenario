@@ -191,7 +191,7 @@ class SingleScenApp:
         lumped_data = {key: torch.tensor(np.concatenate(traj_data[key], axis=-1), dtype=torch.float32 ) for key in traj_data} 
         #lumped_data["g_vals"] = torch.tensor(np.stack(traj_data["g_vals"]), dtype=torch.float32)
         inits = np.stack(traj_data["states"])[:,:,0]
-        traj_inds = [] 
+        traj_inds = []
         curr_ind = 0
         for elem in traj_data["times"]:
             if type(elem) is not np.float64:
@@ -201,54 +201,57 @@ class SingleScenApp:
             traj_inds.append((curr_ind, curr_ind+elem_len))
             curr_ind += elem_len
 
+        # Precompute traj start boundaries for O(log n) traj lookup via searchsorted
+        # (replaces the per-sample linear scan `if ind in range(*index)` over trajectories).
+        traj_starts = np.array([s for s, _ in traj_inds], dtype=np.int64)
+        n_trajs = len(traj_inds)
+
         domained_data = {"states":{},"times":{},"derivs":{}, "indices":{}, "f":{}, "g":{}}
-        max_len = len(traj_data["times"][0]) 
+        max_len = len(traj_data["times"][0])
+        states_all = lumped_data["states"]            # (n_dims, total_samples)
+        total_samples = states_all.shape[1]
         for key in self.config.DOMAINS:
             domain = self.config.DOMAINS[key]
-            domained_data["states"][key] = []
+            # Initialise sub-entries to empty lists to match original semantics when a domain
+            # has no contained trajectory points (downstream code does len(Sdot[key]) etc.).
             domained_data["derivs"][key] = []
             domained_data["times"][key] = []
-            domained_data["f"][key] = []              
-            domained_data["g"][key] = []              
-            domained_data["indices"][key] = [torch.ones(max_len, dtype=torch.int32)*(-1) for elem in traj_inds]
-            ind_indexer = [0 for elem in traj_inds]
-            curr_ind = 0
-            for ind, elem in enumerate(lumped_data["states"].T):
-                if domain.check_containment(elem.expand([1,elem.size(dim=0)])):
-                    for i, index in enumerate(traj_inds):
-                        if ind in range(*index):
-                            sample_ind = i
-                            break
-                    domained_data["indices"][key][sample_ind][ind_indexer[sample_ind]] = curr_ind
-                    curr_ind += 1
-                    ind_indexer[sample_ind] += 1
-                    domained_data["states"][key].append(lumped_data["states"][:,ind])
-                    domained_data["derivs"][key].append(lumped_data["derivs"][:,ind])
-                    domained_data["times"][key].append(lumped_data["times"][ind])
-                    domained_data["f"][key].append(lumped_data["f_vals"][:,ind])
-                    domained_data["g"][key].append(lumped_data["g_vals"][:,:,ind])
-            #extra = torch.ones(max_len)*(-1)
-            #domained_data["indices"][key] = [torch.tensor(elem) for elem in domained_data["indices"][key]]
+            domained_data["f"][key] = []
+            domained_data["g"][key] = []
+            # Vectorised containment check over the whole batch at once (replaces the
+            # per-sample Python loop with one domain.check_containment call).
+            contained = domain.check_containment(states_all.T)  # (total_samples,) bool
+            contained = contained.bool() if hasattr(contained, 'bool') else torch.as_tensor(contained).bool()
+            contained_inds = torch.where(contained)[0].numpy()  # global sample indices, sorted
+            domained_data["indices"][key] = [torch.ones(max_len, dtype=torch.int32) * (-1) for _ in traj_inds]
 
-            if len(domained_data["states"][key]) > 0:
+            if contained_inds.shape[0] > 0:
+                # Map each contained sample to its trajectory via searchsorted on starts.
+                traj_of = np.searchsorted(traj_starts, contained_inds, side='right') - 1
+                # Running counter per traj (local position within each traj's contained samples).
+                traj_counts = np.zeros(n_trajs, dtype=np.int64)
+                for p, ind in enumerate(contained_inds):
+                    t = traj_of[p]
+                    domained_data["indices"][key][t][traj_counts[t]] = p
+                    traj_counts[t] += 1
+                # Gather the contained slices in order.
+                domained_data["states"][key] = states_all[:, contained_inds].T
+                domained_data["derivs"][key] = lumped_data["derivs"][:, contained_inds].T
+                domained_data["times"][key] = lumped_data["times"][contained_inds]
+                domained_data["f"][key] = lumped_data["f_vals"][:, contained_inds].T
+                domained_data["g"][key] = lumped_data["g_vals"][:, :, contained_inds].permute(2, 0, 1)
                 if key in state_data:
-                    domained_data["states"][key] = torch.cat((torch.stack(domained_data["states"][key]), state_data[key]))
-                else:
-                    domained_data["states"][key] = torch.stack(domained_data["states"][key])
-                domained_data["derivs"][key] = torch.stack(domained_data["derivs"][key])
-                domained_data["times"][key] = torch.stack(domained_data["times"][key])
-                domained_data["f"][key] = torch.stack(domained_data["f"][key]) 
-                domained_data["g"][key] = torch.stack(domained_data["g"][key])
+                    domained_data["states"][key] = torch.cat((domained_data["states"][key], state_data[key]))
             else:
                 domained_data["states"][key] = state_data[key]
-            #domained_data["indices"][key] = [index[index!=-1] for index in domained_data["indices"][key]] 
-            #domained_data["indices"][key] = [index[index!=-1] 
+            # Replace remaining -1 sentinels in each traj's index array with index[0]
+            # (matches the original: `index[index==-1] = index[0]`).
             new_inds = []
             for index in domained_data["indices"][key]:
                 index[index==-1] = index[0]
                 new_inds.append(index)
-            domained_data["indices"][key] = new_inds 
-            
+            domained_data["indices"][key] = new_inds
+
         return domained_data, traj_data, inits
 
 

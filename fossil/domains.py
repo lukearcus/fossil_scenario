@@ -525,6 +525,10 @@ class Rectangle(Set):
         self.upper_bounds = ub
         self.dimension = len(lb)
         self.dim_select = dim_select
+        # Cache bounds as tensors so check_containment / check_containment_grad don't rebuild
+        # them from Python lists on every call (these run ~10k+ times per _initialise_data).
+        self._ub_t = torch.tensor(self.upper_bounds)
+        self._lb_t = torch.tensor(self.lower_bounds)
 
     def __repr__(self):
         return f"Rectangle{self.lower_bounds, self.upper_bounds}"
@@ -594,15 +598,15 @@ class Rectangle(Set):
 
     def check_containment(self, x: torch.Tensor) -> torch.Tensor:
         if self.dim_select:
-            x = [x[:, i] for i in self.dim_select]
+            # x becomes a list of per-dimension slices; stack back into a 2D tensor
+            x = torch.stack([x[:, i] for i in self.dim_select], dim=-1)
         all_constr = torch.logical_and(
-            torch.tensor(self.upper_bounds) >= x, torch.tensor(self.lower_bounds) <= x
+            self._ub_t >= x, self._lb_t <= x
         )
-        ans = torch.zeros((x.shape[0]))
-        for idx in range(all_constr.shape[0]):
-            ans[idx] = all_constr[idx, :].all()
-
-        return ans.bool()
+        # Vectorised equivalent of the previous per-row Python loop:
+        # `for idx in range(all_constr.shape[0]): ans[idx] = all_constr[idx, :].all()`.
+        # all_constr is (n_samples, n_dims) for batched input; for a single 1D point it's (n_dims,).
+        return all_constr.all(dim=-1).bool()
 
     def check_containment_grad(self, x: torch.Tensor) -> torch.Tensor:
         # check containment and return a tensor with gradient
@@ -611,8 +615,8 @@ class Rectangle(Set):
 
         # returns 0 if it IS contained, a positive number otherwise
         return torch.relu(
-            torch.sum(x - torch.tensor(self.upper_bounds), dim=1)
-        ) + torch.relu(torch.sum(torch.tensor(self.lower_bounds) - x, dim=1))
+            torch.sum(x - self._ub_t, dim=1)
+        ) + torch.relu(torch.sum(self._lb_t - x, dim=1))
 
     def plot(self, fig, ax, label=None):
         """
@@ -670,6 +674,9 @@ class Sphere(Set):
         self.radius = radius
         self.dimension = len(centre)
         self.dim_select = dim_select
+        # Cache centre as a tensor so check_containment / check_containment_grad don't rebuild
+        # it from a Python list on every call.
+        self._centre_t = torch.tensor(self.centre).reshape(1, -1)
 
     def __repr__(self) -> str:
         return f"Sphere{self.centre, self.radius}"
@@ -736,12 +743,11 @@ class Sphere(Set):
     def check_containment(self, x: torch.Tensor) -> torch.Tensor:
         if self.dim_select:
             x = [x[:, i] for i in self.dim_select]
-        c = torch.tensor(self.centre).reshape(1, -1)
-        return (x - c).norm(2, dim=-1) <= self.radius
+        return (x - self._centre_t).norm(2, dim=-1) <= self.radius
 
     def check_containment_grad(self, x: torch.Tensor) -> torch.Tensor:
         # check containment and return a tensor with gradient
-        c = torch.tensor(self.centre).reshape(1, -1)
+        c = self._centre_t
         if self.dim_select:
             x = x[:, :, self.dim_select]
             c = [self.centre[i] for i in self.dim_select]

@@ -1159,10 +1159,11 @@ class Direct_control(Certificate):
                 
                 V2 = torch.unsqueeze(V2, 1)
 
-                nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
-                V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
-                V_next_min_space = V_next_min_space.unsqueeze(1)
-                V_next_min_space = V_next_min_space.unsqueeze(1)
+                # NOTE: the nexts_spaced / V_next_min_space block that used to run here computed a
+                # space-search over discretised controls (u_min..u_max step 0.01 -> ~1200 values),
+                # ran a V-net forward pass on (n_samples * ~1200) points EVERY inner step, and was
+                # then discarded (only the commented-out `#V_next = V_next_min_space` referenced it).
+                # Removing it is a pure dead-code elimination; behaviour is unchanged.
                 num_inn_steps = 100
                 
                 u1 = learners[1](samples_with_nexts) 
@@ -1184,8 +1185,8 @@ class Direct_control(Certificate):
                 beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
                 req_diff = ((V_I.max()-beta)/self.T)
                 
-                reg_loss = torch.norm(nexts)
-                
+                # NOTE: reg_loss = torch.norm(nexts) used to be computed here every inner step
+                # but was never used (only referenced in the commented line `#supp_loss = supp_loss + reg_loss`).
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
                 loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
@@ -1352,10 +1353,8 @@ class Direct_control(Certificate):
         #nexts = states_only[:i1-idot1] 
         V_next = best_nets[0](nexts)
         V_next = torch.unsqueeze(V_next, 1)
-        nexts_spaced = (f_samples.mT+torch.bmm(g_samples.mT, torch.arange(learners[1].u_min,learners[1].u_max,0.01).unsqueeze(0).repeat(g_samples.shape[0],1,1))).mT
-        V_next_min_space = learners[0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[0]
-        V_next_min_space = V_next_min_space.unsqueeze(1)
-        V_next_min_space = V_next_min_space.unsqueeze(1)
+        # NOTE: the nexts_spaced / V_next_min_space block that used to run here is dead code
+        # (only the commented `#V_next = V_next_min_space` referenced it); removed for speed.
         #V_next = V_next_min_space
         #reg_loss = torch.norm(nexts)
 

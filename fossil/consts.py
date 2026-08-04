@@ -184,6 +184,8 @@ class ScenAppConfig:
     SYMMETRIC_BELT: bool = False
     SCENAPP_MAX_ITERS: int = 10
     SCENAPP_MAX_TIME_S: float = math.inf  # in sec
+    LEARN_LOOPS: int = 10000  # inner gradient steps per ScenApp outer iteration (Direct_control / Direct_control_RWA)
+    CONVERGE_TOL: float = 1e-3  # relative L2 tolerance for best-net convergence between outer iters
     TIME_DOMAIN: TimeDomain = TimeDomain.CONTINUOUS
     LEARNER: LearnerType = LearnerType.CONTINUOUS
     VERIFIER: VerifierType = VerifierType.SCENAPPNONCONVEX

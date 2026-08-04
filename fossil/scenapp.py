@@ -336,10 +336,9 @@ class SingleScenApp:
                 #nexts_spaced = (self.f.mT+torch.bmm(self.g.mT, torch.arange(self.u_min,self.u_max,0.01).unsqueeze(0).repeat(1,1,1))).mT
                 #V_next_min_space_ind = state["best_net"][0](nexts_spaced.flatten(0,1)).reshape(g_samples.shape[0],-1).min(axis=1)[1]
                 #return controls[V_next_min_space_ind]
-                V_next_min_space = V_next_min_space.unsqueeze(1)
-                V_next_min_space = V_next_min_space.unsqueeze(1)
-                V_next = V_next_min_space # need to know f,g to do this, instead use training loop to opt u in loop
-               
+                # NOTE: previously referenced V_next_min_space here, which was never defined
+                # (UnboundLocalError). The commented-out space-search above would have computed
+                # it; the direct-NN return below doesn't need it.
 
                 if len(x.shape) == 1:
                     return state["best_net"][1](x.unsqueeze(1).T).detach().numpy()
@@ -497,7 +496,11 @@ class SingleScenApp:
         g = self.S["g"]
         # Initialize CEGIS state
         state = self.init_state(Sdot, S, S_traj, S_inds, times, f, g)
-        param_sum = 100
+        # Track the (flattened, detached) parameter vector of the best net so we can detect when
+        # the network has actually stopped changing between outer iterations. Once the net has
+        # converged and best_loss <= margin, an additional learn loop has effectively confirmed
+        # that controller + certificate together give zero loss, and we can verify.
+        param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
         print(self.S_traj["states"][-1].T)
 
         # Reset timers for components
@@ -522,9 +525,15 @@ class SingleScenApp:
         old_nets = copy.deepcopy(self.learner)
         reverted=False
         state = self.update_controller(state)
+        start_time = perf_counter()
         #for param in self.learner[1].parameters():
         #    param.requires_grad=False
         while not stop:
+            if perf_counter() - start_time > self.config.SCENAPP_MAX_TIME_S:
+                scenapp_log.warning("Out of time (SCENAPP_MAX_TIME_S={})".format(self.config.SCENAPP_MAX_TIME_S))
+                stop = True
+                state[ScenAppStateKeys.bounds] = None
+                break
             scenapp_log.debug("\033[1m Learner \033[0m")
             # Maybe switching is a good idea???
 
@@ -552,10 +561,12 @@ class SingleScenApp:
                 for param in self.learner[1].parameters():
                     param.requires_grad=False
                 scenapp_log.info("Controller update off")
+                controller_training = False
             else:
                 for param in self.learner[1].parameters():
                     param.requires_grad=True
                 scenapp_log.info("Controller update on")
+                controller_training = True
 
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
@@ -582,14 +593,24 @@ class SingleScenApp:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
-            new_param_sum = sum([sum([p.sum() for p in l.parameters()]) for l in state["best_net"]])
-            converged_controller = torch.abs(torch.tensor(new_param_sum-param_sum)) == 0
+            # converged_controller: has the network stopped changing since the last outer iteration?
+            # Relative L2 delta of the (flattened) best-net parameters. A relative tolerance is used
+            # because the absolute parameter norm scale is unrelated to the loss-scale converge_tol.
+            # When this fires AND best_loss <= margin, the most recent learn loop has confirmed
+            # that controller + certificate together yield zero loss, so we can verify.
+            new_param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
+            param_delta = (new_param_vec - param_vec).norm().item()
+            converged_controller = param_delta < self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)
+            scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e} -> converged={}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12), converged_controller))
             if not converged_controller:
-                if state["best_loss"] <= margin:#0.0:
-                    #if True:
+                if state["best_loss"] <= margin and controller_training:#0.0:
+                    # Only regenerate trajectories when the controller was actually trained this
+                    # iter. Once the controller is frozen ("Controller update off"), the data is
+                    # fixed so V can converge on it, which is what lets the network-convergence
+                    # check (param delta) actually fire and trigger verification.
                     scenapp_log.info("Updating controller")
                     state = self.update_controller(state)
-                param_sum = new_param_sum
+                param_vec = new_param_vec
                 #if state["best_loss"] < margin:
                 #    state["best_loss"] = torch.tensor([margin*2])
 

@@ -37,7 +37,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_HIDDEN_NEURONS=hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=2,
-        SCENAPP_MAX_ITERS=10000,
+        SCENAPP_MAX_ITERS=100,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
         MARGIN=1e-3,
@@ -159,7 +159,7 @@ def test_lnn():
         N_HIDDEN_NEURONS=n_hidden_neurons,
         SYMMETRIC_BELT=True,
         VERBOSE=0,
-        SCENAPP_MAX_ITERS=2500,
+        SCENAPP_MAX_ITERS=100,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
     )

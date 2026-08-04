@@ -994,6 +994,7 @@ class Direct_control(Certificate):
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
         self.margin = config.MARGIN
+        self.config = config
 
     def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
         relu = torch.nn.ReLU()
@@ -1097,7 +1098,7 @@ class Direct_control(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 10000
+        learn_loops = self.config.LEARN_LOOPS
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -1137,6 +1138,7 @@ class Direct_control(Certificate):
         if verify_only:
             parallel = False
         best_loss = 999
+        best_nets = copy.deepcopy(learners)
         #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)  
         for t in range(learn_loops):
             if state_sol:
@@ -1320,9 +1322,13 @@ class Direct_control(Certificate):
                         #    opt.step()
                         optimizer[0].step()
 
-        best_nets=copy.deepcopy(learners)        
-        #learners = copy.deepcopy(best_nets)
-        best_nets = copy.deepcopy(learners)
+        # NOTE: previously the lines below overwrote best_nets with copy.deepcopy(learners)
+        # (the *final* inner-loop state), discarding the best net tracked via max_loss < best_loss
+        # above. That made the returned best_net differ every outer iteration, which in turn made
+        # the converged_controller gate in ScenApp.solve() unreachable for any non-trivial controller.
+        # No longer clobber best_nets / best_loss here; the final re-evaluation below only computes
+        # `loss` / `supp_samples` from the chosen best. If the old "always return final state"
+        # behaviour was actually desired for some reason, revisit this.
         V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
         u1 = best_nets[1](samples_with_nexts) 
         
@@ -1363,8 +1369,10 @@ class Direct_control(Certificate):
         max_loss = max_loss[0]
         
         #if max_loss <= best_loss:
-        best_loss = max_loss 
-        cert_log.info("Loss is {:.10f}".format(best_loss))
+        # best_loss is the tracked minimum from the inner loop; don't overwrite it with the
+        # final re-evaluation max_loss (that would break the converged_controller gate). The
+        # current `max_loss` here is reported separately via the log line below.
+        cert_log.info("Loss is {:.10f}".format(max_loss))
         supp_samples = supp_samples.union(set([ind_max]))
         if best_supp_defd:
             supp_samples = supp_samples.union(best_supp_sample)

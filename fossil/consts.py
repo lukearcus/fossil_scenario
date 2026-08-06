@@ -218,6 +218,7 @@ class ScenAppConfig:
     CUSTOM_CERTIFICATE: Any = None
     MARGIN: float = 1e-5
     PARALLEL: bool = True
+    N_THREADS: int = 1  # torch CPU threads; raising increases per-thread allocator arenas and memory
 
     def __getitem__(self, item):
         return getattr(self, item)

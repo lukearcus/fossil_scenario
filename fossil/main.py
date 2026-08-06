@@ -66,7 +66,7 @@ def run_benchmark(
         plot (bool, optional): plot benchmark. Defaults to False.
         concurrent (bool, optional): For each attempt, run multiple seeds in parallel and take first successful result. Defaults to False.
     """
-    torch.set_num_threads(1)
+    torch.set_num_threads(scenapp_options.N_THREADS)
 
     for i in range(repeat):
         torch.manual_seed(BASE_SEED + i * N_PROCS)
@@ -107,7 +107,7 @@ def synthesise(opts: consts.ScenAppConfig) -> Result:
 
     """
 
-    torch.set_num_threads(1)
+    torch.set_num_threads(opts.N_THREADS)
     if opts.SEED is not None:
         torch.manual_seed(opts.SEED)
     PAC = ScenApp(opts)

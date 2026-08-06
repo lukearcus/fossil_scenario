@@ -12,6 +12,7 @@ from time import perf_counter, clock_gettime
 
 import torch
 import copy
+import gc
 import sympy as sp
 from scipy import stats
 
@@ -35,7 +36,8 @@ class Result(NamedTuple):
 class SingleScenApp:
     def __init__(self, config: ScenAppConfig):
         self.config = config
-        
+        torch.set_num_threads(self.config.N_THREADS)
+
         self.x, self.x_map, self.domains = self._initialise_domains()
         self.S, self.S_traj, self.init_S = self._initialise_data(self.config.DATA["full_data"], self.config.DATA["states_only"]) # Needs editing
         self.certificate = self._initialise_certificate()
@@ -485,6 +487,7 @@ class SingleScenApp:
                 scenapp_log.info("Zero Current Loss")
             else:
                 scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
+            gc.collect()
         state = self.process_timers(state)
 
         stats = Stats(

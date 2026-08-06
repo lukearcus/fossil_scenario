@@ -18,7 +18,6 @@ from experiments.benchmarks import models
 from functools import partial
 from multiprocessing import Pool
 import torch
-torch.set_num_threads(8)
 
 def solve(system, sets, n_data, activations, hidden_neurons, data):
 

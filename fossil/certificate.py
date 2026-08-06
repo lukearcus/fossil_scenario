@@ -24,7 +24,6 @@ import fossil.learner as learner
 from fossil.consts import ScenAppConfig, CertificateType, DomainNames, ScenAppStateKeys
 import fossil.domains as domains
 
-torch.set_num_threads(8)
 XD = DomainNames.XD.value
 XD1 = DomainNames.XD1.value
 XD2 = DomainNames.XD2.value
@@ -175,7 +174,8 @@ class Direct_control_barr(Certificate):
         self.D = config.DOMAINS
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
-    
+        self.config = config
+
     def compute_state_loss(self, V_U, V_I):
         relu = torch.nn.ReLU()
         
@@ -251,7 +251,7 @@ class Direct_control_barr(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
@@ -561,7 +561,8 @@ class Direct_control_RWA(Certificate):
         self.D = config.DOMAINS
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
-    
+        self.config = config
+
     def compute_state_loss(self, V_D, V_G, V_I, V_U, beta):
         
         relu = torch.nn.ReLU()
@@ -660,7 +661,7 @@ class Direct_control_RWA(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
@@ -1094,7 +1095,7 @@ class Direct_control(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
@@ -1451,7 +1452,8 @@ class Dissipativity(Certificate):
         self.D = config.DOMAINS
         self.beta = None
         self.T = config.SYSTEM.time_horizon
-    
+        self.config = config
+
     def compute_state_loss(self, Q, S, R, V_D, V_G, V_I, beta):
         relu = torch.nn.ReLU()
         
@@ -1595,7 +1597,7 @@ class Dissipativity(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
@@ -1983,7 +1985,8 @@ class Practical_Lyapunov(Certificate):
         self.D = config.DOMAINS
         self.beta = None
         self.T = config.SYSTEM.time_horizon
-    
+        self.config = config
+
     def compute_state_loss(
             self, 
             V_I: torch.Tensor, 
@@ -2160,7 +2163,7 @@ class Practical_Lyapunov(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
 
         batch_size = len(S[XD])
         learn_loops = 1000
@@ -2349,6 +2352,7 @@ class BarrierAlt(Certificate):
         self.bias = True
         self.D = config.DOMAINS
         self.T=config.SYSTEM.time_horizon
+        self.config = config
 
     def compute_state_loss(
         self,
@@ -2390,7 +2394,7 @@ class BarrierAlt(Certificate):
         Returns:
             tuple[torch.Tensor, float]: loss and accuracy
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         learn_accuracy = (B_i <= 0).count_nonzero().item() + (
             B_u > 0
         ).count_nonzero().item()
@@ -2689,6 +2693,7 @@ class RWS(Certificate):
         self.BORDERS = (XS,)
         self.D = config.DOMAINS
         self.T = config.SYSTEM.time_horizon
+        self.config = config
 
     def compute_state_loss(self, V_i, V_u, V_d, V_d_states, V_g, Vdot_d, beta, indices, supp_samples):
         margin = 1e-5
@@ -2868,7 +2873,7 @@ class RWS(Certificate):
         :param Sdot: dict of tensors containing f(data)
         :return: --
         """
-        torch.set_num_threads(8)
+        torch.set_num_threads(self.config.N_THREADS)
         
         assert len(S) == len(Sdot)
 

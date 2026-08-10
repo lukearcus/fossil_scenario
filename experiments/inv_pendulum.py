@@ -40,7 +40,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         SCENAPP_MAX_TIME_S=60*60*60,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
-        MARGIN=1e-3,
+        MARGIN=1e-2,
         PARALLEL=True
     )
     PAC = ScenApp(opts)
@@ -62,7 +62,7 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -0*(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0])+0.00*x[1])  #0.25 speed
+        u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0])+0.25*x[1])
         u = max(u,.9*obj.u_min)
         u = min(u,.9*obj.u_max)
         return u

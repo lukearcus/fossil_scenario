@@ -1173,22 +1173,27 @@ class Direct_control(Certificate):
                     control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
                 )).mT  # (idot1, G, n_state)
                 V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)  # (idot1, G)
-                V_next_min_space = V_next_grid.min(axis=1)[0]  # (idot1,)  -- best-V control from grid
+                V_next_min_space = V_next_grid.min(axis=1)[0]  # (idot1,)  -- best-V value from grid
+                V_next_min_space = V_next_min_space.unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1) — matches fd6174a
 
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts)
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                # V under the learned NN controller (used to train u1 to track the grid-min control).
-                V_next_nn = learners[0](nexts)
-
                 # The verified V loss uses the grid-min V-next (controlled-Lyapunov).
-                V_next = torch.unsqueeze(V_next_min_space, 1)
+                V_next = V_next_min_space  # (idot1, 1, 1)
 
-                # Tracking loss: push u1 toward the control that achieves the grid-min V-next.
-                # Detach the target so this loss trains u1 (and V, via V_next_nn) without treating
-                # the grid minimum as a moving target. Penalise only when u1 is worse by > TRACK_TOL.
-                track_loss = relu(V_next_nn - V_next_min_space.detach() + self.config.TRACK_TOL).mean()
+                # Controller tracking: train u1 (NN, deployable, no model knowledge needed at
+                # deploy time) to reproduce the grid-argmin control found by the model-based V
+                # search. This is a direct supervised target — no V gradient needed, so u1's
+                # training is decoupled from V's certificate loss. Model f, g are used only to
+                # FIND the best control during training; u1 itself is a plain state→control NN.
+                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
+                    best_u_ind = V_next_grid.argmin(axis=1)  # (idot1,)
+                    best_u = control_grid[best_u_ind]  # (idot1,)
+                    track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+                else:
+                    track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1223,13 +1228,34 @@ class Direct_control(Certificate):
                     supp_samples.add(ind_max)
                     if discrete:
                         if max_loss <= self.margin:
-                            best_nets = copy.deepcopy(learners)
+                            best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
+                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                # V converged; train u1 to match the grid-argmin control.
+                                # V is frozen (its params barely change since max_loss <= margin),
+                                # so the grid-argmin target is stable. Pure supervised learning.
+                                best_u_ind = V_next_grid.argmin(axis=1).detach()
+                                best_u = control_grid[best_u_ind].detach()
+                                for u_t in range(learn_loops - t - 1):
+                                    for opt in optimizer:
+                                        opt.zero_grad()
+                                    u1_pred = learners[1](samples_with_nexts)
+                                    tl = ((u1_pred.squeeze() - best_u.unsqueeze(1)) ** 2).mean()
+                                    tl.backward()
+                                    optimizer[1].step()
+                                    if u_t % 500 == 0:
+                                        cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                    if tl.item() < 1e-4:
+                                        break
+                            best_nets = copy.deepcopy(learners)
                             break
-                    # max_loss trains V (Lyapunov decrease at grid-min control);
-                    # track_loss trains u1 to track the grid-min control.
-                    total = max_loss + self.config.TRACK_WEIGHT * track_loss
-                    total.backward()
+                    # track_loss trains u1 (V was frozen during its forward, so no V grad);
+                    # max_loss trains V (uses grid-min V-next, no u1 dep). Separate backwards.
+                    for opt in optimizer:
+                        opt.zero_grad()
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    max_loss.backward()
                     if parallel:
                         for opt in optimizer:
                             opt.step()
@@ -1258,8 +1284,22 @@ class Direct_control(Certificate):
                             true_max_loss = true_max_loss[0]
                             if true_max_loss <=  self.margin:
                                 best_loss = true_max_loss
-                                best_nets = copy.deepcopy(learners)
                                 cert_log.info("Zero loss, breaking loop")
+                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                    best_u_ind = V_next_grid.argmin(axis=1).detach()
+                                    best_u = control_grid[best_u_ind].detach()
+                                    for u_t in range(learn_loops - t - 1):
+                                        for opt in optimizer:
+                                            opt.zero_grad()
+                                        u1_pred = learners[1](samples_with_nexts)
+                                        tl = ((u1_pred.squeeze() - best_u) ** 2).mean()
+                                        tl.backward()
+                                        optimizer[1].step()
+                                        if u_t % 500 == 0:
+                                            cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                        if tl.item() < 1e-4:
+                                            break
+                                best_nets = copy.deepcopy(learners)
                                 break
                             else:
                                 cert_log.info("zero supp_loss, jumping")
@@ -1276,13 +1316,13 @@ class Direct_control(Certificate):
 
                     if t % 100 == 0 or t == learn_loops - 1:
                         log_loss_acc(t, max_loss, acc, learners[0].verbose)
+                    # track_loss trains u1 only (V frozen during its forward);
+                    # supp_loss trains V only (grid-min V-next, no u1 dep). Separate backwards.
                     for opt in optimizer:
                         opt.zero_grad()
-                    # supp_loss trains V (Lyapunov decrease at grid-min control, on the support subset
-                    # so the scenario-approach verification applies); track_loss trains u1 to track
-                    # the grid-min control over all trajectory samples.
-                    combined = supp_loss + self.config.TRACK_WEIGHT * track_loss
-                    combined.backward()
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    supp_loss.backward()
                     if parallel:
                         for opt in optimizer:
                             opt.step()
@@ -1360,11 +1400,13 @@ class Direct_control(Certificate):
             control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
         )).mT
         V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-        V_next_min_space = V_next_grid.min(axis=1)[0]
-        V_next_nn = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next_min_space, 1)
-        track_loss = relu(V_next_nn - V_next_min_space.detach() + self.config.TRACK_TOL).mean()
-        cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
+        V_next_min_space = V_next_grid.min(axis=1)[0].unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1)
+        V_next = V_next_min_space
+        if self.config.TRACK_WEIGHT > 0:
+            best_u_ind = V_next_grid.argmin(axis=1)
+            best_u = control_grid[best_u_ind]
+            track_loss = ((u1.squeeze() - best_u.unsqueeze(1)) ** 2).mean()
+            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
         

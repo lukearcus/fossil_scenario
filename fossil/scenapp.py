@@ -506,7 +506,6 @@ class SingleScenApp:
         # converged and best_loss <= margin, an additional learn loop has effectively confirmed
         # that controller + certificate together give zero loss, and we can verify.
         param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
-        print(self.S_traj["states"][-1].T)
 
         # Reset timers for components
         for l in self.learner:
@@ -529,7 +528,8 @@ class SingleScenApp:
         j = 0
         old_nets = copy.deepcopy(self.learner)
         reverted=False
-        state = self.update_controller(state)
+        # NOTE: do NOT call update_controller here — it would replace the initial (reference)
+        # trajectories with random-controller trajectories before the CEGIS loop starts.
         start_time = perf_counter()
         #for param in self.learner[1].parameters():
         #    param.requires_grad=False
@@ -562,8 +562,6 @@ class SingleScenApp:
             #    for param in self.learner[0].parameters():
             #        param.requires_grad=True
             beta = self.learner[0](self.S["states"]["goal_border"]).max()
-            #if all([any(self.learner[0](torch.tensor(traj.T, dtype=torch.float))<beta) for traj in self.S_traj["states"]]):
-            #previous is better check, next is true check (but requires domain knowledge)
             if all([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]]):
             
                 for param in self.learner[1].parameters():
@@ -597,7 +595,7 @@ class SingleScenApp:
                 scenapp_log.info("Best Loss below margin")
                 #if state["parallel"]==True:
                 #    start_switch = True
-            if type(old_best) is float:
+            if isinstance(old_best, (int, float)):
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
@@ -663,7 +661,7 @@ class SingleScenApp:
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
-            elif old_best-state["best_loss"] < converge_tol:
+            elif state["best_loss"] > margin and old_best-state["best_loss"] < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 #state = self.discard(state)
                 #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))

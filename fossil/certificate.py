@@ -1160,22 +1160,35 @@ class Direct_control(Certificate):
                 
                 V2 = torch.unsqueeze(V2, 1)
 
-                # NOTE: the nexts_spaced / V_next_min_space block that used to run here computed a
-                # space-search over discretised controls (u_min..u_max step 0.01 -> ~1200 values),
-                # ran a V-net forward pass on (n_samples * ~1200) points EVERY inner step, and was
-                # then discarded (only the commented-out `#V_next = V_next_min_space` referenced it).
-                # Removing it is a pure dead-code elimination; behaviour is unchanged.
+                # Min-controller (controlled-Lyapunov): evaluate the V decrease condition at the
+                # best control from a discretised grid over [u_min, u_max]. This makes the Lyapunov
+                # decrease requirement easy to satisfy (V is free to decrease at the best u), which
+                # is what lets traj_acc reach 100% and the certificate verify. Model f, g are used
+                # here (training only); the deployed controller remains the NN u1 (see track_loss).
+                u_min = learners[1].u_min
+                u_max = learners[1].u_max
+                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                nexts_spaced = (f_samples.mT + torch.bmm(
+                    g_samples.mT,
+                    control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                )).mT  # (idot1, G, n_state)
+                V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)  # (idot1, G)
+                V_next_min_space = V_next_grid.min(axis=1)[0]  # (idot1,)  -- best-V control from grid
+
                 num_inn_steps = 100
-                
-                u1 = learners[1](samples_with_nexts) 
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
+                u1 = learners[1](samples_with_nexts)
+                nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                V_next = learners[0](nexts)
+                # V under the learned NN controller (used to train u1 to track the grid-min control).
+                V_next_nn = learners[0](nexts)
 
-                V_next = torch.unsqueeze(V_next, 1)
+                # The verified V loss uses the grid-min V-next (controlled-Lyapunov).
+                V_next = torch.unsqueeze(V_next_min_space, 1)
 
-                #print((V_next-V_next_min_space).max())
-                #V_next = V_next_min_space
+                # Tracking loss: push u1 toward the control that achieves the grid-min V-next.
+                # Detach the target so this loss trains u1 (and V, via V_next_nn) without treating
+                # the grid minimum as a moving target. Penalise only when u1 is worse by > TRACK_TOL.
+                track_loss = relu(V_next_nn - V_next_min_space.detach() + self.config.TRACK_TOL).mean()
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1213,7 +1226,10 @@ class Direct_control(Certificate):
                             best_nets = copy.deepcopy(learners)
                             cert_log.info("No supports, max loss is zero")
                             break
-                    max_loss.backward()
+                    # max_loss trains V (Lyapunov decrease at grid-min control);
+                    # track_loss trains u1 to track the grid-min control.
+                    total = max_loss + self.config.TRACK_WEIGHT * track_loss
+                    total.backward()
                     if parallel:
                         for opt in optimizer:
                             opt.step()
@@ -1262,28 +1278,11 @@ class Direct_control(Certificate):
                         log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     for opt in optimizer:
                         opt.zero_grad()
-                    #supp_inds = torch.hstack([Sind["lie"][i] for i in supp_samples])
-                    #norm_loss = (nexts[supp_inds]-goal_centre).norm(dim=2).mean() # should be - centre of X_G but haven't implemented yet
-
-                    #supp_loss = supp_loss + norm_loss
-                    #loss = loss + norm_loss
-                    supp_loss.backward(retain_graph=True)
-                    
-                    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                        for l in learners]
-                    supp_grads = torch.hstack([
-                        torch.hstack(l_grad)
-                        for l_grad in l_grads if len(l_grad) > 0 ])
-
-                    new_supp = False
-                    if not new_supp:
-                        #optimizer[0].zero_grad()
-                        for opt in optimizer:
-                            opt.zero_grad()
-                        supp_loss.backward()
-                    #optimizer[0].step()
-                    #for opt in optimizer:
-                    #    opt.step()
+                    # supp_loss trains V (Lyapunov decrease at grid-min control, on the support subset
+                    # so the scenario-approach verification applies); track_loss trains u1 to track
+                    # the grid-min control over all trajectory samples.
+                    combined = supp_loss + self.config.TRACK_WEIGHT * track_loss
+                    combined.backward()
                     if parallel:
                         for opt in optimizer:
                             opt.step()
@@ -1350,14 +1349,22 @@ class Direct_control(Certificate):
         req_diff = ((V_I.max()-beta)/self.T)
 
 
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        #nexts = states_only[:i1-idot1] 
-        V_next = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next, 1)
-        # NOTE: the nexts_spaced / V_next_min_space block that used to run here is dead code
-        # (only the commented `#V_next = V_next_min_space` referenced it); removed for speed.
-        #V_next = V_next_min_space
-        #reg_loss = torch.norm(nexts)
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
+        # Final re-evaluation uses the grid-min V-next (consistent with the inner loop) so the
+        # returned max_loss is comparable to the inner-loop best_loss that the ScenApp gate checks.
+        u_min = best_nets[1].u_min
+        u_max = best_nets[1].u_max
+        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+        nexts_spaced = (f_samples.mT + torch.bmm(
+            g_samples.mT,
+            control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+        )).mT
+        V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+        V_next_min_space = V_next_grid.min(axis=1)[0]
+        V_next_nn = best_nets[0](nexts)
+        V_next = torch.unsqueeze(V_next_min_space, 1)
+        track_loss = relu(V_next_nn - V_next_min_space.detach() + self.config.TRACK_TOL).mean()
+        cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
         

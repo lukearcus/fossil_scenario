@@ -219,6 +219,13 @@ class ScenAppConfig:
     MARGIN: float = 1e-5
     PARALLEL: bool = True
     N_THREADS: int = 1  # torch CPU threads; raising increases per-thread allocator arenas and memory
+    # Min-controller (controlled-Lyapunov) settings for Direct_control / Direct_control_RWA.
+    # The certificate V-loss is evaluated at the best control from a discretised grid over
+    # [u_min, u_max]; a tracking loss trains the NN controller u1 to reproduce that control.
+    # Model f, g are used during training only; the deployed controller is the NN u1.
+    CONTROL_GRID_STEP: float = 0.05  # coarser grid = fewer V-net forward passes (was 0.01)
+    TRACK_WEIGHT: float = 1.0  # weight of the u1-tracking loss
+    TRACK_TOL: float = 1e-3  # tolerance: u1 is penalised only when worse than grid-min by > TRACK_TOL
 
     def __getitem__(self, item):
         return getattr(self, item)

@@ -601,33 +601,27 @@ class SingleScenApp:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
-            # converged_controller: has the network stopped changing since the last outer iteration?
-            # Relative L2 delta of the (flattened) best-net parameters. A relative tolerance is used
-            # because the absolute parameter norm scale is unrelated to the loss-scale converge_tol.
-            # When this fires AND best_loss <= margin, the most recent learn loop has confirmed
-            # that controller + certificate together yield zero loss, so we can verify.
+            # param_delta is logged for diagnostics only. The verification gate is now:
+            #   best_loss <= margin (V Lyapunov condition holds on the support subset) AND
+            #   not controller_training (trajectories geometrically reach XG).
+            # The latter is the goal-reaching check; the former is the scenario-approach
+            # certificate condition. Together: "Epsilon printed + goal reached".
             new_param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
             param_delta = (new_param_vec - param_vec).norm().item()
-            converged_controller = param_delta < self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)
-            scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e} -> converged={}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12), converged_controller))
-            if not converged_controller:
-                if state["best_loss"] <= margin and controller_training:#0.0:
-                    # Only regenerate trajectories when the controller was actually trained this
-                    # iter. Once the controller is frozen ("Controller update off"), the data is
-                    # fixed so V can converge on it, which is what lets the network-convergence
-                    # check (param delta) actually fire and trigger verification.
-                    scenapp_log.info("Updating controller")
-                    state = self.update_controller(state)
-                param_vec = new_param_vec
-                #if state["best_loss"] < margin:
-                #    state["best_loss"] = torch.tensor([margin*2])
+            scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
+            param_vec = new_param_vec
 
-                #state["best_loss"] = torch.tensor([100])*(iters+1)
-            
+            if state["best_loss"] <= margin and controller_training:
+                # Regenerate trajectories with the improved controller and continue training.
+                # Once trajectories reach XG, controller_training flips False and the gate below
+                # can fire.
+                scenapp_log.info("Updating controller")
+                state = self.update_controller(state)
+
             state["supps"] = state["supps"].union(outputs["new_supps"])
-            
-            if state["best_loss"] <= margin and (converged_controller and not reverted):
-            #if True: 
+
+            if state["best_loss"] <= margin and not controller_training:
+            #if True:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)

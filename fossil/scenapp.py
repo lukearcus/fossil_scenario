@@ -562,7 +562,10 @@ class SingleScenApp:
             #    for param in self.learner[0].parameters():
             #        param.requires_grad=True
             beta = self.learner[0](self.S["states"]["goal_border"]).max()
-            if all([any(self.learner[0](torch.tensor(traj.T, dtype=torch.float))<beta) for traj in self.S_traj["states"]]):
+            #if all([any(self.learner[0](torch.tensor(traj.T, dtype=torch.float))<beta) for traj in self.S_traj["states"]]):
+            #previous is better check, next is true check (but requires domain knowledge)
+            if all([any(self.config.DOMAINS[DomainNames.XG.value].check_containment(torch.tensor(traj.T))) for traj in self.S_traj["states"]]):
+            
                 for param in self.learner[1].parameters():
                     param.requires_grad=False
                 scenapp_log.info("Controller update off")

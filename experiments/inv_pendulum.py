@@ -62,7 +62,7 @@ def test_lnn():
     def stab_control(obj, t, x):
         if type(x) is torch.Tensor:
             x = x.numpy()
-        u= -(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0])+0.25*x[1])
+        u= -0*(system.gr / system.l ) * np.sin(x[0])* (system.I/3) - 5*((x[0])+0.25*x[1])
         u = max(u,.9*obj.u_min)
         u = min(u,.9*obj.u_max)
         return u

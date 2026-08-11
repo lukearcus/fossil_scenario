@@ -1,0 +1,26 @@
+2026-08-10 19:04:51,416 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-10 19:04:51,425 - fossil.scenapp - INFO - Controller update off
+2026-08-10 19:05:20,928 - fossil.certificate - DEBUG - 100 - loss: 0.0275558140
+2026-08-10 19:05:50,597 - fossil.certificate - DEBUG - 200 - loss: 0.0155398361
+2026-08-10 19:06:19,629 - fossil.certificate - INFO - State sol at iteration 297
+2026-08-10 19:06:20,093 - fossil.certificate - DEBUG - 1 - loss: 0.01996
+2026-08-10 19:06:20,093 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-10 19:06:20,093 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-10 19:07:37,623 - fossil.certificate - DEBUG - 100 - loss: 0.02245
+2026-08-10 19:07:37,623 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-10 19:07:37,623 - fossil.certificate - DEBUG -  - state_acc: 99.991%
+2026-08-10 19:08:06,120 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-08-10 19:08:06,298 - fossil.certificate - INFO - Track loss: 12.1375093460
+2026-08-10 19:08:06,506 - fossil.certificate - INFO - Loss is 0.0098684076
+2026-08-10 19:08:06,506 - fossil.certificate - DEBUG - 137 - loss: 0.00987
+2026-08-10 19:08:06,506 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-08-10 19:08:06,508 - fossil.scenapp - INFO - Best Loss below margin
+2026-08-10 19:08:06,508 - fossil.scenapp - INFO - Previous Best loss: 0.0098684076
+2026-08-10 19:08:06,508 - fossil.scenapp - DEBUG - Param delta (rel): 1.158177e+01 / 1.080995e-02
+2026-08-10 19:08:06,508 - fossil.scenapp - DEBUG - [1m Verifier [0m
+2026-08-10 19:08:06,508 - fossil.scenapp - INFO - Current loss: 0.0098684076
+2026-08-10 19:08:06,613 - fossil.scenapp - INFO - Verifier times: total=0s,min=9223372036854775808s,max=0s,avg=0s, N=0
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:1459: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py:140: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  x = torch.tensor(x,dtype=torch.float32)

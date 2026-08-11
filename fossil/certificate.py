@@ -175,6 +175,7 @@ class Direct_control_barr(Certificate):
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
         self.config = config
+        self.margin = config.MARGIN
 
     def compute_state_loss(self, V_U, V_I):
         relu = torch.nn.ReLU()
@@ -242,7 +243,8 @@ class Direct_control_barr(Certificate):
         best_loss: float,
         best_nets: learner.LearnerNN,
         f_torch=None,
-        discrete=False
+        discrete=False,
+        parallel=True
     ) -> dict:
         """
         :param learner: learner object
@@ -255,7 +257,7 @@ class Direct_control_barr(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 1000
+        learn_loops = self.config.LEARN_LOOPS
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -284,43 +286,49 @@ class Direct_control_barr(Certificate):
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
-        #state_sol = False
         best_supp_defd = False
+        best_loss = 999
+        best_nets = copy.deepcopy(learners)
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
                     opt.zero_grad()
-                V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-                
-                num_inn_steps = 100
-                if len(supp_samples) > 0:
-                    for inn_step in range(num_inn_steps):
-                        u1 = learners[1](samples_with_nexts) 
-                        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                        V_next = learners[0](nexts)
-
-                        V_next = torch.unsqueeze(V_next, 1)
-                        u_loss = V_next[list(supp_samples)].sum()
-                        optimizer[1].zero_grad()
-                        u_loss.backward()
-                        optimizer[1].step()
-                u1 = learners[1](samples_with_nexts) 
-                
+                V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times)
 
                 V1 = torch.unsqueeze(V1, 1)
                 Vdot = torch.unsqueeze(Vdot, 1)
-                #u1 = torch.unsqueeze(u1, 1)
                 samples = torch.unsqueeze(samples, 2)
-                
-                
-    
-                V2 = learners[0](states_only)
-                
-                V2 = torch.unsqueeze(V2, 1)
-                nexts = (f_samples.mT+torch.bmm(g_samples,u1.mT)).mT 
-                V_next = learners[0](nexts)
-                V_next = torch.unsqueeze(V_next, 1)
 
+                V2 = learners[0](states_only)
+                V2 = torch.unsqueeze(V2, 1)
+
+                # Min-controller (controlled-Lyapunov): grid search under no_grad for argmin
+                # control, then single autograd forward on best-control next states.
+                u_min = learners[1].u_min
+                u_max = learners[1].u_max
+                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                with torch.no_grad():
+                    nexts_spaced = (f_samples.mT + torch.bmm(
+                        g_samples.mT,
+                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                    )).mT
+                    V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u_ind = V_next_grid.argmin(axis=1)
+                    best_u = control_grid[best_u_ind]
+
+                best_nexts = (f_samples.mT + torch.bmm(
+                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                )).mT
+                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
+
+                u1 = learners[1](samples_with_nexts)
+
+                # Controller tracking: train u1 only on support samples.
+                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                else:
+                    track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_U = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -343,38 +351,74 @@ class Direct_control_barr(Certificate):
                     log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     supp_samples.add(ind_max)
                     if discrete:
-                        if max_loss <= 0:
-                            best_nets = copy.deepcopy(learners)
+                        if max_loss <= self.margin:
+                            best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
+                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                target_u = best_u[supp_step_inds].detach()
+                                supp_inputs = samples_with_nexts[supp_step_inds]
+                                for u_t in range(learn_loops - t - 1):
+                                    for opt in optimizer:
+                                        opt.zero_grad()
+                                    u1_pred = learners[1](supp_inputs)
+                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                    tl.backward()
+                                    optimizer[1].step()
+                                    if u_t % 500 == 0:
+                                        cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                    if tl.item() < 1e-4:
+                                        break
+                            best_nets = copy.deepcopy(learners)
                             break
-                    max_loss.backward()
                     for opt in optimizer:
-                        opt.step()
+                        opt.zero_grad()
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    max_loss.backward()
+                    if parallel:
+                        for opt in optimizer:
+                            opt.step()
+                    else:
+                        optimizer[0].step()
                 else:
                     supp_loss = torch.max(losses[list(supp_samples)])
                     max_inds = (losses >= supp_loss).nonzero()
                     maximising_losses = losses[max_inds]
-                    
+
                     maximising_losses, max_inds = zip(*sorted(zip(maximising_losses, max_inds), reverse=True))
                     supps = list(supp_samples)
                     max_loss = torch.max(losses[supps], 0)
                     ind_max = supps[max_loss[1]]
                     max_loss = max_loss[0]
                     if max_loss < best_loss:
-                        #best_supp_defd = True
-                        #best_supp_sample = set([ind_max])
                         best_loss = max_loss
                         best_nets = copy.deepcopy(learners)
-    
+
                     if discrete:
-                        if max_loss <= 0:
+                        if max_loss <= self.margin:
                             true_max_loss = torch.max(losses, 0)
                             ind_true_max = true_max_loss[1].item()
                             true_max_loss = true_max_loss[0]
-                            if true_max_loss <= 0:
+                            if true_max_loss <= self.margin:
                                 best_loss = true_max_loss
-                                best_nets = copy.deepcopy(learners)
                                 cert_log.info("Zero loss, breaking loop")
+                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                    target_u = best_u[supp_step_inds].detach()
+                                    supp_inputs = samples_with_nexts[supp_step_inds]
+                                    for u_t in range(learn_loops - t - 1):
+                                        for opt in optimizer:
+                                            opt.zero_grad()
+                                        u1_pred = learners[1](supp_inputs)
+                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                        tl.backward()
+                                        optimizer[1].step()
+                                        if u_t % 500 == 0:
+                                            cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                        if tl.item() < 1e-4:
+                                            break
+                                best_nets = copy.deepcopy(learners)
                                 break
                             else:
                                 cert_log.info("zero supp_loss, jumping")
@@ -382,51 +426,18 @@ class Direct_control_barr(Certificate):
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
 
-                    #if (max_loss-best_loss) >= 1e-2: 
-                    #    if ind_max in supp_samples:
-                    #        break
-                    #    else:
-                    #        supp_samples = supp_samples.union(set([ind_max]))
-
                     if t % 100 == 0 or t == learn_loops - 1:
                         log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     for opt in optimizer:
                         opt.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                        for l in learners]
-                    supp_grads = torch.hstack([
-                        torch.hstack(l_grad)
-                        for l_grad in l_grads if len(l_grad) > 0 ])
-
-                    new_supp = False
-                    #for ind, loss in zip(max_inds, maximising_losses):
-                    #    for opt in optimizer:
-                    #        opt.zero_grad()
-                    #    loss.backward(retain_graph=True)
-                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                    #        for l in learners]
-                    #    grads = torch.hstack([
-                    #        torch.hstack(l_grad)
-                    #        for l_grad in l_grads if len(l_grad) > 0 ])
-                    #    #try:
-                    #    #    grads = torch.hstack([
-                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                    #    #        for l in learners])
-                    #    #except TypeError:
-                    #    #    grads = torch.hstack(
-                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                    #    inner = torch.inner(grads, supp_grads)
-                    #    if inner <= 0:
-                    #        supp_samples = supp_samples.union(set([ind.item()]))
-                    #        new_supp = True
-                    #        break
-                    if not new_supp:
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    supp_loss.backward()
+                    if parallel:
                         for opt in optimizer:
-                            opt.zero_grad()
-                        supp_loss.backward()
-                    for opt in optimizer:
-                        opt.step()
+                            opt.step()
+                    else:
+                        optimizer[0].step()
             else:
                 state_itt = 0
                 while True:
@@ -443,7 +454,7 @@ class Direct_control_barr(Certificate):
                     loss,_ = self.compute_state_loss(V_U, V_I)
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
-                    if loss == 0:
+                    if loss <= self.margin:
                         state_sol=True
                         cert_log.info("State sol at iteration {}".format(state_itt))
                         break
@@ -451,49 +462,53 @@ class Direct_control_barr(Certificate):
                         if state_itt % 100 == 0:
                             loss_v = loss.item() if hasattr(loss, "item") else loss
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
-                            
+
                         loss.backward()
-                        #for opt in optimizer:
                         optimizer[0].step()
 
-        #best_nets=copy.deepcopy(learners)        
-        learners = copy.deepcopy(best_nets)
-        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
-        u1 = best_nets[1](samples_with_nexts) 
-        
+        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times)
+        u1 = best_nets[1](samples_with_nexts)
+
         V1 = torch.unsqueeze(V1, 1)
 
         V2 = best_nets[0](states_only)
-        
         V2 = torch.unsqueeze(V2, 1)
-                
+
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_U = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
         V_D = V2[:i1-idot1]
-        
+
         req_diff = -((V_U.min()-V_I.max())/self.T)
-        
-        
-        nexts = (f_samples.mT+torch.bmm(g_samples,u1.mT)).mT 
-        #nexts = states_only[:i1-idot1] 
-        V_next = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next, 1)
+
+        # Final re-evaluation uses the grid-min V-next (consistent with the inner loop).
+        u_min = best_nets[1].u_min
+        u_max = best_nets[1].u_max
+        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+        with torch.no_grad():
+            nexts_spaced = (f_samples.mT + torch.bmm(
+                g_samples.mT,
+                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+            )).mT
+            V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+            best_u_ind = V_next_grid.argmin(axis=1)
+            best_u = control_grid[best_u_ind]
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
+        if self.config.TRACK_WEIGHT > 0:
+            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
+
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
-        
+
         loss, state_acc = self.compute_state_loss(V_U, V_I)
-        
+
         losses = relu(losses) + loss
         max_loss = torch.max(losses, 0)
         ind_max = max_loss[1].item()
         max_loss = max_loss[0]
-        
-        #if max_loss <= best_loss:
-        best_loss = max_loss 
-        cert_log.info("Loss is {:.10f}".format(best_loss))
+
+        cert_log.info("Loss is {:.10f}".format(max_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        #else:
-        #    if best_supp_defd:
-        #        supp_samples = supp_samples.union(best_supp_sample)
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
@@ -562,6 +577,7 @@ class Direct_control_RWA(Certificate):
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
         self.config = config
+        self.margin = config.MARGIN
 
     def compute_state_loss(self, V_D, V_G, V_I, V_U, beta):
         
@@ -652,7 +668,8 @@ class Direct_control_RWA(Certificate):
         best_loss: float,
         best_nets: learner.LearnerNN,
         f_torch=None,
-        discrete=False
+        discrete=False,
+        parallel=True
     ) -> dict:
         """
         :param learner: learner object
@@ -665,7 +682,7 @@ class Direct_control_RWA(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 1000
+        learn_loops = self.config.LEARN_LOOPS
         samples = S[XD]
         
         i1 = S[XD].shape[0]
@@ -698,42 +715,49 @@ class Direct_control_RWA(Certificate):
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
-        #state_sol = False
         best_supp_defd = False
+        best_loss = 999
+        best_nets = copy.deepcopy(learners)
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
                     opt.zero_grad()
-                V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times) 
-                num_inn_steps = 100
-                if len(supp_samples) > 0:
-                    for inn_step in range(num_inn_steps):
-                        u1 = learners[1](samples_with_nexts) 
-                        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                        V_next = learners[0](nexts)
-
-                        V_next = torch.unsqueeze(V_next, 1)
-                        u_loss = V_next[list(supp_samples)].sum()
-                        optimizer[1].zero_grad()
-                        u_loss.backward()
-                        optimizer[1].step()
-                u1 = learners[1](samples_with_nexts) 
-                
+                V1, Vdot, circle = learners[0].get_all(samples_with_nexts, samples_dot, times)
 
                 V1 = torch.unsqueeze(V1, 1)
                 Vdot = torch.unsqueeze(Vdot, 1)
-                #u1 = torch.unsqueeze(u1, 1)
                 samples = torch.unsqueeze(samples, 2)
-                
-                
-    
-                V2 = learners[0](states_only)
-                
-                V2 = torch.unsqueeze(V2, 1)
-                nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-                V_next = learners[0](nexts)
-                V_next = torch.unsqueeze(V_next, 1)
 
+                V2 = learners[0](states_only)
+                V2 = torch.unsqueeze(V2, 1)
+
+                # Min-controller (controlled-Lyapunov): grid search under no_grad for argmin
+                # control, then single autograd forward on best-control next states.
+                u_min = learners[1].u_min
+                u_max = learners[1].u_max
+                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                with torch.no_grad():
+                    nexts_spaced = (f_samples.mT + torch.bmm(
+                        g_samples.mT,
+                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                    )).mT
+                    V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u_ind = V_next_grid.argmin(axis=1)
+                    best_u = control_grid[best_u_ind]
+
+                best_nexts = (f_samples.mT + torch.bmm(
+                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                )).mT
+                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
+
+                u1 = learners[1](samples_with_nexts)
+
+                # Controller tracking: train u1 only on support samples.
+                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                else:
+                    track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -760,38 +784,74 @@ class Direct_control_RWA(Certificate):
                     log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     supp_samples.add(ind_max)
                     if discrete:
-                        if max_loss <= 0:
-                            best_nets = copy.deepcopy(learners)
+                        if max_loss <= self.margin:
+                            best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
+                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                target_u = best_u[supp_step_inds].detach()
+                                supp_inputs = samples_with_nexts[supp_step_inds]
+                                for u_t in range(learn_loops - t - 1):
+                                    for opt in optimizer:
+                                        opt.zero_grad()
+                                    u1_pred = learners[1](supp_inputs)
+                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                    tl.backward()
+                                    optimizer[1].step()
+                                    if u_t % 500 == 0:
+                                        cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                    if tl.item() < 1e-4:
+                                        break
+                            best_nets = copy.deepcopy(learners)
                             break
-                    max_loss.backward()
                     for opt in optimizer:
-                        opt.step()
+                        opt.zero_grad()
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    max_loss.backward()
+                    if parallel:
+                        for opt in optimizer:
+                            opt.step()
+                    else:
+                        optimizer[0].step()
                 else:
                     supp_loss = torch.max(losses[list(supp_samples)])
                     max_inds = (losses >= supp_loss).nonzero()
                     maximising_losses = losses[max_inds]
-                    
+
                     maximising_losses, max_inds = zip(*sorted(zip(maximising_losses, max_inds), reverse=True))
                     supps = list(supp_samples)
                     max_loss = torch.max(losses[supps], 0)
                     ind_max = supps[max_loss[1]]
                     max_loss = max_loss[0]
                     if max_loss < best_loss:
-                        #best_supp_defd = True
-                        #best_supp_sample = set([ind_max])
                         best_loss = max_loss
                         best_nets = copy.deepcopy(learners)
-    
+
                     if discrete:
-                        if max_loss <= 0:
+                        if max_loss <= self.margin:
                             true_max_loss = torch.max(losses, 0)
                             ind_true_max = true_max_loss[1].item()
                             true_max_loss = true_max_loss[0]
-                            if true_max_loss <= 0:
+                            if true_max_loss <= self.margin:
                                 best_loss = true_max_loss
-                                best_nets = copy.deepcopy(learners)
                                 cert_log.info("Zero loss, breaking loop")
+                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                    target_u = best_u[supp_step_inds].detach()
+                                    supp_inputs = samples_with_nexts[supp_step_inds]
+                                    for u_t in range(learn_loops - t - 1):
+                                        for opt in optimizer:
+                                            opt.zero_grad()
+                                        u1_pred = learners[1](supp_inputs)
+                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                        tl.backward()
+                                        optimizer[1].step()
+                                        if u_t % 500 == 0:
+                                            cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
+                                        if tl.item() < 1e-4:
+                                            break
+                                best_nets = copy.deepcopy(learners)
                                 break
                             else:
                                 cert_log.info("zero supp_loss, jumping")
@@ -799,59 +859,24 @@ class Direct_control_RWA(Certificate):
                                 supp_samples = supp_samples.union(set([ind_true_max]))
                                 max_loss = true_max_loss
 
-                    #if (max_loss-best_loss) >= 1e-2: 
-                    #    if ind_max in supp_samples:
-                    #        break
-                    #    else:
-                    #        supp_samples = supp_samples.union(set([ind_max]))
-
                     if t % 100 == 0 or t == learn_loops - 1:
                         log_loss_acc(t, max_loss, acc, learners[0].verbose)
                     for opt in optimizer:
                         opt.zero_grad()
-                    supp_loss.backward(retain_graph=True)
-                    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                        for l in learners]
-                    supp_grads = torch.hstack([
-                        torch.hstack(l_grad)
-                        for l_grad in l_grads if len(l_grad) > 0 ])
-
-                    new_supp = False
-                    #for ind, loss in zip(max_inds, maximising_losses):
-                    #    for opt in optimizer:
-                    #        opt.zero_grad()
-                    #    loss.backward(retain_graph=True)
-                    #    l_grads = [[torch.flatten(param.grad) for param in l.parameters() if param.grad is not None]
-                    #        for l in learners]
-                    #    grads = torch.hstack([
-                    #        torch.hstack(l_grad)
-                    #        for l_grad in l_grads if len(l_grad) > 0 ])
-                    #    #try:
-                    #    #    grads = torch.hstack([
-                    #    #        torch.hstack([torch.flatten(param.grad) for param in l.parameters()])
-                    #    #        for l in learners])
-                    #    #except TypeError:
-                    #    #    grads = torch.hstack(
-                    #    #        [torch.flatten(param.grad) for param in learners[0].parameters()])
-                    #    inner = torch.inner(grads, supp_grads)
-                    #    if inner <= 0:
-                    #        supp_samples = supp_samples.union(set([ind.item()]))
-                    #        new_supp = True
-                    #        break
-                    if not new_supp:
+                    if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                        (self.config.TRACK_WEIGHT * track_loss).backward()
+                    supp_loss.backward()
+                    if parallel:
                         for opt in optimizer:
-                            opt.zero_grad()
-                        supp_loss.backward()
-                    for opt in optimizer:
-                        opt.step()
+                            opt.step()
+                    else:
+                        optimizer[0].step()
             else:
                 state_itt = 0
                 while True:
-                    #for opt in optimizer:
                     optimizer[0].zero_grad()
                     V2 = learners[0](states_only)
                     V2 = torch.unsqueeze(V2, 1)
-                    #R = torch.eye(Smat.shape[-1]) 
 
                     state_itt += 1
                     V_I = V2[i1-idot1:i1+i2-idot1-idot2]
@@ -861,9 +886,7 @@ class Direct_control_RWA(Certificate):
                     V_U = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     beta = V_SG.min()
                     loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_U, beta)
-                    #if state_itt % 100 == 0:
-                    #    import pdb; pdb.set_trace()
-                    if loss == 0:
+                    if loss <= self.margin:
                         state_sol=True
                         cert_log.info("State sol at iteration {}".format(state_itt))
                         break
@@ -871,57 +894,57 @@ class Direct_control_RWA(Certificate):
                         if state_itt % 100 == 0:
                             loss_v = loss.item() if hasattr(loss, "item") else loss
                             cert_log.debug("{} - loss: {:.10f}".format(state_itt, loss_v))
-                            
+
                         loss.backward()
-                        #for opt in optimizer:
                         optimizer[0].step()
 
-        #best_nets=copy.deepcopy(learners)        
-        learners = copy.deepcopy(best_nets)
-        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times) 
-        u1 = best_nets[1](samples_with_nexts) 
-        
+        V1, Vdot, circle = best_nets[0].get_all(samples_with_nexts, samples_dot, times)
+        u1 = best_nets[1](samples_with_nexts)
+
         V1 = torch.unsqueeze(V1, 1)
 
         V2 = best_nets[0](states_only)
-        
         V2 = torch.unsqueeze(V2, 1)
-        
+
         V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
         V_D = V2[:i1-idot1]
         V_I = V2[i1-idot1:i1+i2-idot1-idot2]
         V_G = V2[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
         V_U = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
         beta = V_SG.min()
-        
+
         req_diff = ((V_I.max()-beta)/self.T)
 
+        # Final re-evaluation uses the grid-min V-next (consistent with the inner loop).
+        u_min = best_nets[1].u_min
+        u_max = best_nets[1].u_max
+        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+        with torch.no_grad():
+            nexts_spaced = (f_samples.mT + torch.bmm(
+                g_samples.mT,
+                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+            )).mT
+            V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+            best_u_ind = V_next_grid.argmin(axis=1)
+            best_u = control_grid[best_u_ind]
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
+        if self.config.TRACK_WEIGHT > 0:
+            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT 
-        #nexts = states_only[:i1-idot1] 
-        V_next = best_nets[0](nexts)
-        V_next = torch.unsqueeze(V_next, 1)
-        #req_diff_2 = relu((V_U.min()-beta)/self.T)
         req_diff_2 = (beta-V_U.min())/self.T
-        #if best_loss == 0:
-        #    import pdb; pdb.set_trace()
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
-                
-        
+
         loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_U, beta)
-        
+
         losses = relu(losses) + loss
         max_loss = torch.max(losses, 0)
         ind_max = max_loss[1].item()
         max_loss = max_loss[0]
-        
-        #if max_loss <= best_loss:
-        best_loss = max_loss 
-        cert_log.info("Loss is {:.10f}".format(best_loss))
+
+        cert_log.info("Loss is {:.10f}".format(max_loss))
         supp_samples = supp_samples.union(set([ind_max]))
-        #else:
-        #    if best_supp_defd:
-        #        supp_samples = supp_samples.union(best_supp_sample)
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
         return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
@@ -1193,11 +1216,12 @@ class Direct_control(Certificate):
 
                 # Controller tracking: train u1 (NN, deployable, no model knowledge needed at
                 # deploy time) to reproduce the grid-argmin control found by the model-based V
-                # search. This is a direct supervised target — no V gradient needed, so u1's
-                # training is decoupled from V's certificate loss. Model f, g are used only to
-                # FIND the best control during training; u1 itself is a plain state→control NN.
-                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
-                    track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+                # search. Only train on support samples (the scenario-approach subset) so u1
+                # learns from the same data the certificate is verified on. No training when
+                # supp_samples is empty (first step).
+                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -1237,14 +1261,15 @@ class Direct_control(Certificate):
                             best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
                             if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
-                                # V converged; train u1 to match the grid-argmin control.
-                                # V is frozen (its params barely change since max_loss <= margin),
-                                # so the grid-argmin target is stable. Pure supervised learning.
-                                target_u = best_u.detach()
+                                # V converged; train u1 to match the grid-argmin control, using
+                                # only the support samples (supp_step_inds). Pure supervised learning.
+                                supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                target_u = best_u[supp_step_inds].detach()
+                                supp_inputs = samples_with_nexts[supp_step_inds]
                                 for u_t in range(learn_loops - t - 1):
                                     for opt in optimizer:
                                         opt.zero_grad()
-                                    u1_pred = learners[1](samples_with_nexts)
+                                    u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
@@ -1291,11 +1316,13 @@ class Direct_control(Certificate):
                                 best_loss = true_max_loss
                                 cert_log.info("Zero loss, breaking loop")
                                 if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
-                                    target_u = best_u.detach()
+                                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                                    target_u = best_u[supp_step_inds].detach()
+                                    supp_inputs = samples_with_nexts[supp_step_inds]
                                     for u_t in range(learn_loops - t - 1):
                                         for opt in optimizer:
                                             opt.zero_grad()
-                                        u1_pred = learners[1](samples_with_nexts)
+                                        u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
@@ -1643,7 +1670,8 @@ class Dissipativity(Certificate):
         best_loss: float,
         best_nets: learner.LearnerNN,
         f_torch=None,
-        discrete=False
+        discrete=False,
+        parallel=True
     ) -> dict:
         """
         :param learner: learner object
@@ -1656,7 +1684,7 @@ class Dissipativity(Certificate):
         relu = torch.nn.ReLU()
 
         batch_size = len(S[XD])
-        learn_loops = 100000
+        learn_loops = self.config.LEARN_LOOPS
         samples = S[XD]
         
         i1 = S[XD].shape[0]

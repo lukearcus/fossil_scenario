@@ -1165,23 +1165,31 @@ class Direct_control(Certificate):
                 # decrease requirement easy to satisfy (V is free to decrease at the best u), which
                 # is what lets traj_acc reach 100% and the certificate verify. Model f, g are used
                 # here (training only); the deployed controller remains the NN u1 (see track_loss).
+                #
+                # Memory: the grid forward pass is run under no_grad (no autograd intermediates,
+                # ~200MB saved per step on a 1200-point grid). Only the single best-control forward
+                # pass (n_traj samples, not n_traj*grid) builds an autograd graph for V's loss.
                 u_min = learners[1].u_min
                 u_max = learners[1].u_max
                 control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
-                nexts_spaced = (f_samples.mT + torch.bmm(
-                    g_samples.mT,
-                    control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
-                )).mT  # (idot1, G, n_state)
-                V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)  # (idot1, G)
-                V_next_min_space = V_next_grid.min(axis=1)[0]  # (idot1,)  -- best-V value from grid
-                V_next_min_space = V_next_min_space.unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1) — matches fd6174a
+                with torch.no_grad():
+                    nexts_spaced = (f_samples.mT + torch.bmm(
+                        g_samples.mT,
+                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                    )).mT  # (idot1, G, n_state)
+                    V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)  # (idot1, G)
+                    best_u_ind = V_next_grid.argmin(axis=1)  # (idot1,)
+                    best_u = control_grid[best_u_ind]  # (idot1,)
+
+                # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
+                best_nexts = (f_samples.mT + torch.bmm(
+                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                )).mT  # (idot1, n_state, 1) — next state under the grid-argmin control
+                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1)
 
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts)
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
-
-                # The verified V loss uses the grid-min V-next (controlled-Lyapunov).
-                V_next = V_next_min_space  # (idot1, 1, 1)
 
                 # Controller tracking: train u1 (NN, deployable, no model knowledge needed at
                 # deploy time) to reproduce the grid-argmin control found by the model-based V
@@ -1189,8 +1197,6 @@ class Direct_control(Certificate):
                 # training is decoupled from V's certificate loss. Model f, g are used only to
                 # FIND the best control during training; u1 itself is a plain state→control NN.
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
-                    best_u_ind = V_next_grid.argmin(axis=1)  # (idot1,)
-                    best_u = control_grid[best_u_ind]  # (idot1,)
                     track_loss = ((u1.squeeze() - best_u) ** 2).mean()
                 else:
                     track_loss = None
@@ -1234,13 +1240,12 @@ class Direct_control(Certificate):
                                 # V converged; train u1 to match the grid-argmin control.
                                 # V is frozen (its params barely change since max_loss <= margin),
                                 # so the grid-argmin target is stable. Pure supervised learning.
-                                best_u_ind = V_next_grid.argmin(axis=1).detach()
-                                best_u = control_grid[best_u_ind].detach()
+                                target_u = best_u.detach()
                                 for u_t in range(learn_loops - t - 1):
                                     for opt in optimizer:
                                         opt.zero_grad()
                                     u1_pred = learners[1](samples_with_nexts)
-                                    tl = ((u1_pred.squeeze() - best_u.unsqueeze(1)) ** 2).mean()
+                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -1286,13 +1291,12 @@ class Direct_control(Certificate):
                                 best_loss = true_max_loss
                                 cert_log.info("Zero loss, breaking loop")
                                 if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
-                                    best_u_ind = V_next_grid.argmin(axis=1).detach()
-                                    best_u = control_grid[best_u_ind].detach()
+                                    target_u = best_u.detach()
                                     for u_t in range(learn_loops - t - 1):
                                         for opt in optimizer:
                                             opt.zero_grad()
                                         u1_pred = learners[1](samples_with_nexts)
-                                        tl = ((u1_pred.squeeze() - best_u) ** 2).mean()
+                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -1392,20 +1396,22 @@ class Direct_control(Certificate):
         nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
         # Final re-evaluation uses the grid-min V-next (consistent with the inner loop) so the
         # returned max_loss is comparable to the inner-loop best_loss that the ScenApp gate checks.
+        # Run under no_grad to avoid building a large autograd graph (same memory fix as inner loop).
         u_min = best_nets[1].u_min
         u_max = best_nets[1].u_max
         control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
-        nexts_spaced = (f_samples.mT + torch.bmm(
-            g_samples.mT,
-            control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
-        )).mT
-        V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-        V_next_min_space = V_next_grid.min(axis=1)[0].unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1)
-        V_next = V_next_min_space
-        if self.config.TRACK_WEIGHT > 0:
+        with torch.no_grad():
+            nexts_spaced = (f_samples.mT + torch.bmm(
+                g_samples.mT,
+                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+            )).mT
+            V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
             best_u_ind = V_next_grid.argmin(axis=1)
             best_u = control_grid[best_u_ind]
-            track_loss = ((u1.squeeze() - best_u.unsqueeze(1)) ** 2).mean()
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+        if self.config.TRACK_WEIGHT > 0:
+            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)

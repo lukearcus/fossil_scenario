@@ -592,6 +592,7 @@ class SingleScenApp:
                 #Also had old_best updating on reversion before when success?
             else:
                 old_best = state["best_loss"]
+                del old_nets  # free previous deepcopy before creating new one
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
@@ -692,6 +693,8 @@ class SingleScenApp:
                 scenapp_log.info("Zero Current Loss")
             else:
                 scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
+            # Free intermediate tensors and release CPU allocator memory between outer iterations.
+            del outputs
             gc.collect()
         state = self.process_timers(state)
 

@@ -289,6 +289,7 @@ class Direct_control_barr(Certificate):
         best_supp_defd = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
+        _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -306,7 +307,7 @@ class Direct_control_barr(Certificate):
                 # control, then single autograd forward on best-control next states.
                 u_min = learners[1].u_min
                 u_max = learners[1].u_max
-                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                control_grid = _control_grid
                 with torch.no_grad():
                     nexts_spaced = (f_samples.mT + torch.bmm(
                         g_samples.mT,
@@ -511,7 +512,7 @@ class Direct_control_barr(Certificate):
         supp_samples = supp_samples.union(set([ind_max]))
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
-        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
 
     def get_violations(self, nets, S, state_data):
         violated = 0
@@ -718,6 +719,7 @@ class Direct_control_RWA(Certificate):
         best_supp_defd = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
+        _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -735,7 +737,7 @@ class Direct_control_RWA(Certificate):
                 # control, then single autograd forward on best-control next states.
                 u_min = learners[1].u_min
                 u_max = learners[1].u_max
-                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                control_grid = _control_grid
                 with torch.no_grad():
                     nexts_spaced = (f_samples.mT + torch.bmm(
                         g_samples.mT,
@@ -947,12 +949,12 @@ class Direct_control_RWA(Certificate):
         supp_samples = supp_samples.union(set([ind_max]))
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
-        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
 
     def get_violations(self, nets, S, state_data):
         violated = 0
         true_violated = 0
-        
+
         req_diff = (nets[0](state_data["init"]).max()-nets[0](state_data["goal_border"]).min())/self.T
         req_diff_2 = (nets[0](-state_data["unsafe"]).max()+nets[0](state_data["goal_border"]).min())/self.T
         beta = nets[0](state_data["goal_border"]).min()
@@ -1163,7 +1165,9 @@ class Direct_control(Certificate):
             parallel = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
-        #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)  
+        # Precompute the control grid once (reused every inner step, not reallocated).
+        _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
+        #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)
         for t in range(learn_loops):
             if state_sol:
                 for opt in optimizer:
@@ -1194,7 +1198,7 @@ class Direct_control(Certificate):
                 # pass (n_traj samples, not n_traj*grid) builds an autograd graph for V's loss.
                 u_min = learners[1].u_min
                 u_max = learners[1].u_max
-                control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+                control_grid = _control_grid
                 with torch.no_grad():
                     nexts_spaced = (f_samples.mT + torch.bmm(
                         g_samples.mT,
@@ -1214,11 +1218,8 @@ class Direct_control(Certificate):
                 u1 = learners[1](samples_with_nexts)
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                # Controller tracking: train u1 (NN, deployable, no model knowledge needed at
-                # deploy time) to reproduce the grid-argmin control found by the model-based V
-                # search. Only train on support samples (the scenario-approach subset) so u1
-                # learns from the same data the certificate is verified on. No training when
-                # supp_samples is empty (first step).
+                # Controller tracking: train u1 only on support samples (the scenario-approach
+                # subset). No training when supp_samples is empty (first step).
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                     track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
@@ -1461,7 +1462,7 @@ class Direct_control(Certificate):
         
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
-        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
 
     def get_violations(self, nets, S, state_data):
         violated = 0
@@ -1985,7 +1986,7 @@ class Dissipativity(Certificate):
         #        supp_samples = supp_samples.union(best_supp_sample)
         supp_samples.discard(-1)
         log_loss_acc(t, max_loss, learn_accuracy, learners[0].verbose)
-        return {ScenAppStateKeys.loss: max_loss, "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
 
     def get_violations(self, nets, S, state_data):
         violated = 0

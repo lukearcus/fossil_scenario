@@ -355,7 +355,7 @@ class Direct_control_barr(Certificate):
                         if max_loss <= self.margin:
                             best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
-                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                            if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
@@ -404,7 +404,7 @@ class Direct_control_barr(Certificate):
                             if true_max_loss <= self.margin:
                                 best_loss = true_max_loss
                                 cert_log.info("Zero loss, breaking loop")
-                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
@@ -789,7 +789,7 @@ class Direct_control_RWA(Certificate):
                         if max_loss <= self.margin:
                             best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
-                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                            if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
@@ -838,7 +838,7 @@ class Direct_control_RWA(Certificate):
                             if true_max_loss <= self.margin:
                                 best_loss = true_max_loss
                                 cert_log.info("Zero loss, breaking loop")
-                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
@@ -1261,7 +1261,7 @@ class Direct_control(Certificate):
                         if max_loss <= self.margin:
                             best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
-                            if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                            if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                 # V converged; train u1 to match the grid-argmin control, using
                                 # only the support samples (supp_step_inds). Pure supervised learning.
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
@@ -1316,7 +1316,7 @@ class Direct_control(Certificate):
                             if true_max_loss <=  self.margin:
                                 best_loss = true_max_loss
                                 cert_log.info("Zero loss, breaking loop")
-                                if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
+                                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]

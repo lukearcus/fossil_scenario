@@ -1199,13 +1199,26 @@ class Direct_control(Certificate):
                 u_min = learners[1].u_min
                 u_max = learners[1].u_max
                 control_grid = _control_grid
+                # Chunk the grid forward pass to bound peak rows at idot1*chunk_size
+                # (vs idot1*grid_size unchunked). Argmin result is identical to the
+                # single-pass version since min is associative over grid slices.
+                grid_size = control_grid.shape[0]
+                chunk_size = 50
                 with torch.no_grad():
-                    nexts_spaced = (f_samples.mT + torch.bmm(
-                        g_samples.mT,
-                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
-                    )).mT  # (idot1, G, n_state)
-                    V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)  # (idot1, G)
-                    best_u_ind = V_next_grid.argmin(axis=1)  # (idot1,)
+                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                    best_V = torch.full((g_samples.shape[0],), float('inf'))
+                    for g_start in range(0, grid_size, chunk_size):
+                        g_end = min(g_start + chunk_size, grid_size)
+                        chunk = control_grid[g_start:g_end]
+                        nexts_chunk = (f_samples.mT + torch.bmm(
+                            g_samples.mT,
+                            chunk.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                        )).mT  # (idot1, chunk_size, n_state)
+                        V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                        improve = chunk_min < best_V
+                        best_V = torch.where(improve, chunk_min, best_V)
+                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
                     best_u = control_grid[best_u_ind]  # (idot1,)
 
                 # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
@@ -1428,13 +1441,24 @@ class Direct_control(Certificate):
         u_min = best_nets[1].u_min
         u_max = best_nets[1].u_max
         control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+        # Chunked grid forward (see inner-loop comment above) — bounds peak rows.
+        grid_size = control_grid.shape[0]
+        chunk_size = 50
         with torch.no_grad():
-            nexts_spaced = (f_samples.mT + torch.bmm(
-                g_samples.mT,
-                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
-            )).mT
-            V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-            best_u_ind = V_next_grid.argmin(axis=1)
+            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+            best_V = torch.full((g_samples.shape[0],), float('inf'))
+            for g_start in range(0, grid_size, chunk_size):
+                g_end = min(g_start + chunk_size, grid_size)
+                chunk = control_grid[g_start:g_end]
+                nexts_chunk = (f_samples.mT + torch.bmm(
+                    g_samples.mT,
+                    chunk.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                )).mT
+                V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                improve = chunk_min < best_V
+                best_V = torch.where(improve, chunk_min, best_V)
+                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
             best_u = control_grid[best_u_ind]
             best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)

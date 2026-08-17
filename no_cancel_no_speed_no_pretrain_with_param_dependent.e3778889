@@ -1,0 +1,74 @@
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:2770: SyntaxWarning: invalid escape sequence '\ '
+  """Certificate to satisfy a reach-while-stay property.
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:2781: SyntaxWarning: invalid escape sequence '\ '
+  """initialise the RWS certificate
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:3161: SyntaxWarning: invalid escape sequence '\ '
+  """Reach and Stay While Stay Certificate
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:3185: SyntaxWarning: invalid escape sequence '\ '
+  """initialise the RSWS certificate
+2026-08-17 08:07:10,400 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-17 08:07:10,407 - fossil.scenapp - INFO - Controller update on
+2026-08-17 08:07:39,602 - fossil.certificate - DEBUG - 100 - loss: 0.0275558140
+2026-08-17 08:08:08,762 - fossil.certificate - DEBUG - 200 - loss: 0.0155398361
+2026-08-17 08:08:37,530 - fossil.certificate - INFO - State sol at iteration 297
+2026-08-17 08:08:37,937 - fossil.certificate - DEBUG - 1 - loss: 0.04468
+2026-08-17 08:08:37,937 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-17 08:08:37,937 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-17 08:09:16,672 - fossil.certificate - DEBUG - 100 - loss: 0.03425
+2026-08-17 08:09:16,672 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-17 08:09:16,672 - fossil.certificate - DEBUG -  - state_acc: 89.498%
+2026-08-17 08:09:55,785 - fossil.certificate - DEBUG - 200 - loss: 0.02996
+2026-08-17 08:09:55,786 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-08-17 08:09:55,786 - fossil.certificate - DEBUG -  - state_acc: 97.965%
+2026-08-17 08:10:34,263 - fossil.certificate - DEBUG - 300 - loss: 0.02228
+2026-08-17 08:10:34,263 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-08-17 08:10:34,263 - fossil.certificate - DEBUG -  - state_acc: 99.826%
+2026-08-17 08:10:58,195 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-08-17 08:10:58,205 - fossil.certificate - DEBUG - u1 track: 1.227462 at step 0
+2026-08-17 08:10:58,855 - fossil.certificate - DEBUG - u1 track: 0.011101 at step 500
+2026-08-17 08:10:59,487 - fossil.certificate - DEBUG - u1 track: 0.007817 at step 1000
+2026-08-17 08:11:00,116 - fossil.certificate - DEBUG - u1 track: 0.005756 at step 1500
+2026-08-17 08:11:00,759 - fossil.certificate - DEBUG - u1 track: 0.004161 at step 2000
+2026-08-17 08:11:01,395 - fossil.certificate - DEBUG - u1 track: 0.002931 at step 2500
+2026-08-17 08:11:02,029 - fossil.certificate - DEBUG - u1 track: 0.002103 at step 3000
+2026-08-17 08:11:02,669 - fossil.certificate - DEBUG - u1 track: 0.001655 at step 3500
+2026-08-17 08:11:03,307 - fossil.certificate - DEBUG - u1 track: 0.001313 at step 4000
+2026-08-17 08:11:03,949 - fossil.certificate - DEBUG - u1 track: 0.001048 at step 4500
+2026-08-17 08:11:04,593 - fossil.certificate - DEBUG - u1 track: 0.002894 at step 5000
+2026-08-17 08:11:05,228 - fossil.certificate - DEBUG - u1 track: 0.000662 at step 5500
+2026-08-17 08:11:05,871 - fossil.certificate - DEBUG - u1 track: 0.000501 at step 6000
+2026-08-17 08:11:06,514 - fossil.certificate - DEBUG - u1 track: 0.000387 at step 6500
+2026-08-17 08:11:07,166 - fossil.certificate - DEBUG - u1 track: 0.003246 at step 7000
+2026-08-17 08:11:07,805 - fossil.certificate - DEBUG - u1 track: 0.000619 at step 7500
+2026-08-17 08:11:08,442 - fossil.certificate - DEBUG - u1 track: 0.000193 at step 8000
+2026-08-17 08:11:09,066 - fossil.certificate - DEBUG - u1 track: 0.000217 at step 8500
+2026-08-17 08:11:09,690 - fossil.certificate - DEBUG - u1 track: 0.000153 at step 9000
+2026-08-17 08:11:10,319 - fossil.certificate - DEBUG - u1 track: 0.000134 at step 9500
+2026-08-17 08:11:10,603 - fossil.certificate - INFO - Track loss: 0.0013041660
+2026-08-17 08:11:10,815 - fossil.certificate - INFO - Loss is 0.0099347923
+2026-08-17 08:11:10,815 - fossil.certificate - DEBUG - 362 - loss: 0.00993
+2026-08-17 08:11:10,815 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-08-17 08:11:10,817 - fossil.scenapp - INFO - Best Loss below margin
+2026-08-17 08:11:10,817 - fossil.scenapp - INFO - Previous Best loss: 0.0099347923
+2026-08-17 08:11:10,818 - fossil.scenapp - DEBUG - Param delta (rel): 3.800749e+01 / 1.080995e-02
+2026-08-17 08:11:10,818 - fossil.scenapp - INFO - Updating controller
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 182, in <module>
+    test_lnn()
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 135, in test_lnn
+    res = [part_solve(data[0])]
+           ^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 47, in solve
+    result = PAC.solve()
+             ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/scenapp.py", line 627, in solve
+    scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/scenapp.py", line 371, in update_controller
+    torch.empty_cache()
+    ^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/site-packages/torch/__init__.py", line 1932, in __getattr__
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+AttributeError: module 'torch' has no attribute 'empty_cache'

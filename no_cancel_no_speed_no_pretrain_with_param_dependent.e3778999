@@ -1,0 +1,40 @@
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:2779: SyntaxWarning: invalid escape sequence '\ '
+  """Certificate to satisfy a reach-while-stay property.
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:2790: SyntaxWarning: invalid escape sequence '\ '
+  """initialise the RWS certificate
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:3170: SyntaxWarning: invalid escape sequence '\ '
+  """Reach and Stay While Stay Certificate
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:3194: SyntaxWarning: invalid escape sequence '\ '
+  """initialise the RSWS certificate
+2026-08-17 08:27:13,661 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-17 08:27:13,668 - fossil.scenapp - INFO - Controller update on
+2026-08-17 08:27:45,498 - fossil.certificate - DEBUG - 100 - loss: 0.0275558140
+2026-08-17 08:28:16,543 - fossil.certificate - DEBUG - 200 - loss: 0.0155398361
+2026-08-17 08:28:46,729 - fossil.certificate - INFO - State sol at iteration 297
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 182, in <module>
+    test_lnn()
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 135, in test_lnn
+    res = [part_solve(data[0])]
+           ^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 47, in solve
+    result = PAC.solve()
+             ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/scenapp.py", line 604, in solve
+    outputs = self.learner[0].get(**state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/learner.py", line 110, in get
+    return self.learn(
+           ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/utils.py", line 440, in wrapper
+    x = f(*a, **kw)
+        ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/learner.py", line 107, in learn
+    return self.learn_method(net, optimizer, S, Sdot, Sind, f, g, times, best_loss, best_net, None, discrete, parallel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py", line 1240, in learn
+    nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.unsqueeze(2))).mT
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: batch2 must be a 3D tensor

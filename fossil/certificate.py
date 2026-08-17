@@ -322,8 +322,8 @@ class Direct_control_barr(Certificate):
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                                u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -511,8 +511,8 @@ class Direct_control_barr(Certificate):
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                        u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -779,8 +779,8 @@ class Direct_control_RWA(Certificate):
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                                u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -974,8 +974,8 @@ class Direct_control_RWA(Certificate):
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                        u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -1271,8 +1271,8 @@ class Direct_control(Certificate):
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                                u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -1512,8 +1512,8 @@ class Direct_control(Certificate):
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(1).expand(-1, chunk.shape[0], -1).clone()
-                        u_chunk[:, :, d] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)

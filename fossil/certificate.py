@@ -284,6 +284,7 @@ class Direct_control_barr(Certificate):
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         g_samples = g_samples[:idot1]
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        n_ctrl = g_samples.shape[1]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         best_supp_defd = False
@@ -311,14 +312,15 @@ class Direct_control_barr(Certificate):
                 with torch.no_grad():
                     nexts_spaced = (f_samples.mT + torch.bmm(
                         g_samples.mT,
-                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
                     )).mT
                     V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                     best_u_ind = V_next_grid.argmin(axis=1)
                     best_u = control_grid[best_u_ind]
+                    best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
 
                 best_nexts = (f_samples.mT + torch.bmm(
-                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                    g_samples.mT, best_u.unsqueeze(2),
                 )).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
 
@@ -327,7 +329,7 @@ class Direct_control_barr(Certificate):
                 # Controller tracking: train u1 only on support samples.
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -363,7 +365,7 @@ class Direct_control_barr(Certificate):
                                     for opt in optimizer:
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
-                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                    tl = ((u1_pred - target_u) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -412,7 +414,7 @@ class Direct_control_barr(Certificate):
                                         for opt in optimizer:
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
-                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                        tl = ((u1_pred - target_u) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -488,15 +490,16 @@ class Direct_control_barr(Certificate):
         with torch.no_grad():
             nexts_spaced = (f_samples.mT + torch.bmm(
                 g_samples.mT,
-                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                control_grid.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
             )).mT
             V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
             best_u_ind = V_next_grid.argmin(axis=1)
             best_u = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+            best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+            track_loss = ((u1 - best_u) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
@@ -714,6 +717,7 @@ class Direct_control_RWA(Certificate):
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        n_ctrl = g_samples.shape[1]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         best_supp_defd = False
@@ -741,14 +745,15 @@ class Direct_control_RWA(Certificate):
                 with torch.no_grad():
                     nexts_spaced = (f_samples.mT + torch.bmm(
                         g_samples.mT,
-                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                        control_grid.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
                     )).mT
                     V_next_grid = learners[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                     best_u_ind = V_next_grid.argmin(axis=1)
                     best_u = control_grid[best_u_ind]
+                    best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
 
                 best_nexts = (f_samples.mT + torch.bmm(
-                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                    g_samples.mT, best_u.unsqueeze(2),
                 )).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
 
@@ -757,7 +762,7 @@ class Direct_control_RWA(Certificate):
                 # Controller tracking: train u1 only on support samples.
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -797,7 +802,7 @@ class Direct_control_RWA(Certificate):
                                     for opt in optimizer:
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
-                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                    tl = ((u1_pred - target_u) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -846,7 +851,7 @@ class Direct_control_RWA(Certificate):
                                         for opt in optimizer:
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
-                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                        tl = ((u1_pred - target_u) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -924,15 +929,16 @@ class Direct_control_RWA(Certificate):
         with torch.no_grad():
             nexts_spaced = (f_samples.mT + torch.bmm(
                 g_samples.mT,
-                control_grid.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                control_grid.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
             )).mT
             V_next_grid = best_nets[0](nexts_spaced.flatten(0, 1)).reshape(g_samples.shape[0], -1)
             best_u_ind = V_next_grid.argmin(axis=1)
             best_u = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+            best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+            track_loss = ((u1 - best_u) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         req_diff_2 = (beta-V_U.min())/self.T
@@ -1155,6 +1161,7 @@ class Direct_control(Certificate):
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
+        n_ctrl = g_samples.shape[1]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
@@ -1212,7 +1219,7 @@ class Direct_control(Certificate):
                         chunk = control_grid[g_start:g_end]
                         nexts_chunk = (f_samples.mT + torch.bmm(
                             g_samples.mT,
-                            chunk.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                            chunk.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
                         )).mT  # (idot1, chunk_size, n_state)
                         V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -1220,22 +1227,23 @@ class Direct_control(Certificate):
                         best_V = torch.where(improve, chunk_min, best_V)
                         best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
                     best_u = control_grid[best_u_ind]  # (idot1,)
+                    best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
 
                 # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
                 best_nexts = (f_samples.mT + torch.bmm(
-                    g_samples.mT, best_u.unsqueeze(1).unsqueeze(2),
+                    g_samples.mT, best_u.unsqueeze(2),
                 )).mT  # (idot1, n_state, 1) — next state under the grid-argmin control
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)  # (idot1, 1, 1)
 
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts)
-                nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
+                nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.unsqueeze(2))).mT
 
                 # Controller tracking: train u1 only on support samples (the scenario-approach
                 # subset). No training when supp_samples is empty (first step).
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze()[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -1284,7 +1292,7 @@ class Direct_control(Certificate):
                                     for opt in optimizer:
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
-                                    tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                    tl = ((u1_pred - target_u) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -1337,7 +1345,7 @@ class Direct_control(Certificate):
                                         for opt in optimizer:
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
-                                        tl = ((u1_pred.squeeze() - target_u) ** 2).mean()
+                                        tl = ((u1_pred - target_u) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -1434,7 +1442,7 @@ class Direct_control(Certificate):
         req_diff = ((V_I.max()-beta)/self.T)
 
 
-        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.unsqueeze(2))).mT
         # Final re-evaluation uses the grid-min V-next (consistent with the inner loop) so the
         # returned max_loss is comparable to the inner-loop best_loss that the ScenApp gate checks.
         # Run under no_grad to avoid building a large autograd graph (same memory fix as inner loop).
@@ -1452,7 +1460,7 @@ class Direct_control(Certificate):
                 chunk = control_grid[g_start:g_end]
                 nexts_chunk = (f_samples.mT + torch.bmm(
                     g_samples.mT,
-                    chunk.unsqueeze(0).repeat(g_samples.shape[0], 1, 1),
+                    chunk.unsqueeze(0).repeat(g_samples.shape[0], n_ctrl, 1),
                 )).mT
                 V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
@@ -1460,10 +1468,11 @@ class Direct_control(Certificate):
                 best_V = torch.where(improve, chunk_min, best_V)
                 best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
             best_u = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(1).unsqueeze(2))).mT
+            best_u = best_u.unsqueeze(1).repeat(1, n_ctrl)
+            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze() - best_u) ** 2).mean()
+            track_loss = ((u1 - best_u) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)

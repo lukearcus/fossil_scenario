@@ -368,7 +368,7 @@ class SingleScenApp:
         #if state["learners"][0](new_traj_data["states"]).min() < state["learners"][0](self.S_traj["states"]).min(): 
         self.S, self.S_traj, _ = self._initialise_data(new_traj_data, self.config.DATA["states_only"]) # Needs editing
         del all_data, times, states, derivs, f_vals, g_vals, new_traj_data
-        torch.empty_cache()
+        self._release_cpu_heap()
         
         state[ScenAppStateKeys.S] = self.S["states"]
         state[ScenAppStateKeys.S_dot] = self.S["derivs"]
@@ -716,8 +716,7 @@ class SingleScenApp:
                 scenapp_log.info("Current loss: {:.10f}".format(state["loss"].item()))
             # Free intermediate tensors and release CPU allocator memory between outer iterations.
             del outputs
-            gc.collect()
-            torch.empty_cache()
+            self._release_cpu_heap()
         state = self.process_timers(state)
 
         stats = Stats(
@@ -758,6 +757,20 @@ class SingleScenApp:
                 }
 
         return state
+
+    @staticmethod
+    def _release_cpu_heap():
+        # gc.collect() reclaims Python objects; malloc_trim(0) asks glibc to
+        # return freed C heap pages to the OS. On CPU-only PyTorch there is no
+        # caching allocator (unlike torch.empty_cache() on CUDA), so this is
+        # the only way to stop RSS climbing via malloc fragmentation across
+        # iterations. No-ops on non-glibc platforms (musl, macOS).
+        gc.collect()
+        try:
+            import ctypes
+            ctypes.CDLL(None).malloc_trim(0)
+        except (AttributeError, OSError):
+            pass
 
     def process_timers(self, state: dict[str, Any]) -> dict[str, Any]:
         state[ScenAppStateKeys.components_times] = [

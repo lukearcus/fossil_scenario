@@ -284,7 +284,7 @@ class Direct_control_barr(Certificate):
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         g_samples = g_samples[:idot1]
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
-        n_ctrl = g_samples.shape[1]
+        n_ctrl = g_samples.shape[2]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         best_supp_defd = False
@@ -741,7 +741,7 @@ class Direct_control_RWA(Certificate):
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
-        n_ctrl = g_samples.shape[1]
+        n_ctrl = g_samples.shape[2]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         best_supp_defd = False
@@ -1209,7 +1209,7 @@ class Direct_control(Certificate):
         samples_dot = torch.unsqueeze(samples_dot, 1)
         f_samples = torch.unsqueeze(f_samples[:idot1], 1)
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
-        n_ctrl = g_samples.shape[1]
+        n_ctrl = g_samples.shape[2]
         supp_samples = set()
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False

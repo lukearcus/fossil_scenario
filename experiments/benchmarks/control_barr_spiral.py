@@ -48,7 +48,7 @@ def solve(system, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 1000
+    n_data = 100
     system = models.SpiralCont 
     system.time_horizon = 100
     #XD = fossil.domains.Sphere([0,0], 1)

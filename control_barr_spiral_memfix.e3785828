@@ -1,0 +1,24 @@
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:569: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:569: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:569: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:569: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py:569: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /opt/conda/conda-bld/pytorch_1704987145674/work/aten/src/ATen/native/TensorShape.cpp:3637.)
+  g = torch.unsqueeze(g.T, 2).mT
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/benchmarks/control_barr_spiral.py", line 142, in <module>
+    test_lnn()
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/benchmarks/control_barr_spiral.py", line 98, in test_lnn
+    res = pool.map(part_solve, data)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/multiprocessing/pool.py", line 367, in map
+    return self._map_async(func, iterable, mapstar, chunksize).get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/multiprocessing/pool.py", line 774, in get
+    raise self._value
+multiprocessing.pool.MaybeEncodingError: Error sending result: '[Result(res=0.4841603048727847, a_post_res=0.10874906186629504, cert=(DissV(), Controller()), stats=Stats(iters=1, N_data=100, times=[13317.990056617185, 0], seed=0))]'. Reason: 'AttributeError("Can't pickle local object 'SingleScenApp.update_controller.<locals>.control'")'

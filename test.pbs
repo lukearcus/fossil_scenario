@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=4:mem=16gb
 #PBS -l walltime=72:00:00
-#PBS -N no_cancel_no_speed_no_pretrain_with_param_dependent
+#PBS -N inv_pendulum_30
 
 module load miniforge/3
 module load Python

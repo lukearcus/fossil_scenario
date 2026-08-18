@@ -565,9 +565,6 @@ class Direct_control_barr(Certificate):
             
             V1 = torch.unsqueeze(V1, 1)
             
-            f = torch.unsqueeze(f.T, 2).mT
-            g = torch.unsqueeze(g.T, 2).mT
-            
             Sind = {"lie":[torch.arange(len(traj))]}
             
             nexts = traj_deriv
@@ -1030,9 +1027,6 @@ class Direct_control_RWA(Certificate):
             u1= nets[1](traj) 
             
             V1 = torch.unsqueeze(V1, 1)
-            
-            f = torch.unsqueeze(f.T, 2).mT
-            g = torch.unsqueeze(g.T, 2).mT
             
             Sind = {"lie":[torch.arange(len(traj))]}
             
@@ -1573,9 +1567,6 @@ class Direct_control(Certificate):
             u1= nets[1](traj) 
             
             V1 = torch.unsqueeze(V1, 1)
-            
-            f = torch.unsqueeze(f.T, 2).mT
-            g = torch.unsqueeze(g.T, 2).mT
             
             Sind = {"lie":[torch.arange(len(traj))]}
             
@@ -2828,7 +2819,7 @@ class BarrierAlt(Certificate):
 
 
 class RWS(Certificate):
-    """Certificate to satisfy a reach-while-stay property.
+    r"""Certificate to satisfy a reach-while-stay property.
 
     Reach While stay must satisfy:
     forall x in XI, V <= 0,
@@ -2839,7 +2830,7 @@ class RWS(Certificate):
     """
 
     def __init__(self, domains, config: ScenAppConfig) -> None:
-        """initialise the RWS certificate
+        r"""initialise the RWS certificate
         Domains should contain:
             XI: compact initial set
             XS: compact safe set
@@ -3219,7 +3210,7 @@ class RWS(Certificate):
 
 
 class RSWS(RWS):
-    """Reach and Stay While Stay Certificate
+    r"""Reach and Stay While Stay Certificate
 
     Firstly satisfies reach while stay conditions, given by:
         forall x in XI, V <= 0,
@@ -3243,7 +3234,7 @@ class RSWS(RWS):
     """
 
     def __init__(self, domains, config: ScenAppConfig) -> None:
-        """initialise the RSWS certificate
+        r"""initialise the RSWS certificate
         Domains should contain:
             XI: compact initial set
             XS: compact safe set

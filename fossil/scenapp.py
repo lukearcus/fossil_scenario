@@ -727,6 +727,9 @@ class SingleScenApp:
         print("Direct property guarantee time: {:.5f}s".format(perf_counter()-pre_post))
         self._result = Result(state[ScenAppStateKeys.bounds], a_post_eps, state[ScenAppStateKeys.best_net], stats)
                 #state[ScenAppStateKeys.net], state[ScenAppStateKeys.net_dot], n_test_data)
+        # Clear local controller closures so Result can be pickled across processes.
+        for sys in self.config.SYSTEM:
+            sys.controller = None
         return self._result
 
     def init_state(self, Sdot, S, S_traj, S_inds, times, f, g):

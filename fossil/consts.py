@@ -184,7 +184,7 @@ class ScenAppConfig:
     SYMMETRIC_BELT: bool = False
     SCENAPP_MAX_ITERS: int = 10
     SCENAPP_MAX_TIME_S: float = math.inf  # in sec
-    LEARN_LOOPS: int = 10000  # inner gradient steps per ScenApp outer iteration (Direct_control / Direct_control_RWA)
+    LEARN_LOOPS: int = 1000  # inner gradient steps per ScenApp outer iteration (Direct_control / Direct_control_RWA)
     CONVERGE_TOL: float = 1e-3  # relative L2 tolerance for best-net convergence between outer iters
     TIME_DOMAIN: TimeDomain = TimeDomain.CONTINUOUS
     LEARNER: LearnerType = LearnerType.CONTINUOUS
@@ -218,7 +218,7 @@ class ScenAppConfig:
     CUSTOM_CERTIFICATE: Any = None
     MARGIN: float = 1e-5
     PARALLEL: bool = True
-    N_THREADS: int = 1  # torch CPU threads; raising increases per-thread allocator arenas and memory
+    N_THREADS: int = 4  # torch CPU threads; raises utilization across cores (malloc_trim handles fragmentation)
     # Min-controller (controlled-Lyapunov) settings for Direct_control / Direct_control_RWA.
     # The certificate V-loss is evaluated at the best control from a discretised grid over
     # [u_min, u_max]; a tracking loss trains the NN controller u1 to reproduce that control.

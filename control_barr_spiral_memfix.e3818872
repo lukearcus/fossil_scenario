@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/benchmarks/control_barr_spiral.py", line 142, in <module>
+    test_lnn()
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/benchmarks/control_barr_spiral.py", line 98, in test_lnn
+    res = pool.map(part_solve, data)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/multiprocessing/pool.py", line 367, in map
+    return self._map_async(func, iterable, mapstar, chunksize).get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/multiprocessing/pool.py", line 774, in get
+    raise self._value
+multiprocessing.pool.MaybeEncodingError: Error sending result: '[Result(res=0.49541824255138633, a_post_res=0.10874906186629504, cert=(DissV(), Controller()), stats=Stats(iters=1, N_data=100, times=[23618.50635300763, 0], seed=0))]'. Reason: 'AttributeError("Can't pickle local object 'SingleScenApp.update_controller.<locals>.control'")'

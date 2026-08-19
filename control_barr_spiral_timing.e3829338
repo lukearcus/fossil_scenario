@@ -1,0 +1,362 @@
+2026-08-19 16:03:10,371 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:03:10,372 - fossil.scenapp - INFO - Controller update on
+2026-08-19 16:03:11,710 - fossil.certificate - INFO - State sol at iteration 8
+2026-08-19 16:03:12,449 - fossil.certificate - DEBUG - 1 - loss: 0.05557
+2026-08-19 16:03:12,449 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:03:12,449 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:03:54,029 - fossil.certificate - DEBUG - 100 - loss: 0.00279
+2026-08-19 16:03:54,029 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:03:54,029 - fossil.certificate - DEBUG -  - state_acc: 79.895%
+2026-08-19 16:04:12,615 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:04:30,966 - fossil.certificate - DEBUG - 200 - loss: 0.00013
+2026-08-19 16:04:30,967 - fossil.certificate - DEBUG -  - traj_acc: 30.000%
+2026-08-19 16:04:30,967 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:04:31,544 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:04:53,433 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:05:09,970 - fossil.certificate - DEBUG - 300 - loss: 0.00203
+2026-08-19 16:05:09,970 - fossil.certificate - DEBUG -  - traj_acc: 40.000%
+2026-08-19 16:05:09,970 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:05:27,053 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:05:29,456 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-08-19 16:05:29,458 - fossil.certificate - DEBUG - u1 track: 1.076223 at step 0
+2026-08-19 16:05:30,070 - fossil.certificate - DEBUG - u1 track: 0.475045 at step 500
+2026-08-19 16:05:30,362 - fossil.certificate - INFO - Track loss: 0.2081892788
+2026-08-19 16:05:30,470 - fossil.certificate - INFO - Loss is 0.0000070459
+2026-08-19 16:05:30,470 - fossil.certificate - DEBUG - 374 - loss: 0.00001
+2026-08-19 16:05:30,470 - fossil.certificate - DEBUG -  - traj_acc: 90.000%
+2026-08-19 16:05:30,473 - fossil.scenapp - INFO - Best Loss below margin
+2026-08-19 16:05:30,473 - fossil.scenapp - INFO - Previous Best loss: 0.0000070459
+2026-08-19 16:05:30,473 - fossil.scenapp - DEBUG - Param delta (rel): 1.886874e+01 / 6.415553e-03
+2026-08-19 16:05:30,473 - fossil.scenapp - INFO - Updating controller
+2026-08-19 16:05:30,646 - fossil.scenapp - INFO - update_controller generate_trajs: 0.173s (10 trajs)
+2026-08-19 16:05:30,738 - fossil.scenapp - INFO - Controller accuracy: 100.00000%
+2026-08-19 16:05:30,738 - fossil.scenapp - INFO - [[ -0.90742278   4.20310116]
+ [ -3.99274737   3.32866631]
+ [ -6.64070695   1.11574541]
+ [ -8.18169086  -1.80476801]
+ [ -8.22748932  -5.80259947]
+ [ -6.26028645  -8.72077127]
+ [ -2.82127615  -9.79054562]
+ [  2.95457046  -8.88513203]
+ [  8.32953742  -5.47305118]
+ [ 11.99762639  -0.37249592]
+ [ 13.09775148   6.24367354]
+ [ 10.88882541  11.29276254]
+ [  6.14924488  13.65830631]
+ [ -1.65695214  13.44129411]
+ [ -9.36141671   9.25956842]
+ [-14.97488498   2.47370141]
+ [-17.19491526  -5.06834327]
+ [-15.59524122 -12.69692512]
+ [-10.18109005 -17.15044048]
+ [ -2.32603196 -17.64639971]
+ [  7.41174544 -14.13370556]
+ [ 15.41137294  -6.8590079 ]
+ [ 19.77250816   2.20833803]
+ [ 19.58173687  11.90596595]
+ [ 14.54143238  18.40949415]
+ [  6.23347086  20.39911919]
+ [ -4.94870748  18.12473436]
+ [-14.99488556  10.8327333 ]
+ [-21.39476879   0.68441435]
+ [-22.69438064 -10.56664943]
+ [-18.34551424 -19.23245906]
+ [ -9.6610058  -23.03828448]
+ [  2.69983801 -21.44525527]
+ [ 14.35548314 -14.25804348]
+ [ 22.41629195  -3.42873775]
+ [ 25.04692971   9.31924699]
+ [ 21.30008769  19.36950934]
+ [ 12.52767694  24.40608183]
+ [ -0.61195512  24.01156127]
+ [-13.60155244  17.05817873]
+ [-23.11441289   5.75473888]
+ [-26.97526177  -6.87413019]
+ [-24.47266834 -18.83053935]
+ [-15.99185025 -25.81153923]
+ [ -3.94706287 -26.4900974 ]
+ [ 10.21406726 -21.04747008]
+ [ 21.67079887 -10.2257028 ]
+ [ 27.71541249   3.00693801]
+ [ 27.12533942  16.42738669]
+ [ 19.82430876  25.29289699]
+ [  8.07602383  27.76716589]
+ [ -6.790349    24.11866248]
+ [-19.8334912   14.03883876]
+ [-27.83641666   0.46906998]
+ [-29.0100217  -14.17255163]
+ [-22.85820324 -24.87303692]
+ [-11.35224275 -29.18322532]
+ [  4.10405932 -26.52267446]
+ [ 18.29843199 -17.05183832]
+ [ 27.75612117  -3.3799354 ]
+ [ 30.36043735  12.05075856]
+ [ 25.2477545   23.89979302]
+ [ 14.21009313  29.49915404]
+ [ -1.49715655  28.36338272]
+ [-16.66265976  19.6086722 ]
+ [-27.45072832   5.96473476]
+ [-31.41656531  -8.90084169]
+ [-27.90060725 -22.44661138]
+ [-17.61175338 -30.01527019]
+ [ -3.17817515 -30.23769219]
+ [ 12.86594299 -23.26167435]
+ [ 25.42973794 -10.42302211]
+ [ 31.57300888   4.75085982]
+ [ 30.1109047   19.54547548]
+ [ 21.25082786  28.93242124]
+ [  7.6792798   31.0024644 ]
+ [ -8.80533636  26.14236278]
+ [-22.86032871  14.42471302]
+ [-31.05618934  -0.77925825]
+ [-31.60178224 -16.67295666]
+ [-24.19976109 -27.89051271]
+ [-11.18360603 -31.93706143]
+ [  5.66429145 -28.33919751]
+ [ 20.7669267  -17.52244209]
+ [ 30.45991301  -2.46944749]
+ [ 32.60823499  14.03906645]
+ [ 26.50137512  26.39078858]
+ [ 14.21739534  31.84165732]
+ [ -2.67470764  29.98926643]
+ [-18.653152    20.1388359 ]
+ [-29.70621336   5.30214249]
+ [-33.34066438 -10.49706447]
+ [-29.02659172 -24.50769339]
+ [-17.70718981 -31.9974113 ]
+ [ -1.46090735 -31.6594754 ]
+ [ 15.30095067 -23.37603857]
+ [ 27.92163399  -9.27387565]
+ [ 33.49026692   6.79445186]
+ [ 31.00618141  21.88757775]
+ [ 20.97505301  30.9926356 ]]
+2026-08-19 16:05:30,740 - fossil.scenapp - INFO - Iteration: 1
+2026-08-19 16:05:30,740 - fossil.scenapp - INFO - Current loss: 0.0000070459
+2026-08-19 16:05:30,841 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:05:30,843 - fossil.scenapp - INFO - Controller update off
+2026-08-19 16:05:30,959 - fossil.certificate - INFO - State sol at iteration 1
+2026-08-19 16:05:31,173 - fossil.certificate - DEBUG - 1 - loss: 0.02586
+2026-08-19 16:05:31,173 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:05:31,173 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:05:55,737 - fossil.certificate - DEBUG - 100 - loss: 0.00236
+2026-08-19 16:05:55,737 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:05:55,738 - fossil.certificate - DEBUG -  - state_acc: 98.175%
+2026-08-19 16:06:21,165 - fossil.certificate - DEBUG - 200 - loss: 0.00168
+2026-08-19 16:06:21,165 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:06:21,165 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:06:55,219 - fossil.certificate - DEBUG - 300 - loss: 0.00266
+2026-08-19 16:06:55,220 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:06:55,220 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:07:23,896 - fossil.certificate - DEBUG - 400 - loss: 0.00316
+2026-08-19 16:07:23,896 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:07:23,896 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:07:53,173 - fossil.certificate - DEBUG - 500 - loss: 0.00158
+2026-08-19 16:07:53,173 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:07:53,173 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:08:29,312 - fossil.certificate - DEBUG - 600 - loss: 0.00179
+2026-08-19 16:08:29,312 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:08:29,312 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:08:53,239 - fossil.certificate - DEBUG - 700 - loss: 0.00118
+2026-08-19 16:08:53,240 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:08:53,240 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:09:19,677 - fossil.certificate - DEBUG - 800 - loss: 0.00081
+2026-08-19 16:09:19,677 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:09:19,677 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:09:46,414 - fossil.certificate - DEBUG - 900 - loss: 0.00047
+2026-08-19 16:09:46,414 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:09:46,414 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:10:14,537 - fossil.certificate - DEBUG - 999 - loss: 0.00112
+2026-08-19 16:10:14,537 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:10:14,537 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:10:14,710 - fossil.certificate - INFO - Track loss: 2.2710375786
+2026-08-19 16:10:14,843 - fossil.certificate - INFO - Loss is 0.0036415621
+2026-08-19 16:10:14,843 - fossil.certificate - DEBUG - 999 - loss: 0.00364
+2026-08-19 16:10:14,843 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:10:14,846 - fossil.scenapp - INFO - Best loss: 0.0002596244
+2026-08-19 16:10:14,847 - fossil.scenapp - INFO - Previous Best loss: 0.0002596244
+2026-08-19 16:10:14,847 - fossil.scenapp - DEBUG - Param delta (rel): 2.063073e+00 / 1.993185e-02
+2026-08-19 16:10:14,847 - fossil.scenapp - INFO - Convergence reached, but failed to find valid certificate, discarding samples
+2026-08-19 16:10:14,847 - fossil.scenapp - INFO - Iteration: 2
+2026-08-19 16:10:14,847 - fossil.scenapp - INFO - Current loss: 0.0036415621
+2026-08-19 16:10:15,079 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:10:15,084 - fossil.scenapp - INFO - Controller update off
+2026-08-19 16:10:15,258 - fossil.certificate - INFO - State sol at iteration 1
+2026-08-19 16:10:15,745 - fossil.certificate - DEBUG - 1 - loss: 0.00364
+2026-08-19 16:10:15,746 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:10:15,746 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:10:49,870 - fossil.certificate - DEBUG - 100 - loss: 0.00085
+2026-08-19 16:10:49,871 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:10:49,871 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:11:34,464 - fossil.certificate - DEBUG - 200 - loss: 0.00022
+2026-08-19 16:11:34,464 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:11:34,464 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:12:16,135 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:12:18,982 - fossil.certificate - DEBUG - 300 - loss: 0.00675
+2026-08-19 16:12:18,982 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:12:18,982 - fossil.certificate - DEBUG -  - state_acc: 50.000%
+2026-08-19 16:13:01,247 - fossil.certificate - DEBUG - 400 - loss: 0.00067
+2026-08-19 16:13:01,247 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:13:01,247 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:13:31,386 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:13:40,312 - fossil.certificate - DEBUG - 500 - loss: 0.00169
+2026-08-19 16:13:40,312 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:13:40,312 - fossil.certificate - DEBUG -  - state_acc: 99.180%
+2026-08-19 16:14:17,260 - fossil.certificate - DEBUG - 600 - loss: 0.00124
+2026-08-19 16:14:17,261 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:14:17,261 - fossil.certificate - DEBUG -  - state_acc: 99.570%
+2026-08-19 16:15:02,990 - fossil.certificate - DEBUG - 700 - loss: 0.00012
+2026-08-19 16:15:02,991 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:15:02,991 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:15:43,089 - fossil.certificate - DEBUG - 800 - loss: 0.00011
+2026-08-19 16:15:43,089 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:15:43,089 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:15:44,737 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:16:16,565 - fossil.certificate - DEBUG - 900 - loss: 0.00546
+2026-08-19 16:16:16,566 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:16:16,566 - fossil.certificate - DEBUG -  - state_acc: 50.000%
+2026-08-19 16:16:52,770 - fossil.certificate - DEBUG - 999 - loss: 0.00044
+2026-08-19 16:16:52,770 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:16:52,770 - fossil.certificate - DEBUG -  - state_acc: 99.665%
+2026-08-19 16:16:53,078 - fossil.certificate - INFO - Track loss: 4.8514242172
+2026-08-19 16:16:53,245 - fossil.certificate - INFO - Loss is 0.0031265297
+2026-08-19 16:16:53,245 - fossil.certificate - DEBUG - 999 - loss: 0.00313
+2026-08-19 16:16:53,245 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:16:53,251 - fossil.scenapp - INFO - Best loss: 0.0003255771
+2026-08-19 16:16:53,252 - fossil.scenapp - INFO - Previous Best loss: 0.0003255771
+2026-08-19 16:16:53,252 - fossil.scenapp - DEBUG - Param delta (rel): 2.206743e+00 / 2.005420e-02
+2026-08-19 16:16:53,252 - fossil.scenapp - INFO - Convergence reached, but failed to find valid certificate, discarding samples
+2026-08-19 16:16:53,252 - fossil.scenapp - INFO - Iteration: 3
+2026-08-19 16:16:53,253 - fossil.scenapp - INFO - Current loss: 0.0031265297
+2026-08-19 16:16:53,590 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:16:53,594 - fossil.scenapp - INFO - Controller update off
+2026-08-19 16:16:53,783 - fossil.certificate - INFO - State sol at iteration 1
+2026-08-19 16:16:54,256 - fossil.certificate - DEBUG - 1 - loss: 0.00313
+2026-08-19 16:16:54,256 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:16:54,257 - fossil.certificate - DEBUG -  - state_acc: 98.975%
+2026-08-19 16:17:23,476 - fossil.certificate - DEBUG - 100 - loss: 0.00048
+2026-08-19 16:17:23,476 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:17:23,476 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:17:46,914 - fossil.certificate - DEBUG - 200 - loss: 0.00058
+2026-08-19 16:17:46,914 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:17:46,914 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:17:48,523 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:18:10,360 - fossil.certificate - DEBUG - 300 - loss: 0.00047
+2026-08-19 16:18:10,360 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:18:10,360 - fossil.certificate - DEBUG -  - state_acc: 99.435%
+2026-08-19 16:18:39,497 - fossil.certificate - DEBUG - 400 - loss: 0.00017
+2026-08-19 16:18:39,497 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:18:39,497 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:19:15,953 - fossil.certificate - DEBUG - 500 - loss: 0.00026
+2026-08-19 16:19:15,953 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:19:15,953 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:19:47,503 - fossil.certificate - DEBUG - 600 - loss: 0.00018
+2026-08-19 16:19:47,503 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:19:47,504 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:20:34,048 - fossil.certificate - DEBUG - 700 - loss: 0.00018
+2026-08-19 16:20:34,048 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:20:34,048 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:20:57,530 - fossil.certificate - DEBUG - 800 - loss: 0.00006
+2026-08-19 16:20:57,530 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:20:57,530 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:21:00,605 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:21:23,571 - fossil.certificate - DEBUG - 900 - loss: 0.00271
+2026-08-19 16:21:23,572 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:21:23,572 - fossil.certificate - DEBUG -  - state_acc: 50.000%
+2026-08-19 16:21:50,458 - fossil.certificate - DEBUG - 999 - loss: 0.00032
+2026-08-19 16:21:50,459 - fossil.certificate - DEBUG -  - traj_acc: 30.000%
+2026-08-19 16:21:50,459 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:21:50,597 - fossil.certificate - INFO - Track loss: 4.8239641190
+2026-08-19 16:21:50,723 - fossil.certificate - INFO - Loss is 0.0007824302
+2026-08-19 16:21:50,723 - fossil.certificate - DEBUG - 999 - loss: 0.00078
+2026-08-19 16:21:50,723 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:21:50,726 - fossil.scenapp - INFO - Best loss: 0.0002099425
+2026-08-19 16:21:50,726 - fossil.scenapp - INFO - Previous Best loss: 0.0002099425
+2026-08-19 16:21:50,726 - fossil.scenapp - DEBUG - Param delta (rel): 2.249006e+00 / 2.020107e-02
+2026-08-19 16:21:50,726 - fossil.scenapp - INFO - Convergence reached, but failed to find valid certificate, discarding samples
+2026-08-19 16:21:50,727 - fossil.scenapp - INFO - Iteration: 4
+2026-08-19 16:21:50,727 - fossil.scenapp - INFO - Current loss: 0.0007824302
+2026-08-19 16:21:50,860 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:21:50,862 - fossil.scenapp - INFO - Controller update off
+2026-08-19 16:21:50,999 - fossil.certificate - INFO - State sol at iteration 1
+2026-08-19 16:21:51,259 - fossil.certificate - DEBUG - 1 - loss: 0.00078
+2026-08-19 16:21:51,259 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:21:51,259 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:22:06,131 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:22:19,512 - fossil.certificate - DEBUG - 100 - loss: 0.00012
+2026-08-19 16:22:19,512 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:22:19,512 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:22:52,727 - fossil.certificate - DEBUG - 200 - loss: 0.00005
+2026-08-19 16:22:52,728 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:22:52,728 - fossil.certificate - DEBUG -  - state_acc: 91.760%
+2026-08-19 16:23:35,205 - fossil.certificate - DEBUG - 300 - loss: 0.00071
+2026-08-19 16:23:35,205 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:23:35,205 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:24:21,266 - fossil.certificate - DEBUG - 400 - loss: 0.00010
+2026-08-19 16:24:21,266 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:24:21,266 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:25:05,207 - fossil.certificate - DEBUG - 500 - loss: 0.00007
+2026-08-19 16:25:05,208 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:25:05,208 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:25:41,700 - fossil.certificate - DEBUG - 600 - loss: 0.00002
+2026-08-19 16:25:41,700 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:25:41,700 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:25:42,350 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:26:24,735 - fossil.certificate - DEBUG - 700 - loss: 0.00004
+2026-08-19 16:26:24,735 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:26:24,735 - fossil.certificate - DEBUG -  - state_acc: 97.900%
+2026-08-19 16:27:22,387 - fossil.certificate - DEBUG - 800 - loss: 0.00051
+2026-08-19 16:27:22,388 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:27:22,388 - fossil.certificate - DEBUG -  - state_acc: 95.790%
+2026-08-19 16:27:56,842 - fossil.certificate - DEBUG - 900 - loss: 0.00034
+2026-08-19 16:27:56,843 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:27:56,843 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:28:24,825 - fossil.certificate - DEBUG - 999 - loss: 0.00017
+2026-08-19 16:28:24,825 - fossil.certificate - DEBUG -  - traj_acc: 30.000%
+2026-08-19 16:28:24,826 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:28:24,939 - fossil.certificate - INFO - Track loss: 5.3716897964
+2026-08-19 16:28:25,048 - fossil.certificate - INFO - Loss is 0.0004093740
+2026-08-19 16:28:25,048 - fossil.certificate - DEBUG - 999 - loss: 0.00041
+2026-08-19 16:28:25,048 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:28:25,051 - fossil.scenapp - INFO - Best loss: 0.0000137491
+2026-08-19 16:28:25,051 - fossil.scenapp - INFO - Previous Best loss: 0.0000137491
+2026-08-19 16:28:25,051 - fossil.scenapp - DEBUG - Param delta (rel): 1.290758e+00 / 2.051059e-02
+2026-08-19 16:28:25,052 - fossil.scenapp - INFO - Convergence reached, but failed to find valid certificate, discarding samples
+2026-08-19 16:28:25,052 - fossil.scenapp - INFO - Iteration: 5
+2026-08-19 16:28:25,052 - fossil.scenapp - INFO - Current loss: 0.0004093740
+2026-08-19 16:28:25,151 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-08-19 16:28:25,153 - fossil.scenapp - INFO - Controller update off
+2026-08-19 16:28:25,270 - fossil.certificate - INFO - State sol at iteration 1
+2026-08-19 16:28:25,484 - fossil.certificate - DEBUG - 1 - loss: 0.00041
+2026-08-19 16:28:25,484 - fossil.certificate - DEBUG -  - traj_acc: 20.000%
+2026-08-19 16:28:25,484 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:28:39,903 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:29:00,546 - fossil.certificate - DEBUG - 100 - loss: 0.00016
+2026-08-19 16:29:00,546 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-08-19 16:29:00,546 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:29:05,972 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:29:26,498 - fossil.certificate - DEBUG - 200 - loss: 0.00012
+2026-08-19 16:29:26,499 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:29:26,499 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:29:28,067 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:29:36,914 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-08-19 16:29:49,792 - fossil.certificate - DEBUG - 300 - loss: 0.00012
+2026-08-19 16:29:49,793 - fossil.certificate - DEBUG -  - traj_acc: 60.000%
+2026-08-19 16:29:49,793 - fossil.certificate - DEBUG -  - state_acc: 98.830%
+2026-08-19 16:30:12,649 - fossil.certificate - DEBUG - 400 - loss: 0.00003
+2026-08-19 16:30:12,649 - fossil.certificate - DEBUG -  - traj_acc: 40.000%
+2026-08-19 16:30:12,649 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:30:36,901 - fossil.certificate - DEBUG - 500 - loss: 0.00034
+2026-08-19 16:30:36,901 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-08-19 16:30:36,901 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-08-19 16:31:02,959 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-08-19 16:31:03,102 - fossil.certificate - INFO - Track loss: 7.4157738686
+2026-08-19 16:31:03,237 - fossil.certificate - INFO - Loss is 0.0000087246
+2026-08-19 16:31:03,237 - fossil.certificate - DEBUG - 600 - loss: 0.00001
+2026-08-19 16:31:03,237 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-08-19 16:31:03,240 - fossil.scenapp - INFO - Best Loss below margin
+2026-08-19 16:31:03,241 - fossil.scenapp - INFO - Previous Best loss: 0.0000087246
+2026-08-19 16:31:03,241 - fossil.scenapp - DEBUG - Param delta (rel): 1.743458e+00 / 2.063403e-02
+2026-08-19 16:31:03,241 - fossil.scenapp - DEBUG - [1m Verifier [0m
+2026-08-19 16:31:03,241 - fossil.scenapp - INFO - Current loss: 0.0000087246
+2026-08-19 16:31:03,404 - fossil.scenapp - INFO - Verifier times: total=0s,min=9223372036854775808s,max=0s,avg=0s, N=0
+2026-08-19 16:31:09,009 - fossil.scenapp - INFO - a_post_verify generate_trajs: 0.168s (10 trajs)

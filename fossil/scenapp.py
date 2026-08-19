@@ -292,7 +292,10 @@ class SingleScenApp:
         for sys in new_systems:
             sys.__init__()
             sys.controller = control
+        _t_gen = perf_counter()
         all_test_data = [sys.generate_trajs(np.expand_dims(test_datum,0)) for sys, test_datum in zip(new_systems, test_data)]
+        scenapp_log.info("a_post_verify generate_trajs: {:.3f}s ({} trajs)".format(
+            perf_counter() - _t_gen, len(test_data)))
         
         #all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]
     
@@ -355,7 +358,10 @@ class SingleScenApp:
                 sys.controller = control
         else:
             return state
+        _t_gen = perf_counter()
         all_data = [system.generate_trajs(np.expand_dims(init_datum,0)) for system, init_datum in zip(self.config.SYSTEM, self.init_S)]
+        scenapp_log.info("update_controller generate_trajs: {:.3f}s ({} trajs)".format(
+            perf_counter() - _t_gen, len(self.init_S)))
     
         times =  [datum[0][0] for datum in all_data]
         states = [datum[1][0] for datum in all_data]

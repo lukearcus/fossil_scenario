@@ -608,7 +608,17 @@ class SingleScenApp:
             else:
                 converged = False
 
-            if converged:
+            # Only freeze the controller once the V-certificate actually holds on the
+            # support subset (best_loss <= margin). For DIRECTCONTROL, the V-space
+            # convergence gate above can fire before the certificate is satisfied
+            # (V dips below beta somewhere != Lyapunov decrease on all supports),
+            # which would freeze u1 prematurely and stall CEGIS. BARR/RWA keep
+            # the old behaviour (their V-space gates ARE the certificate condition).
+            freeze = converged and (
+                self.config.CERTIFICATE != certificate.CertificateType.DIRECTCONTROL
+                or state["best_loss"] <= margin
+            )
+            if freeze:
                 for param in self.learner[1].parameters():
                     param.requires_grad=False
                 scenapp_log.info("Controller update off")

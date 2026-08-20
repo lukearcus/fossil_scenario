@@ -1,0 +1,2 @@
+/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/benchmarks/control_barr_spiral.py:101: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  x = torch.tensor(x,dtype=torch.float32)

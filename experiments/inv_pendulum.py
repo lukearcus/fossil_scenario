@@ -43,6 +43,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         MARGIN=1e-2,
         PARALLEL=True,
         LEARN_LOOPS=10000,
+        N_THREADS=1,
     )
     PAC = ScenApp(opts)
     result = PAC.solve()

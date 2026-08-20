@@ -41,7 +41,8 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
         MARGIN=1e-2,
-        PARALLEL=True
+        PARALLEL=True,
+        LEARN_LOOPS=10000,
     )
     PAC = ScenApp(opts)
     result = PAC.solve()
@@ -50,7 +51,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 def test_lnn():
     n_data = 1
-    system = models.InvPendulum 
+    system = models.InvPendulum
     
     def random_control(obj, t, x):
         return .1*(np.random.random()-.5)*(system.u_max-system.u_min)+(system.u_min+system.u_max)/2

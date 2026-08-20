@@ -570,55 +570,28 @@ class SingleScenApp:
             #        param.requires_grad=False
             #    for param in self.learner[0].parameters():
             #        param.requires_grad=True
-            # Convergence gate: check whether the learned controller's trajectories satisfy
-            # the certificate's property in V-space (not geometric containment). This is
-            # consistent with what the certificate trains V for, and avoids KeyError on
-            # certificates that don't have all domain sets (e.g. BARR has no XG).
-            # iters > 0 only: iteration 0 uses reference-controller trajectories.
+            # Convergence gate: check whether the learned controller's trajectories
+            # geometrically reach the goal (and avoid unsafe set). iters > 0 only:
+            # iteration 0 uses reference-controller trajectories.
             if iters > 0:
                 trajs = self.S_traj["states"]
-                V_net = self.learner[0]
-                with torch.no_grad():
-                    if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
-                        # beta = V(XG_BORDER).min() — the certificate's goal sublevel threshold
-                        # (compute_loss uses V_next < beta as the "reached goal" trigger).
-                        # Converged = every traj has at least one point with V <= beta.
-                        beta = V_net(self.S["states"]["goal_border"]).min()
-                        converged = all(
-                            (V_net(torch.tensor(t.T).float()) <= beta).any() for t in trajs
-                        )
-                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
-                        # V <= 0 safe, V > 0 unsafe (per compute_state_loss: V_U > 0, V_I < 0).
-                        # No goal, no beta. Converged = every traj stays in {V <= 0}.
-                        converged = all(
-                            (V_net(torch.tensor(t.T).float()) <= 0).all() for t in trajs
-                        )
-                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
-                        # beta = V(XG_BORDER).min() — goal sublevel threshold.
-                        # V > 0 = unsafe barrier. Converged = reached {V <= beta} AND avoided {V > 0}.
-                        beta = V_net(self.S["states"]["goal_border"]).min()
-                        converged = all(
-                            (lambda v: (v <= beta).any() and (v <= 0).all())(
-                                V_net(torch.tensor(t.T).float())
-                            )
-                            for t in trajs
-                        )
-                    else:
-                        converged = False
+                if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+                    xg = self.config.DOMAINS[DomainNames.XG.value]
+                    converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
+                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+                    xu = self.config.DOMAINS[DomainNames.XU.value]
+                    converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+                    xg = self.config.DOMAINS[DomainNames.XG.value]
+                    xu = self.config.DOMAINS[DomainNames.XU.value]
+                    converged = all(any(xg.check_containment(torch.tensor(t.T)))
+                                    and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                else:
+                    converged = False
             else:
                 converged = False
 
-            # Only freeze the controller once the V-certificate actually holds on the
-            # support subset (best_loss <= margin). For DIRECTCONTROL, the V-space
-            # convergence gate above can fire before the certificate is satisfied
-            # (V dips below beta somewhere != Lyapunov decrease on all supports),
-            # which would freeze u1 prematurely and stall CEGIS. BARR/RWA keep
-            # the old behaviour (their V-space gates ARE the certificate condition).
-            freeze = converged and (
-                self.config.CERTIFICATE != certificate.CertificateType.DIRECTCONTROL
-                or state["best_loss"] <= margin
-            )
-            if freeze:
+            if converged:
                 for param in self.learner[1].parameters():
                     param.requires_grad=False
                 scenapp_log.info("Controller update off")

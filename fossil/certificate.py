@@ -15,6 +15,7 @@ from typing import Generator, Type, Any
 
 import torch
 import copy
+import gc
 import numpy as np
 from torch.optim import Optimizer
 
@@ -1217,7 +1218,17 @@ class Direct_control(Certificate):
         # Precompute the control grid once (reused every inner step, not reallocated).
         _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)
+        _inner_trim_every = 100
         for t in range(learn_loops):
+            # Periodic allocator trim inside the hot inner loop. Each step allocates/frees
+            # large grid-chunk tensors; without this the CPU caching allocator retains
+            # fragmented blocks across the 10k-step inner loop. gc.collect + empty_cache
+            # (no malloc_trim: the syscall is too costly every 100 steps). torch.empty_cache
+            # only exists on CUDA builds, so guard it.
+            if t and t % _inner_trim_every == 0:
+                gc.collect()
+                if hasattr(torch, "empty_cache"):
+                    torch.empty_cache()
             if state_sol:
                 for opt in optimizer:
                     opt.zero_grad()

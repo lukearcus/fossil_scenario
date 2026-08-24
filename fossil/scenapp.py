@@ -1,9 +1,11 @@
 #test
 from typing import NamedTuple, Union
+import os
+import signal
 
 import fossil.learner as learner
 import fossil.verifier as verifier
-from fossil.consts import * 
+from fossil.consts import *
 import fossil.consolidator as consolidator
 import fossil.logger as logger
 import fossil.certificate as certificate
@@ -14,6 +16,7 @@ from time import perf_counter, clock_gettime
 import torch
 import copy
 import gc
+import numpy as np
 import sympy as sp
 from scipy import stats
 
@@ -49,6 +52,12 @@ class SingleScenApp:
         #self._pretrain_controller()
         if self.config.VERBOSE:
             logger.Logger.set_logger_level(self.config.VERBOSE)
+        # Checkpointing state. The signal handler is cooperative: it only sets a flag
+        # that solve() polls at the top of each outer iteration, so the (async-signal-
+        # unsafe) torch.save never runs inside the handler itself.
+        self._signal_save = False
+        self._ckpt_path = self._resolve_ckpt_path()
+        self._prev_sig_handlers = None
     
     def _pretrain_controller(self):
         num_pretrain_loops = 10000
@@ -539,12 +548,38 @@ class SingleScenApp:
         reverted=False
         # NOTE: do NOT call update_controller here — it would replace the initial (reference)
         # trajectories with random-controller trajectories before the CEGIS loop starts.
+        # Resume: load a prior checkpoint (if any) before entering the loop. A resumed run
+        # gets a FRESH time budget (start_time = now), so total compute across PBS jobs can
+        # exceed SCENAPP_MAX_TIME_S — this is what lets the search outlive a single 72h job.
+        resumed_ckpt = self._load_checkpoint()
+        if resumed_ckpt is not None:
+            state = self._apply_resume(state, resumed_ckpt)
+            iters = resumed_ckpt["iters"]
+            old_loss = resumed_ckpt["old_loss"]
+            old_best = resumed_ckpt["old_best"]
+            param_vec = resumed_ckpt["param_vec"]
+            old_nets = copy.deepcopy(state["best_net"])
         start_time = perf_counter()
+        self._install_signal_handlers()
         #for param in self.learner[1].parameters():
         #    param.requires_grad=False
         while not stop:
+            if self._signal_save:
+                scenapp_log.warning("Checkpointing on signal then exiting")
+                self._save_checkpoint(
+                    self._build_checkpoint(state, iters, old_loss, old_best, param_vec,
+                                            perf_counter() - start_time),
+                    tag="signal")
+                stop = True
+                state[ScenAppStateKeys.bounds] = None
+                break
             if perf_counter() - start_time > self.config.SCENAPP_MAX_TIME_S:
                 scenapp_log.warning("Out of time (SCENAPP_MAX_TIME_S={})".format(self.config.SCENAPP_MAX_TIME_S))
+                # Checkpoint before exiting so a fresh PBS job can resume past the time limit.
+                self._save_checkpoint(
+                    self._build_checkpoint(state, iters, old_loss, old_best, param_vec,
+                                            perf_counter() - start_time),
+                    tag="time")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
                 break
@@ -718,6 +753,17 @@ class SingleScenApp:
             # Free intermediate tensors and release CPU allocator memory between outer iterations.
             del outputs
             self._release_cpu_heap()
+            # Periodic checkpoint. Cheap relative to the ~minutes-long outer iteration, and
+            # gives a recent recovery point if PBS kills the job between time-limit checkpoints.
+            if (self._ckpt_path is not None
+                    and self.config.CHECKPOINT_EVERY > 0
+                    and iters > 0
+                    and iters % self.config.CHECKPOINT_EVERY == 0):
+                self._save_checkpoint(
+                    self._build_checkpoint(state, iters, old_loss, old_best, param_vec,
+                                            perf_counter() - start_time),
+                    tag="periodic")
+        self._restore_signal_handlers()
         state = self.process_timers(state)
 
         stats = Stats(
@@ -770,17 +816,149 @@ class SingleScenApp:
 
     @staticmethod
     def _release_cpu_heap():
-        # gc.collect() reclaims Python objects; malloc_trim(0) asks glibc to
-        # return freed C heap pages to the OS. On CPU-only PyTorch there is no
-        # caching allocator (unlike torch.empty_cache() on CUDA), so this is
-        # the only way to stop RSS climbing via malloc fragmentation across
-        # iterations. No-ops on non-glibc platforms (musl, macOS).
+        # gc.collect() reclaims Python objects; torch.empty_cache() releases cached
+        # allocator blocks back to the (CPU) caching allocator, and malloc_trim(0)
+        # asks glibc to return freed C heap pages to the OS. torch.empty_cache only
+        # exists on CUDA-enabled builds (CPU-only torch omits it), so guard the call.
+        # malloc_trim is a no-op on non-glibc platforms (musl, macOS).
         gc.collect()
+        if hasattr(torch, "empty_cache"):
+            torch.empty_cache()
         try:
             import ctypes
             ctypes.CDLL(None).malloc_trim(0)
         except (AttributeError, OSError):
             pass
+
+    # ------------------------------------------------------------------
+    # Checkpoint / resume
+    # ------------------------------------------------------------------
+    def _resolve_ckpt_path(self):
+        """Return the checkpoint file path, or None if checkpointing is disabled."""
+        d = self.config.CHECKPOINT_DIR
+        if not d:
+            return None
+        name = self.config.CHECKPOINT_NAME
+        if not name:
+            sys = self.config.SYSTEM
+            cls = sys if isinstance(sys, type) else (sys[0] if isinstance(sys, list) else sys)
+            try:
+                base = type(cls).__name__
+            except Exception:
+                base = "scenapp"
+            name = "{}_{}".format(base, self.config.CERTIFICATE.name)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, "{}_latest.pt".format(name))
+
+    def _build_checkpoint(self, state, iters, old_loss, old_best, param_vec, elapsed):
+        """Collect the resumable state into a plain (picklable) dict.
+
+        Saves live learner + optimizer state (training continues smoothly), the
+        best-net snapshot, the support/discard sets, the current trajectory dataset
+        (self.S / self.S_traj / self.init_S), and RNG states. self.S etc. are saved
+        directly so resume is deterministic and does not re-run generate_trajs.
+        """
+        return {
+            "iters": iters,
+            "old_loss": float(old_loss) if hasattr(old_loss, "item") else float(old_loss),
+            "old_best": float(old_best) if hasattr(old_best, "item") else float(old_best),
+            "best_loss": float(state["best_loss"]) if hasattr(state["best_loss"], "item") else float(state["best_loss"]),
+            "param_vec": param_vec.detach().cpu().clone() if torch.is_tensor(param_vec) else param_vec,
+            "supps": state["supps"],
+            "discarded": state["discarded"],
+            "elapsed": elapsed,
+            "learner_states": [l.state_dict() for l in self.learner],
+            "optimizer_states": [o.state_dict() for o in self.optimizer],
+            "best_net_states": [n.state_dict() for n in state["best_net"]],
+            # self.S is a dict of dicts of tensors; self.S_traj is the raw traj_data
+            # dict (lists of numpy arrays). Both are picklable by torch.save.
+            "S": self.S,
+            "S_traj": self.S_traj,
+            "init_S": self.init_S,
+            "torch_rng": torch.get_rng_state(),
+            "np_rng": np.random.get_state(),
+            "config_fields": {
+                "CERTIFICATE": getattr(self.config.CERTIFICATE, "name", str(self.config.CERTIFICATE)),
+                "N_VARS": self.config.N_VARS,
+            },
+        }
+
+    def _save_checkpoint(self, ckpt, tag=""):
+        """Atomically write a checkpoint to self._ckpt_path (temp file + os.replace)."""
+        if not self._ckpt_path:
+            return
+        try:
+            tmp = self._ckpt_path + ".tmp"
+            torch.save(ckpt, tmp)
+            os.replace(tmp, self._ckpt_path)
+            scenapp_log.info("Checkpoint saved{}: {} (iter {})".format(
+                " [{}]".format(tag) if tag else "", self._ckpt_path, ckpt["iters"]))
+        except Exception as e:
+            scenapp_log.warning("Checkpoint save failed: {}".format(e))
+
+    def _load_checkpoint(self):
+        if not self.config.RESUME_PATH:
+            return None
+        if not os.path.exists(self.config.RESUME_PATH):
+            raise FileNotFoundError("RESUME_PATH not found: {}".format(self.config.RESUME_PATH))
+        ckpt = torch.load(self.config.RESUME_PATH, map_location="cpu", weights_only=False)
+        scenapp_log.info("Resumed from {} (iter {}, best_loss={:.10f}, elapsed={:.1f}s)".format(
+            self.config.RESUME_PATH, ckpt["iters"], ckpt["best_loss"], ckpt["elapsed"]))
+        return ckpt
+
+    def _apply_resume(self, state, ckpt):
+        """Restore learner/optimizer/best-net/data/RNG/state into a resumed run."""
+        # Live training nets + optimizer moments.
+        for l, sd in zip(self.learner, ckpt["learner_states"]):
+            l.load_state_dict(sd)
+        for o, sd in zip(self.optimizer, ckpt["optimizer_states"]):
+            o.load_state_dict(sd)
+        # best_net is a separate deepcopy of the learner with the best snapshot loaded.
+        best_nets = copy.deepcopy(self.learner)
+        for n, sd in zip(best_nets, ckpt["best_net_states"]):
+            n.load_state_dict(sd)
+        state["best_net"] = best_nets
+        # Scenario-approach bookkeeping.
+        state["supps"] = ckpt["supps"]
+        state["discarded"] = ckpt["discarded"]
+        state["best_loss"] = ckpt["best_loss"]
+        # Trajectory dataset: restore self.S / self.S_traj / self.init_S, then re-derive
+        # the state dict's S/Sdot/S_inds/times/f/g views exactly as solve() does at entry.
+        self.S = ckpt["S"]
+        self.S_traj = ckpt["S_traj"]
+        self.init_S = ckpt["init_S"]
+        state[ScenAppStateKeys.S] = self.S["states"]
+        state[ScenAppStateKeys.S_dot] = self.S["derivs"]
+        state[ScenAppStateKeys.S_traj] = self.S_traj["states"]
+        state[ScenAppStateKeys.S_traj_dot] = self.S_traj["derivs"]
+        state[ScenAppStateKeys.S_inds] = self.S["indices"]
+        state[ScenAppStateKeys.times] = self.S["times"]
+        state[ScenAppStateKeys.f] = self.S["f"]
+        state[ScenAppStateKeys.g] = self.S["g"]
+        # RNG — so the resumed run continues the same stochastic stream.
+        torch.set_rng_state(ckpt["torch_rng"])
+        np.random.set_state(ckpt["np_rng"])
+        return state
+
+    def _install_signal_handlers(self):
+        """Install cooperative SIGTERM/SIGINT handlers that request a checkpoint."""
+        if self._ckpt_path is None:
+            return
+        def handler(signum, frame):
+            scenapp_log.warning("Signal {} received: will checkpoint at next outer iteration".format(signum))
+            self._signal_save = True
+        self._prev_sig_handlers = (
+            signal.signal(signal.SIGTERM, handler),
+            signal.signal(signal.SIGINT, handler),
+        )
+
+    def _restore_signal_handlers(self):
+        if self._prev_sig_handlers is None:
+            return
+        sigterm_prev, sigint_prev = self._prev_sig_handlers
+        signal.signal(signal.SIGTERM, sigterm_prev)
+        signal.signal(signal.SIGINT, sigint_prev)
+        self._prev_sig_handlers = None
 
     def process_timers(self, state: dict[str, Any]) -> dict[str, Any]:
         state[ScenAppStateKeys.components_times] = [

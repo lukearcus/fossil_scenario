@@ -227,6 +227,13 @@ class ScenAppConfig:
     TRACK_WEIGHT: float = 1.0  # weight of the u1-tracking loss
     TRACK_TOL: float = 1e-3  # tolerance: u1 is penalised only when worse than grid-min by > TRACK_TOL
 
+    # Checkpointing / resume. Defaults preserve existing behaviour (no checkpointing).
+    # Set RESUME_PATH to continue from a prior checkpoint; set CHECKPOINT_DIR/NAME to write one.
+    CHECKPOINT_DIR: str = None  # directory to write checkpoints into (None => no periodic save)
+    CHECKPOINT_NAME: str = None  # base name; defaults to a slug of SYSTEM/CERTIFICATE
+    CHECKPOINT_EVERY: int = 50  # write a checkpoint every N outer iterations
+    RESUME_PATH: str = None  # path to a checkpoint file to resume from
+
     def __getitem__(self, item):
         return getattr(self, item)
 

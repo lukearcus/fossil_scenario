@@ -7,6 +7,7 @@
 # pylint: disable=not-callable
 
 # from experiments.benchmarks import models
+import os
 import fossil
 from fossil import plotting
 from fossil import domains
@@ -19,6 +20,21 @@ from functools import partial
 from multiprocessing import Pool
 import torch
 torch.manual_seed(0)
+
+def _checkpoint_opts():
+    """Read checkpoint env-vars so the PBS resume job doesn't need code edits.
+
+    FOSSIL_CHECKPOINT_DIR  directory to write checkpoints into (enables saving)
+    FOSSIL_CHECKPOINT_NAME base name for the checkpoint file
+    FOSSIL_CHECKPOINT_EVERY outer iterations between periodic checkpoints
+    FOSSIL_RESUME          path to a checkpoint to resume from
+    """
+    return {
+        "CHECKPOINT_DIR": os.environ.get("FOSSIL_CHECKPOINT_DIR"),
+        "CHECKPOINT_NAME": os.environ.get("FOSSIL_CHECKPOINT_NAME"),
+        "CHECKPOINT_EVERY": int(os.environ["FOSSIL_CHECKPOINT_EVERY"]) if os.environ.get("FOSSIL_CHECKPOINT_EVERY") else 50,
+        "RESUME_PATH": os.environ.get("FOSSIL_RESUME"),
+    }
 
 def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
@@ -44,6 +60,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         PARALLEL=True,
         LEARN_LOOPS=10000,
         N_THREADS=1,
+        **_checkpoint_opts(),
     )
     PAC = ScenApp(opts)
     result = PAC.solve()

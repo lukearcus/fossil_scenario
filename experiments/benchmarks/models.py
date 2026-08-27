@@ -112,6 +112,7 @@ class InvPendulum(control.DissDynamicalModel):
         u = self.controller(t, x)
         if type(u) is not float:
             u = u.squeeze()
+        u = np.clip(u, self.u_min, self.u_max)
         if len(x.shape) == 1:
             th, th_dot = x[0], x[1]
         else:

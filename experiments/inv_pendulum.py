@@ -56,10 +56,11 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         SCENAPP_MAX_TIME_S=60*60*60,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
-        MARGIN=1e-2,
+        MARGIN=5e-2,
         PARALLEL=True,
         LEARN_LOOPS=10000,
         N_THREADS=1,
+        TRACK_WEIGHT=5.0,
         **_checkpoint_opts(),
     )
     PAC = ScenApp(opts)
@@ -128,7 +129,7 @@ def test_lnn():
                 
             }
 
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID]}
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.TANH, fossil.ActivationType.TANH, fossil.ActivationType.TANH]}
     
     n_hidden_neurons = {"V":[50,50,50], "u":[50,50,50]}
     

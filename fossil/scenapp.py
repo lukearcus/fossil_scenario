@@ -404,7 +404,7 @@ class SingleScenApp:
         scenapp_log.info("Controller accuracy: {:.5f}%".format(acc))
         scenapp_log.info(self.S_traj["states"][-1].T)
         
-        print(self.S_traj["states"][-1].T)
+        #print(self.S_traj["states"][-1].T)
         #if acc > 99:
         #    import pdb; pdb.set_trace()
         return state

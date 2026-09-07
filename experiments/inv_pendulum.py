@@ -59,8 +59,9 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         MARGIN=5e-2,
         PARALLEL=True,
         LEARN_LOOPS=10000,
-        N_THREADS=1,
+        N_THREADS=4,
         TRACK_WEIGHT=5.0,
+        CONTROL_GRID_STEP=0.05,
         **_checkpoint_opts(),
     )
     PAC = ScenApp(opts)
@@ -129,9 +130,9 @@ def test_lnn():
                 
             }
 
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.TANH, fossil.ActivationType.TANH, fossil.ActivationType.TANH]}
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.TANH, fossil.ActivationType.TANH]}
     
-    n_hidden_neurons = {"V":[50,50,50], "u":[50,50,50]}
+    n_hidden_neurons = {"V":[50,50,50], "u":[100,100]}
     
     num_traj_plots = 5
     init_data = XI._generate_data(num_traj_plots)()

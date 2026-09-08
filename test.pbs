@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=4:mem=128gb
-#PBS -l walltime=72:00:00
-#PBS -N new_inv_pendulum_100
+#PBS -l walltime=1:00:00
+#PBS -N new_inv_pendulum_10
 
 module load miniforge/3
 module load Python
@@ -12,6 +12,6 @@ eval "$($HOME/miniforge3/bin/conda shell.bash hook)"
 conda activate neural
 
 export FOSSIL_CHECKPOINT_DIR=checkpoints
-export FOSSIL_CHECKPOINT_NAME=invpend100
+export FOSSIL_CHECKPOINT_NAME=invpend10
 export FOSSIL_CHECKPOINT_EVERY=50
 python3 -m experiments.inv_pendulum

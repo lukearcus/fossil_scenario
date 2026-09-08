@@ -291,6 +291,7 @@ class Direct_control_barr(Certificate):
         best_supp_defd = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
+        controller_frozen = not any(p.requires_grad for p in learners[1].parameters())
         _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         for t in range(learn_loops):
             if state_sol:
@@ -305,45 +306,50 @@ class Direct_control_barr(Certificate):
                 V2 = learners[0](states_only)
                 V2 = torch.unsqueeze(V2, 1)
 
-                # Coordinate descent: optimize each control dim in turn (see
-                # Direct_control inner loop for full comment).
-                u_min = learners[1].u_min
-                u_max = learners[1].u_max
-                control_grid = _control_grid
-                n_rounds = 2
-                grid_size = control_grid.shape[0]
-                chunk_size = 50
-                with torch.no_grad():
-                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32)
-                    for _ in range(n_rounds):
-                        for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                            for g_start in range(0, grid_size, chunk_size):
-                                g_end = min(g_start + chunk_size, grid_size)
-                                chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
-
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
-
                 u1 = learners[1](samples_with_nexts)
+                nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                # Controller tracking: train u1 only on support samples.
-                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
-                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
-                else:
+                if controller_frozen:
+                    # Phase 2: controller is frozen. Train V against the actual NN controller u1.
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
                     track_loss = None
+                else:
+                    # Phase 1: grid-min V_next (see Direct_control inner loop for full comment).
+                    u_min = learners[1].u_min
+                    u_max = learners[1].u_max
+                    control_grid = _control_grid
+                    n_rounds = 2
+                    grid_size = control_grid.shape[0]
+                    chunk_size = 50
+                    with torch.no_grad():
+                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                            dtype=torch.float32)
+                        for _ in range(n_rounds):
+                            for d in range(n_ctrl):
+                                best_V = torch.full((g_samples.shape[0],), float('inf'))
+                                best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                                for g_start in range(0, grid_size, chunk_size):
+                                    g_end = min(g_start + chunk_size, grid_size)
+                                    chunk = control_grid[g_start:g_end]
+                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                    V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                    chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                                    improve = chunk_min < best_V
+                                    best_V = torch.where(improve, chunk_min, best_V)
+                                    best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                                best_u[:, d] = control_grid[best_u_ind]
+
+                    best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+                    V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
+
+                    # Controller tracking: train u1 only on support samples.
+                    if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                        supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                        track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    else:
+                        track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_U = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -495,37 +501,42 @@ class Direct_control_barr(Certificate):
 
         req_diff = -((V_U.min()-V_I.max())/self.T)
 
-        # Final re-evaluation uses the coordinate-descent grid-min V-next.
-        u_min = best_nets[1].u_min
-        u_max = best_nets[1].u_max
-        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
-        n_rounds = 2
-        grid_size = control_grid.shape[0]
-        chunk_size = 50
-        with torch.no_grad():
-            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32)
-            for _ in range(n_rounds):
-                for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                    for g_start in range(0, grid_size, chunk_size):
-                        g_end = min(g_start + chunk_size, grid_size)
-                        chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
-        if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
-            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
+        if controller_frozen:
+            # Phase 2: evaluate V_next under the actual deployed controller u1.
+            V_next = best_nets[0](nexts.squeeze(2)).unsqueeze(1)
+        else:
+            # Phase 1: final re-evaluation uses the coordinate-descent grid-min V-next.
+            u_min = best_nets[1].u_min
+            u_max = best_nets[1].u_max
+            control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+            n_rounds = 2
+            grid_size = control_grid.shape[0]
+            chunk_size = 50
+            with torch.no_grad():
+                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                    dtype=torch.float32)
+                for _ in range(n_rounds):
+                    for d in range(n_ctrl):
+                        best_V = torch.full((g_samples.shape[0],), float('inf'))
+                        best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                        for g_start in range(0, grid_size, chunk_size):
+                            g_end = min(g_start + chunk_size, grid_size)
+                            chunk = control_grid[g_start:g_end]
+                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                            V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                            improve = chunk_min < best_V
+                            best_V = torch.where(improve, chunk_min, best_V)
+                            best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                        best_u[:, d] = control_grid[best_u_ind]
+                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
+            if self.config.TRACK_WEIGHT > 0:
+                track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+                cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
 
@@ -745,6 +756,7 @@ class Direct_control_RWA(Certificate):
         best_supp_defd = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
+        controller_frozen = not any(p.requires_grad for p in learners[1].parameters())
         _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         for t in range(learn_loops):
             if state_sol:
@@ -759,45 +771,50 @@ class Direct_control_RWA(Certificate):
                 V2 = learners[0](states_only)
                 V2 = torch.unsqueeze(V2, 1)
 
-                # Coordinate descent: optimize each control dim in turn (see
-                # Direct_control inner loop for full comment).
-                u_min = learners[1].u_min
-                u_max = learners[1].u_max
-                control_grid = _control_grid
-                n_rounds = 2
-                grid_size = control_grid.shape[0]
-                chunk_size = 50
-                with torch.no_grad():
-                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32)
-                    for _ in range(n_rounds):
-                        for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                            for g_start in range(0, grid_size, chunk_size):
-                                g_end = min(g_start + chunk_size, grid_size)
-                                chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
-
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
-
                 u1 = learners[1](samples_with_nexts)
+                nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                # Controller tracking: train u1 only on support samples.
-                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
-                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
-                else:
+                if controller_frozen:
+                    # Phase 2: controller is frozen. Train V against the actual NN controller u1.
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
                     track_loss = None
+                else:
+                    # Phase 1: grid-min V_next (see Direct_control inner loop for full comment).
+                    u_min = learners[1].u_min
+                    u_max = learners[1].u_max
+                    control_grid = _control_grid
+                    n_rounds = 2
+                    grid_size = control_grid.shape[0]
+                    chunk_size = 50
+                    with torch.no_grad():
+                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                            dtype=torch.float32)
+                        for _ in range(n_rounds):
+                            for d in range(n_ctrl):
+                                best_V = torch.full((g_samples.shape[0],), float('inf'))
+                                best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                                for g_start in range(0, grid_size, chunk_size):
+                                    g_end = min(g_start + chunk_size, grid_size)
+                                    chunk = control_grid[g_start:g_end]
+                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                    V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                    chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                                    improve = chunk_min < best_V
+                                    best_V = torch.where(improve, chunk_min, best_V)
+                                    best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                                best_u[:, d] = control_grid[best_u_ind]
+
+                    best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+                    V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
+
+                    # Controller tracking: train u1 only on support samples.
+                    if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                        supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                        track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    else:
+                        track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -955,37 +972,42 @@ class Direct_control_RWA(Certificate):
 
         req_diff = ((V_I.max()-beta)/self.T)
 
-        # Final re-evaluation uses the coordinate-descent grid-min V-next.
-        u_min = best_nets[1].u_min
-        u_max = best_nets[1].u_max
-        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
-        n_rounds = 2
-        grid_size = control_grid.shape[0]
-        chunk_size = 50
-        with torch.no_grad():
-            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32)
-            for _ in range(n_rounds):
-                for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                    for g_start in range(0, grid_size, chunk_size):
-                        g_end = min(g_start + chunk_size, grid_size)
-                        chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
-        if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
-            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
+        nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
+        if controller_frozen:
+            # Phase 2: evaluate V_next under the actual deployed controller u1.
+            V_next = best_nets[0](nexts.squeeze(2)).unsqueeze(1)
+        else:
+            # Phase 1: final re-evaluation uses the coordinate-descent grid-min V-next.
+            u_min = best_nets[1].u_min
+            u_max = best_nets[1].u_max
+            control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+            n_rounds = 2
+            grid_size = control_grid.shape[0]
+            chunk_size = 50
+            with torch.no_grad():
+                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                    dtype=torch.float32)
+                for _ in range(n_rounds):
+                    for d in range(n_ctrl):
+                        best_V = torch.full((g_samples.shape[0],), float('inf'))
+                        best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                        for g_start in range(0, grid_size, chunk_size):
+                            g_end = min(g_start + chunk_size, grid_size)
+                            chunk = control_grid[g_start:g_end]
+                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                            V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                            improve = chunk_min < best_V
+                            best_V = torch.where(improve, chunk_min, best_V)
+                            best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                        best_u[:, d] = control_grid[best_u_ind]
+                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
+            if self.config.TRACK_WEIGHT > 0:
+                track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+                cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         req_diff_2 = (beta-V_U.min())/self.T
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, req_diff_2)
@@ -1215,6 +1237,7 @@ class Direct_control(Certificate):
             parallel = False
         best_loss = 999
         best_nets = copy.deepcopy(learners)
+        controller_frozen = not any(p.requires_grad for p in learners[1].parameters())
         # Precompute the control grid once (reused every inner step, not reallocated).
         _control_grid = torch.arange(learners[1].u_min, learners[1].u_max, self.config.CONTROL_GRID_STEP)
         #goal_centre = states_only[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4].mean(dim=0)
@@ -1247,60 +1270,66 @@ class Direct_control(Certificate):
                 
                 V2 = torch.unsqueeze(V2, 1)
 
-                # Min-controller (controlled-Lyapunov): evaluate the V decrease condition at the
-                # best control from a discretised grid over [u_min, u_max]. This makes the Lyapunov
-                # decrease requirement easy to satisfy (V is free to decrease at the best u), which
-                # is what lets traj_acc reach 100% and the certificate verify. Model f, g are used
-                # here (training only); the deployed controller remains the NN u1 (see track_loss).
-                #
-                # Memory: the grid forward pass is run under no_grad (no autograd intermediates,
-                # ~200MB saved per step on a 1200-point grid). Only the single best-control forward
-                # pass (n_traj samples, not n_traj*grid) builds an autograd graph for V's loss.
-                u_min = learners[1].u_min
-                u_max = learners[1].u_max
-                control_grid = _control_grid
-                # Coordinate descent: optimize each control dim in turn, keeping
-                # others fixed at their current best. Finds coupled controls off
-                # the diagonal that a same-scalar grid misses. n_rounds=2 with
-                # warm-start; chunked to bound peak memory as before.
-                n_rounds = 2
-                grid_size = control_grid.shape[0]
-                chunk_size = 50
-                with torch.no_grad():
-                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32)
-                    for _ in range(n_rounds):
-                        for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                            for g_start in range(0, grid_size, chunk_size):
-                                g_end = min(g_start + chunk_size, grid_size)
-                                chunk = control_grid[g_start:g_end]
-                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
-
-                # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-                V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
-
                 num_inn_steps = 100
                 u1 = learners[1](samples_with_nexts)
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
-                # Controller tracking: train u1 only on support samples (the scenario-approach
-                # subset). No training when supp_samples is empty (first step).
-                if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
-                    supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
-                else:
+                if controller_frozen:
+                    # Phase 2: controller is frozen (trajectories reach XG). Train V against
+                    # the actual deployed NN controller u1, so the PAC bound covers u1.
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1).unsqueeze(1)
                     track_loss = None
+                else:
+                    # Phase 1: Min-controller (controlled-Lyapunov). Evaluate the V decrease
+                    # condition at the best control from a discretised grid over [u_min, u_max].
+                    # This makes the Lyapunov decrease requirement easy to satisfy (V is free to
+                    # decrease at the best u). The deployed controller remains the NN u1 (see
+                    # track_loss). Model f, g are used here (training only).
+                    #
+                    # Memory: the grid forward pass is run under no_grad (no autograd intermediates,
+                    # ~200MB saved per step on a 1200-point grid). Only the single best-control forward
+                    # pass (n_traj samples, not n_traj*grid) builds an autograd graph for V's loss.
+                    u_min = learners[1].u_min
+                    u_max = learners[1].u_max
+                    control_grid = _control_grid
+                    # Coordinate descent: optimize each control dim in turn, keeping
+                    # others fixed at their current best. Finds coupled controls off
+                    # the diagonal that a same-scalar grid misses. n_rounds=2 with
+                    # warm-start; chunked to bound peak memory as before.
+                    n_rounds = 2
+                    grid_size = control_grid.shape[0]
+                    chunk_size = 50
+                    with torch.no_grad():
+                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                            dtype=torch.float32)
+                        for _ in range(n_rounds):
+                            for d in range(n_ctrl):
+                                best_V = torch.full((g_samples.shape[0],), float('inf'))
+                                best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                                for g_start in range(0, grid_size, chunk_size):
+                                    g_end = min(g_start + chunk_size, grid_size)
+                                    chunk = control_grid[g_start:g_end]
+                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                    V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                    chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                                    improve = chunk_min < best_V
+                                    best_V = torch.where(improve, chunk_min, best_V)
+                                    best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                                best_u[:, d] = control_grid[best_u_ind]
+
+                    # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
+                    best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+                    V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+
+                    # Controller tracking: train u1 only on support samples (the scenario-approach
+                    # subset). No training when supp_samples is empty (first step).
+                    if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
+                        supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
+                        track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    else:
+                        track_loss = None
 
                 V_I = V2[i1-idot1:i1+i2-idot1-idot2]
                 V_SG = V2[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
@@ -1498,39 +1527,43 @@ class Direct_control(Certificate):
 
 
         nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
-        # Final re-evaluation uses the coordinate-descent grid-min V-next (consistent
-        # with the inner loop) so the returned max_loss is comparable to the inner-loop
-        # best_loss that the ScenApp gate checks.
-        u_min = best_nets[1].u_min
-        u_max = best_nets[1].u_max
-        control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
-        n_rounds = 2
-        grid_size = control_grid.shape[0]
-        chunk_size = 50
-        with torch.no_grad():
-            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32)
-            for _ in range(n_rounds):
-                for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
-                    for g_start in range(0, grid_size, chunk_size):
-                        g_end = min(g_start + chunk_size, grid_size)
-                        chunk = control_grid[g_start:g_end]
-                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
-        if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
-            cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
+        if controller_frozen:
+            # Phase 2: evaluate V_next under the actual deployed controller u1.
+            V_next = best_nets[0](nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+        else:
+            # Phase 1: final re-evaluation uses the coordinate-descent grid-min V-next
+            # (consistent with the inner loop) so the returned max_loss is comparable to
+            # the inner-loop best_loss that the ScenApp gate checks.
+            u_min = best_nets[1].u_min
+            u_max = best_nets[1].u_max
+            control_grid = torch.arange(u_min, u_max, self.config.CONTROL_GRID_STEP)
+            n_rounds = 2
+            grid_size = control_grid.shape[0]
+            chunk_size = 50
+            with torch.no_grad():
+                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                    dtype=torch.float32)
+                for _ in range(n_rounds):
+                    for d in range(n_ctrl):
+                        best_V = torch.full((g_samples.shape[0],), float('inf'))
+                        best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                        for g_start in range(0, grid_size, chunk_size):
+                            g_end = min(g_start + chunk_size, grid_size)
+                            chunk = control_grid[g_start:g_end]
+                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                            V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            chunk_min, chunk_argmin = V_chunk.min(dim=1)
+                            improve = chunk_min < best_V
+                            best_V = torch.where(improve, chunk_min, best_V)
+                            best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
+                        best_u[:, d] = control_grid[best_u_ind]
+                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+            if self.config.TRACK_WEIGHT > 0:
+                track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+                cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
         

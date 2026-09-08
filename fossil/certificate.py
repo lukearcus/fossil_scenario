@@ -311,7 +311,7 @@ class Direct_control_barr(Certificate):
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
                 if controller_frozen:
-                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
                     track_loss = None
                 else:
                     u_min = learners[1].u_min
@@ -341,7 +341,7 @@ class Direct_control_barr(Certificate):
                                 best_u[:, d] = control_grid[best_u_ind]
 
                     if use_u1:
-                        V_next = learners[0](nexts.detach().squeeze(2)).unsqueeze(1)
+                        V_next = learners[0](nexts.detach().squeeze(1)).unsqueeze(1)
                     else:
                         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                         V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -779,7 +779,7 @@ class Direct_control_RWA(Certificate):
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
                 if controller_frozen:
-                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
                     track_loss = None
                 else:
                     u_min = learners[1].u_min
@@ -809,7 +809,7 @@ class Direct_control_RWA(Certificate):
                                 best_u[:, d] = control_grid[best_u_ind]
 
                     if use_u1:
-                        V_next = learners[0](nexts.detach().squeeze(2)).unsqueeze(1)
+                        V_next = learners[0](nexts.detach().squeeze(1)).unsqueeze(1)
                     else:
                         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                         V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -1283,7 +1283,7 @@ class Direct_control(Certificate):
 
                 if controller_frozen:
                     # Controller frozen for verification: V_next from u1, no grid search, no track_loss.
-                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1).unsqueeze(1)
                     track_loss = None
                 else:
                     # Grid search runs in both phase 1 and phase 2 (needed for track_loss).
@@ -1316,7 +1316,7 @@ class Direct_control(Certificate):
                     if use_u1:
                         # Phase 2: V_next from u1 (detached so V's gradients don't flow to u1).
                         # Grid search ran for track_loss only; u1 still trains toward best_u.
-                        V_next = learners[0](nexts.detach().squeeze(2)).unsqueeze(1).unsqueeze(1)
+                        V_next = learners[0](nexts.detach().squeeze(1)).unsqueeze(1).unsqueeze(1)
                     else:
                         # Phase 1: V_next from grid-optimal best_u.
                         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT

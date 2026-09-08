@@ -310,8 +310,7 @@ class Direct_control_barr(Certificate):
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
                 if controller_frozen:
-                    # Phase 2: controller is frozen. Train V against the actual NN controller u1.
-                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1)
                     track_loss = None
                 else:
                     # Phase 1: grid-min V_next (see Direct_control inner loop for full comment).
@@ -385,6 +384,7 @@ class Direct_control_barr(Certificate):
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -396,6 +396,7 @@ class Direct_control_barr(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     max_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -434,6 +435,7 @@ class Direct_control_barr(Certificate):
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -453,6 +455,7 @@ class Direct_control_barr(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     supp_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -775,8 +778,7 @@ class Direct_control_RWA(Certificate):
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
                 if controller_frozen:
-                    # Phase 2: controller is frozen. Train V against the actual NN controller u1.
-                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1)
                     track_loss = None
                 else:
                     # Phase 1: grid-min V_next (see Direct_control inner loop for full comment).
@@ -854,6 +856,7 @@ class Direct_control_RWA(Certificate):
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -865,6 +868,7 @@ class Direct_control_RWA(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     max_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -903,6 +907,7 @@ class Direct_control_RWA(Certificate):
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -922,6 +927,7 @@ class Direct_control_RWA(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     supp_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -1275,9 +1281,9 @@ class Direct_control(Certificate):
                 nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.mT)).mT
 
                 if controller_frozen:
-                    # Phase 2: controller is frozen (trajectories reach XG). Train V against
+                    # Controller frozen (trajectories reach XG). Train V against
                     # the actual deployed NN controller u1, so the PAC bound covers u1.
-                    V_next = learners[0](nexts.squeeze(1)).unsqueeze(1).unsqueeze(1)
+                    V_next = learners[0](nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
                     track_loss = None
                 else:
                     # Phase 1: Min-controller (controlled-Lyapunov). Evaluate the V decrease
@@ -1378,6 +1384,7 @@ class Direct_control(Certificate):
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -1391,6 +1398,7 @@ class Direct_control(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     max_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -1431,6 +1439,7 @@ class Direct_control(Certificate):
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -1459,6 +1468,7 @@ class Direct_control(Certificate):
                         opt.zero_grad()
                     if self.config.TRACK_WEIGHT > 0 and track_loss is not None and track_loss.requires_grad:
                         (self.config.TRACK_WEIGHT * track_loss).backward()
+                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), 1.0)
                     supp_loss.backward()
                     if parallel:
                         for opt in optimizer:

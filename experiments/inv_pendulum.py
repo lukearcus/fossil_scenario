@@ -61,7 +61,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         LEARN_LOOPS=10000,
         N_THREADS=4,
         TRACK_WEIGHT=5.0,
-        CONTROL_GRID_STEP=0.05,
+        CONTROL_GRID_STEP=0.01,
         **_checkpoint_opts(),
     )
     PAC = ScenApp(opts)

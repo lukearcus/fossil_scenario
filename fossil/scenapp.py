@@ -546,6 +546,8 @@ class SingleScenApp:
         j = 0
         old_nets = copy.deepcopy(self.learner)
         reverted=False
+        use_u1 = False
+        self.certificate.use_u1 = False
         # NOTE: do NOT call update_controller here — it would replace the initial (reference)
         # trajectories with random-controller trajectories before the CEGIS loop starts.
         # Resume: load a prior checkpoint (if any) before entering the loop. A resumed run
@@ -626,14 +628,24 @@ class SingleScenApp:
             else:
                 converged = False
 
-            if converged:
+            if converged and not use_u1:
+                # Phase 1 → Phase 2 transition: trajectories reach XG.
+                # Switch V_next to u1 (detached), keep u1 trainable via track_loss.
+                use_u1 = True
+                self.certificate.use_u1 = True
                 for param in self.learner[1].parameters():
-                    param.requires_grad=False
-                scenapp_log.info("Controller update off")
+                    param.requires_grad = True
+                scenapp_log.info("Phase 2: training V under u1, controller still trainable")
+                controller_training = True
+            elif converged and use_u1 and state["best_loss"] <= margin:
+                # V converged under u1 → freeze for verification.
+                for param in self.learner[1].parameters():
+                    param.requires_grad = False
+                scenapp_log.info("Controller frozen for verification")
                 controller_training = False
             else:
                 for param in self.learner[1].parameters():
-                    param.requires_grad=True
+                    param.requires_grad = True
                 scenapp_log.info("Controller update on")
                 controller_training = True
 
@@ -673,10 +685,9 @@ class SingleScenApp:
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            if state["best_loss"] <= margin and controller_training:
-                # Regenerate trajectories with the improved controller and continue training.
-                # Once trajectories reach XG, controller_training flips False and the gate below
-                # can fire.
+            if state["best_loss"] <= margin and controller_training and not use_u1:
+                # Phase 1 converged: regenerate trajectories with the improved controller.
+                # Once trajectories reach XG, use_u1 flips True and phase 2 begins.
                 scenapp_log.info("Updating controller")
                 state = self.update_controller(state)
 

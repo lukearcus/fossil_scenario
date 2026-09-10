@@ -68,6 +68,58 @@ def _set_assertion(required, actual, name):
         )
 
 
+def _traj_valid_len(traj_inds):
+    """Return the number of valid (non-padding) entries in a traj index tensor.
+
+    Sind['lie'][i] is padded with traj_inds[0] after the valid entries (see
+    scenapp._initialise_data). Since valid indices are strictly ascending and
+    traj_inds[0] is the smallest, the first repetition of traj_inds[0] after
+    position 0 marks the start of padding.
+    """
+    if len(traj_inds) <= 1:
+        return len(traj_inds)
+    repeats = (traj_inds[1:] == traj_inds[0]).nonzero()
+    return repeats[0].item() + 1 if len(repeats) > 0 else len(traj_inds)
+
+
+def _temporal_pairs_global(Sind, supp_samples):
+    """Return (prev_inds, next_inds) global index tensors for consecutive timesteps
+    within each support trajectory. Indices are into the XD-domain sample array
+    (e.g. u1.squeeze(1) output). Returns (None, None) if no valid pairs exist.
+    """
+    prev_list = []
+    next_list = []
+    for i in sorted(supp_samples):
+        traj_inds = Sind["lie"][i]
+        vlen = _traj_valid_len(traj_inds)
+        if vlen >= 2:
+            prev_list.append(traj_inds[:vlen - 1])
+            next_list.append(traj_inds[1:vlen])
+    if not prev_list:
+        return None, None
+    return torch.cat(prev_list), torch.cat(next_list)
+
+
+def _temporal_pairs_local(Sind, supp_samples):
+    """Return (prev_local, next_local) local index tensors for consecutive timesteps
+    within each support trajectory. Indices are into the supp_step_inds array
+    (used in the u1 supervised burst). Returns (None, None) if no valid pairs exist.
+    """
+    max_len = Sind["lie"][0].shape[0]
+    prev_list = []
+    next_list = []
+    for k, i in enumerate(sorted(supp_samples)):
+        traj_inds = Sind["lie"][i]
+        vlen = _traj_valid_len(traj_inds)
+        if vlen >= 2:
+            offset = k * max_len
+            prev_list.append(torch.arange(offset, offset + vlen - 1))
+            next_list.append(torch.arange(offset + 1, offset + vlen))
+    if not prev_list:
+        return None, None
+    return torch.cat(prev_list), torch.cat(next_list)
+
+
 class Certificate:
     """
     Base class for certificates, used to define new Certificates.
@@ -345,6 +397,11 @@ class Direct_control_barr(Certificate):
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
+                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                        _prev_inds, _next_inds = _temporal_pairs_global(Sind, supp_samples)
+                        if _prev_inds is not None:
+                            _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                            track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
                 else:
                     track_loss = None
 
@@ -376,6 +433,7 @@ class Direct_control_barr(Certificate):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
+                                _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
                                     for opt in optimizer:
                                         opt.zero_grad()
@@ -384,6 +442,8 @@ class Direct_control_barr(Certificate):
                                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                         u_mid = (u_min + u_max) / 2
                                         tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                        tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -428,6 +488,7 @@ class Direct_control_barr(Certificate):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
+                                    _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
                                         for opt in optimizer:
                                             opt.zero_grad()
@@ -436,6 +497,8 @@ class Direct_control_barr(Certificate):
                                         if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                             u_mid = (u_min + u_max) / 2
                                             tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                        if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                            tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -537,6 +600,11 @@ class Direct_control_barr(Certificate):
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
+            if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                _prev_inds, _next_inds = _temporal_pairs_global(Sind, set(range(len(Sind["lie"]))))
+                if _prev_inds is not None:
+                    _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                    track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
@@ -811,6 +879,11 @@ class Direct_control_RWA(Certificate):
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
+                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                        _prev_inds, _next_inds = _temporal_pairs_global(Sind, supp_samples)
+                        if _prev_inds is not None:
+                            _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                            track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
                 else:
                     track_loss = None
 
@@ -846,6 +919,7 @@ class Direct_control_RWA(Certificate):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
+                                _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
                                     for opt in optimizer:
                                         opt.zero_grad()
@@ -854,6 +928,8 @@ class Direct_control_RWA(Certificate):
                                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                         u_mid = (u_min + u_max) / 2
                                         tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                        tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -898,6 +974,7 @@ class Direct_control_RWA(Certificate):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
+                                    _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
                                         for opt in optimizer:
                                             opt.zero_grad()
@@ -906,6 +983,8 @@ class Direct_control_RWA(Certificate):
                                         if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                             u_mid = (u_min + u_max) / 2
                                             tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                        if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                            tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -1009,6 +1088,11 @@ class Direct_control_RWA(Certificate):
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
+            if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                _prev_inds, _next_inds = _temporal_pairs_global(Sind, set(range(len(Sind["lie"]))))
+                if _prev_inds is not None:
+                    _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                    track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         req_diff_2 = (beta-V_U.min())/self.T
@@ -1326,6 +1410,11 @@ class Direct_control(Certificate):
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
+                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                        _prev_inds, _next_inds = _temporal_pairs_global(Sind, supp_samples)
+                        if _prev_inds is not None:
+                            _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                            track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
                 else:
                     track_loss = None
 
@@ -1370,6 +1459,7 @@ class Direct_control(Certificate):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
+                                _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
                                     for opt in optimizer:
                                         opt.zero_grad()
@@ -1378,6 +1468,8 @@ class Direct_control(Certificate):
                                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                         u_mid = (u_min + u_max) / 2
                                         tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                    if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                        tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -1426,6 +1518,7 @@ class Direct_control(Certificate):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                     target_u = best_u[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
+                                    _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
                                         for opt in optimizer:
                                             opt.zero_grad()
@@ -1434,6 +1527,8 @@ class Direct_control(Certificate):
                                         if self.config.CONTROL_EFFORT_WEIGHT > 0:
                                             u_mid = (u_min + u_max) / 2
                                             tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
+                                        if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
+                                            tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -1566,6 +1661,11 @@ class Direct_control(Certificate):
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
+            if self.config.TEMPORAL_SMOOTH_WEIGHT > 0:
+                _prev_inds, _next_inds = _temporal_pairs_global(Sind, set(range(len(Sind["lie"]))))
+                if _prev_inds is not None:
+                    _temporal_loss = ((u1.squeeze(1)[_next_inds] - u1.squeeze(1)[_prev_inds]) ** 2).mean()
+                    track_loss = track_loss + self.config.TEMPORAL_SMOOTH_WEIGHT * _temporal_loss
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)

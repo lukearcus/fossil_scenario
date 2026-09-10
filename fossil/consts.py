@@ -226,6 +226,7 @@ class ScenAppConfig:
     CONTROL_GRID_STEP: float = 0.01  # grid step for min-controller (was 0.01 in working runs)
     TRACK_WEIGHT: float = 1.0  # weight of the u1-tracking loss
     TRACK_TOL: float = 1e-3  # tolerance: u1 is penalised only when worse than grid-min by > TRACK_TOL
+    CONTROL_EFFORT_WEIGHT: float = 0.0  # LQR-style effort penalty in grid search argmin (0 = disabled)
 
     # Checkpointing / resume. Defaults preserve existing behaviour (no checkpointing).
     # Set RESUME_PATH to continue from a prior checkpoint; set CHECKPOINT_DIR/NAME to write one.

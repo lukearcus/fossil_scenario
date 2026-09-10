@@ -327,6 +327,8 @@ class Direct_control_barr(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -516,6 +518,8 @@ class Direct_control_barr(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)
@@ -781,6 +785,8 @@ class Direct_control_RWA(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -976,6 +982,8 @@ class Direct_control_RWA(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)
@@ -1280,6 +1288,8 @@ class Direct_control(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -1521,6 +1531,8 @@ class Direct_control(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)

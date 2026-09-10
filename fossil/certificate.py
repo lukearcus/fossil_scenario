@@ -327,8 +327,6 @@ class Direct_control_barr(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -344,6 +342,9 @@ class Direct_control_barr(Certificate):
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                     track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                        u_mid = (u_min + u_max) / 2
+                        track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -380,6 +381,9 @@ class Direct_control_barr(Certificate):
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                        u_mid = (u_min + u_max) / 2
+                                        tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -429,6 +433,9 @@ class Direct_control_barr(Certificate):
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                            u_mid = (u_min + u_max) / 2
+                                            tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -518,8 +525,6 @@ class Direct_control_barr(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)
@@ -529,6 +534,9 @@ class Direct_control_barr(Certificate):
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                u_mid = (u_min + u_max) / 2
+                track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, Sind, req_diff)
@@ -785,8 +793,6 @@ class Direct_control_RWA(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -802,6 +808,9 @@ class Direct_control_RWA(Certificate):
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                     track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                        u_mid = (u_min + u_max) / 2
+                        track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -842,6 +851,9 @@ class Direct_control_RWA(Certificate):
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                        u_mid = (u_min + u_max) / 2
+                                        tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -891,6 +903,9 @@ class Direct_control_RWA(Certificate):
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                            u_mid = (u_min + u_max) / 2
+                                            tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -982,8 +997,6 @@ class Direct_control_RWA(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)
@@ -993,6 +1006,9 @@ class Direct_control_RWA(Certificate):
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                u_mid = (u_min + u_max) / 2
+                track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         req_diff_2 = (beta-V_U.min())/self.T
@@ -1288,8 +1304,6 @@ class Direct_control(Certificate):
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                                 V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                                    V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                                 chunk_min, chunk_argmin = V_chunk.min(dim=1)
                                 improve = chunk_min < best_V
                                 best_V = torch.where(improve, chunk_min, best_V)
@@ -1309,6 +1323,9 @@ class Direct_control(Certificate):
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                     track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                        u_mid = (u_min + u_max) / 2
+                        track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
                 else:
                     track_loss = None
 
@@ -1358,6 +1375,9 @@ class Direct_control(Certificate):
                                         opt.zero_grad()
                                     u1_pred = learners[1](supp_inputs)
                                     tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                    if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                        u_mid = (u_min + u_max) / 2
+                                        tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                     tl.backward()
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
@@ -1411,6 +1431,9 @@ class Direct_control(Certificate):
                                             opt.zero_grad()
                                         u1_pred = learners[1](supp_inputs)
                                         tl = ((u1_pred.squeeze(1) - target_u) ** 2).mean()
+                                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                                            u_mid = (u_min + u_max) / 2
+                                            tl = tl + self.config.CONTROL_EFFORT_WEIGHT * ((u1_pred.squeeze(1) - u_mid) ** 2).mean()
                                         tl.backward()
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
@@ -1531,8 +1554,6 @@ class Direct_control(Certificate):
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
                         V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        if self.config.CONTROL_EFFORT_WEIGHT > 0:
-                            V_chunk = V_chunk + self.config.CONTROL_EFFORT_WEIGHT * (u_chunk[:, d, :] ** 2)
                         chunk_min, chunk_argmin = V_chunk.min(dim=1)
                         improve = chunk_min < best_V
                         best_V = torch.where(improve, chunk_min, best_V)
@@ -1542,6 +1563,9 @@ class Direct_control(Certificate):
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            if self.config.CONTROL_EFFORT_WEIGHT > 0:
+                u_mid = (u_min + u_max) / 2
+                track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)

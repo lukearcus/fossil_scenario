@@ -1443,7 +1443,7 @@ class Direct_control(Certificate):
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
-                                        if tl.item() < 1e-10:
+                                        if tl.item() < 1e-4:
                                             break
                                 best_nets = copy.deepcopy(learners)
                                 break

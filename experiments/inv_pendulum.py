@@ -62,8 +62,9 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         N_THREADS=4,
         TRACK_WEIGHT=5.0,
         CONTROL_GRID_STEP=0.01,
-        CONTROL_EFFORT_WEIGHT=0.5,
-        TEMPORAL_SMOOTH_WEIGHT=0.5,
+        CONTROL_SMOOTH_TEMP=0.1,
+        CONTROL_EFFORT_WEIGHT=0.0,
+        TEMPORAL_SMOOTH_WEIGHT=0.0,
         **_checkpoint_opts(),
     )
     PAC = ScenApp(opts)

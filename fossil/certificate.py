@@ -365,6 +365,28 @@ class Direct_control_barr(Certificate):
                 n_rounds = 2
                 grid_size = control_grid.shape[0]
                 chunk_size = 50
+                with torch.no_grad():
+                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                        dtype=torch.float32)
+                    best_u_soft = best_u.clone()
+                    for _ in range(n_rounds):
+                        for d in range(n_ctrl):
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
+                            for g_start in range(0, grid_size, chunk_size):
+                                g_end = min(g_start + chunk_size, grid_size)
+                                chunk = control_grid[g_start:g_end]
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
                     u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32, requires_grad=True)
@@ -373,31 +395,7 @@ class Direct_control_barr(Certificate):
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u = u_opt.detach()
-                    best_u_soft = best_u
-                else:
-                    with torch.no_grad():
-                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                            dtype=torch.float32)
-                        best_u_soft = best_u.clone()
-                        for _ in range(n_rounds):
-                            for d in range(n_ctrl):
-                                V_all = torch.empty(g_samples.shape[0], grid_size)
-                                for g_start in range(0, grid_size, chunk_size):
-                                    g_end = min(g_start + chunk_size, grid_size)
-                                    chunk = control_grid[g_start:g_end]
-                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                    V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                                if self.config.CONTROL_SMOOTH_TEMP > 0:
-                                    V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                                    V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                                    weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                                    best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                                else:
-                                    best_u_soft[:, d] = best_u[:, d]
+                    best_u_soft = u_opt.detach()
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -588,6 +586,28 @@ class Direct_control_barr(Certificate):
         n_rounds = 2
         grid_size = control_grid.shape[0]
         chunk_size = 50
+        with torch.no_grad():
+            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                dtype=torch.float32)
+            best_u_soft = best_u.clone()
+            for _ in range(n_rounds):
+                for d in range(n_ctrl):
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
+                    for g_start in range(0, grid_size, chunk_size):
+                        g_end = min(g_start + chunk_size, grid_size)
+                        chunk = control_grid[g_start:g_end]
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
             u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32, requires_grad=True)
@@ -596,33 +616,8 @@ class Direct_control_barr(Certificate):
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u = u_opt.detach()
-            best_u_soft = best_u
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        else:
-            with torch.no_grad():
-                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                    dtype=torch.float32)
-                best_u_soft = best_u.clone()
-                for _ in range(n_rounds):
-                    for d in range(n_ctrl):
-                        V_all = torch.empty(g_samples.shape[0], grid_size)
-                        for g_start in range(0, grid_size, chunk_size):
-                            g_end = min(g_start + chunk_size, grid_size)
-                            chunk = control_grid[g_start:g_end]
-                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                            V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                        if self.config.CONTROL_SMOOTH_TEMP > 0:
-                            V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                            V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                            weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                            best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                        else:
-                            best_u_soft[:, d] = best_u[:, d]
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            best_u_soft = u_opt.detach()
+        best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()
@@ -876,6 +871,28 @@ class Direct_control_RWA(Certificate):
                 n_rounds = 2
                 grid_size = control_grid.shape[0]
                 chunk_size = 50
+                with torch.no_grad():
+                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                        dtype=torch.float32)
+                    best_u_soft = best_u.clone()
+                    for _ in range(n_rounds):
+                        for d in range(n_ctrl):
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
+                            for g_start in range(0, grid_size, chunk_size):
+                                g_end = min(g_start + chunk_size, grid_size)
+                                chunk = control_grid[g_start:g_end]
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
                     u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32, requires_grad=True)
@@ -884,31 +901,7 @@ class Direct_control_RWA(Certificate):
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u = u_opt.detach()
-                    best_u_soft = best_u
-                else:
-                    with torch.no_grad():
-                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                            dtype=torch.float32)
-                        best_u_soft = best_u.clone()
-                        for _ in range(n_rounds):
-                            for d in range(n_ctrl):
-                                V_all = torch.empty(g_samples.shape[0], grid_size)
-                                for g_start in range(0, grid_size, chunk_size):
-                                    g_end = min(g_start + chunk_size, grid_size)
-                                    chunk = control_grid[g_start:g_end]
-                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                    V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                                if self.config.CONTROL_SMOOTH_TEMP > 0:
-                                    V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                                    V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                                    weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                                    best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                                else:
-                                    best_u_soft[:, d] = best_u[:, d]
+                    best_u_soft = u_opt.detach()
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -1105,6 +1098,28 @@ class Direct_control_RWA(Certificate):
         n_rounds = 2
         grid_size = control_grid.shape[0]
         chunk_size = 50
+        with torch.no_grad():
+            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                dtype=torch.float32)
+            best_u_soft = best_u.clone()
+            for _ in range(n_rounds):
+                for d in range(n_ctrl):
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
+                    for g_start in range(0, grid_size, chunk_size):
+                        g_end = min(g_start + chunk_size, grid_size)
+                        chunk = control_grid[g_start:g_end]
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
             u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32, requires_grad=True)
@@ -1113,33 +1128,8 @@ class Direct_control_RWA(Certificate):
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u = u_opt.detach()
-            best_u_soft = best_u
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        else:
-            with torch.no_grad():
-                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                    dtype=torch.float32)
-                best_u_soft = best_u.clone()
-                for _ in range(n_rounds):
-                    for d in range(n_ctrl):
-                        V_all = torch.empty(g_samples.shape[0], grid_size)
-                        for g_start in range(0, grid_size, chunk_size):
-                            g_end = min(g_start + chunk_size, grid_size)
-                            chunk = control_grid[g_start:g_end]
-                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                            V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                        if self.config.CONTROL_SMOOTH_TEMP > 0:
-                            V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                            V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                            weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                            best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                        else:
-                            best_u_soft[:, d] = best_u[:, d]
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            best_u_soft = u_opt.detach()
+        best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()
@@ -1428,6 +1418,28 @@ class Direct_control(Certificate):
                 n_rounds = 2
                 grid_size = control_grid.shape[0]
                 chunk_size = 50
+                with torch.no_grad():
+                    best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                        dtype=torch.float32)
+                    best_u_soft = best_u.clone()
+                    for _ in range(n_rounds):
+                        for d in range(n_ctrl):
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
+                            for g_start in range(0, grid_size, chunk_size):
+                                g_end = min(g_start + chunk_size, grid_size)
+                                chunk = control_grid[g_start:g_end]
+                                u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                                u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                                nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
                     u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32, requires_grad=True)
@@ -1436,31 +1448,7 @@ class Direct_control(Certificate):
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u = u_opt.detach()
-                    best_u_soft = best_u
-                else:
-                    with torch.no_grad():
-                        best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                            dtype=torch.float32)
-                        best_u_soft = best_u.clone()
-                        for _ in range(n_rounds):
-                            for d in range(n_ctrl):
-                                V_all = torch.empty(g_samples.shape[0], grid_size)
-                                for g_start in range(0, grid_size, chunk_size):
-                                    g_end = min(g_start + chunk_size, grid_size)
-                                    chunk = control_grid[g_start:g_end]
-                                    u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                                    u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                                    nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                    V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                                if self.config.CONTROL_SMOOTH_TEMP > 0:
-                                    V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                                    V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                                    weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                                    best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                                else:
-                                    best_u_soft[:, d] = best_u[:, d]
+                    best_u_soft = u_opt.detach()
 
                 # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
@@ -1703,6 +1691,28 @@ class Direct_control(Certificate):
         n_rounds = 2
         grid_size = control_grid.shape[0]
         chunk_size = 50
+        with torch.no_grad():
+            best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
+                                dtype=torch.float32)
+            best_u_soft = best_u.clone()
+            for _ in range(n_rounds):
+                for d in range(n_ctrl):
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
+                    for g_start in range(0, grid_size, chunk_size):
+                        g_end = min(g_start + chunk_size, grid_size)
+                        chunk = control_grid[g_start:g_end]
+                        u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
+                        u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
+                        nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
             u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32, requires_grad=True)
@@ -1711,33 +1721,8 @@ class Direct_control(Certificate):
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u = u_opt.detach()
-            best_u_soft = best_u
-            best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
-        else:
-            with torch.no_grad():
-                best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                    dtype=torch.float32)
-                best_u_soft = best_u.clone()
-                for _ in range(n_rounds):
-                    for d in range(n_ctrl):
-                        V_all = torch.empty(g_samples.shape[0], grid_size)
-                        for g_start in range(0, grid_size, chunk_size):
-                            g_end = min(g_start + chunk_size, grid_size)
-                            chunk = control_grid[g_start:g_end]
-                            u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
-                            u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
-                            nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                            V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        best_u[:, d] = control_grid[V_all.argmin(dim=1)]
-                        if self.config.CONTROL_SMOOTH_TEMP > 0:
-                            V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
-                            V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
-                            weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
-                            best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
-                        else:
-                            best_u_soft[:, d] = best_u[:, d]
-                best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
+            best_u_soft = u_opt.detach()
+        best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
             track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()

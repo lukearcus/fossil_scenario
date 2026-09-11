@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=4:mem=8gb
 #PBS -l walltime=2:00:00
-#PBS -N new_inv_pendulum_10_0_0
+#PBS -N new_inv_pendulum_10_05_05
 
 module load miniforge/3
 module load Python

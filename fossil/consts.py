@@ -228,6 +228,7 @@ class ScenAppConfig:
     TRACK_TOL: float = 1e-3  # tolerance: u1 is penalised only when worse than grid-min by > TRACK_TOL
     CONTROL_EFFORT_WEIGHT: float = 0.0  # LQR-style effort penalty in grid search argmin (0 = disabled)
     TEMPORAL_SMOOTH_WEIGHT: float = 0.0  # penalty on ||u(x_{t+1}) - u(x_t)||^2 along trajectories (0 = disabled)
+    CONTROL_SMOOTH_TEMP: float = 0.0  # softmin temperature for controller tracking target (0 = hard argmin)
 
     # Checkpointing / resume. Defaults preserve existing behaviour (no checkpointing).
     # Set RESUME_PATH to continue from a prior checkpoint; set CHECKPOINT_DIR/NAME to write one.

@@ -368,22 +368,25 @@ class Direct_control_barr(Certificate):
                 with torch.no_grad():
                     best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32)
+                    best_u_soft = best_u.clone()
                     for _ in range(n_rounds):
                         for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
                                 u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -393,7 +396,7 @@ class Direct_control_barr(Certificate):
                 # Controller tracking: train u1 only on support samples.
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u_soft[supp_step_inds]) ** 2).mean()
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
@@ -431,7 +434,7 @@ class Direct_control_barr(Certificate):
                             cert_log.info("No supports, max loss is zero")
                             if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                target_u = best_u[supp_step_inds].detach()
+                                target_u = best_u_soft[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
                                 _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
@@ -486,7 +489,7 @@ class Direct_control_barr(Certificate):
                                 cert_log.info("Zero loss, breaking loop")
                                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                    target_u = best_u[supp_step_inds].detach()
+                                    target_u = best_u_soft[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
                                     _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
@@ -577,26 +580,29 @@ class Direct_control_barr(Certificate):
         with torch.no_grad():
             best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32)
+            best_u_soft = best_u.clone()
             for _ in range(n_rounds):
                 for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
                         u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
             best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
@@ -850,22 +856,25 @@ class Direct_control_RWA(Certificate):
                 with torch.no_grad():
                     best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32)
+                    best_u_soft = best_u.clone()
                     for _ in range(n_rounds):
                         for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
                                 u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -875,7 +884,7 @@ class Direct_control_RWA(Certificate):
                 # Controller tracking: train u1 only on support samples.
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u_soft[supp_step_inds]) ** 2).mean()
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
@@ -917,7 +926,7 @@ class Direct_control_RWA(Certificate):
                             cert_log.info("No supports, max loss is zero")
                             if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                target_u = best_u[supp_step_inds].detach()
+                                target_u = best_u_soft[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
                                 _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
@@ -972,7 +981,7 @@ class Direct_control_RWA(Certificate):
                                 cert_log.info("Zero loss, breaking loop")
                                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                    target_u = best_u[supp_step_inds].detach()
+                                    target_u = best_u_soft[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
                                     _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
@@ -1065,26 +1074,29 @@ class Direct_control_RWA(Certificate):
         with torch.no_grad():
             best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32)
+            best_u_soft = best_u.clone()
             for _ in range(n_rounds):
                 for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
                         u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
             best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
@@ -1377,22 +1389,25 @@ class Direct_control(Certificate):
                 with torch.no_grad():
                     best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                         dtype=torch.float32)
+                    best_u_soft = best_u.clone()
                     for _ in range(n_rounds):
                         for d in range(n_ctrl):
-                            best_V = torch.full((g_samples.shape[0],), float('inf'))
-                            best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                            V_all = torch.empty(g_samples.shape[0], grid_size)
                             for g_start in range(0, grid_size, chunk_size):
                                 g_end = min(g_start + chunk_size, grid_size)
                                 chunk = control_grid[g_start:g_end]
                                 u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                                 u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                                 nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                                V_chunk = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                                chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                                improve = chunk_min < best_V
-                                best_V = torch.where(improve, chunk_min, best_V)
-                                best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                            best_u[:, d] = control_grid[best_u_ind]
+                                V_all[:, g_start:g_end] = learners[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                            best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                            if self.config.CONTROL_SMOOTH_TEMP > 0:
+                                V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                                V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                                weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                                best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                            else:
+                                best_u_soft[:, d] = best_u[:, d]
 
                 # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
@@ -1406,7 +1421,7 @@ class Direct_control(Certificate):
                 # subset). No training when supp_samples is empty (first step).
                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()) and len(supp_samples) > 0:
                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u[supp_step_inds]) ** 2).mean()
+                    track_loss = ((u1.squeeze(1)[supp_step_inds] - best_u_soft[supp_step_inds]) ** 2).mean()
                     if self.config.CONTROL_EFFORT_WEIGHT > 0:
                         u_mid = (u_min + u_max) / 2
                         track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1)[supp_step_inds] - u_mid) ** 2).mean()
@@ -1457,7 +1472,7 @@ class Direct_control(Certificate):
                                 # V converged; train u1 to match the grid-argmin control, using
                                 # only the support samples (supp_step_inds). Pure supervised learning.
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                target_u = best_u[supp_step_inds].detach()
+                                target_u = best_u_soft[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
                                 _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                 for u_t in range(learn_loops - t - 1):
@@ -1516,7 +1531,7 @@ class Direct_control(Certificate):
                                 cert_log.info("Zero loss, breaking loop")
                                 if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
                                     supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
-                                    target_u = best_u[supp_step_inds].detach()
+                                    target_u = best_u_soft[supp_step_inds].detach()
                                     supp_inputs = samples_with_nexts[supp_step_inds]
                                     _temporal_prev, _temporal_next = _temporal_pairs_local(Sind, supp_samples)
                                     for u_t in range(learn_loops - t - 1):
@@ -1638,26 +1653,29 @@ class Direct_control(Certificate):
         with torch.no_grad():
             best_u = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
                                 dtype=torch.float32)
+            best_u_soft = best_u.clone()
             for _ in range(n_rounds):
                 for d in range(n_ctrl):
-                    best_V = torch.full((g_samples.shape[0],), float('inf'))
-                    best_u_ind = torch.zeros(g_samples.shape[0], dtype=torch.long)
+                    V_all = torch.empty(g_samples.shape[0], grid_size)
                     for g_start in range(0, grid_size, chunk_size):
                         g_end = min(g_start + chunk_size, grid_size)
                         chunk = control_grid[g_start:g_end]
                         u_chunk = best_u.unsqueeze(2).expand(-1, -1, chunk.shape[0]).clone()
                         u_chunk[:, d, :] = chunk.unsqueeze(0).expand(g_samples.shape[0], -1)
                         nexts_chunk = (f_samples.mT + torch.bmm(g_samples.mT, u_chunk)).mT
-                        V_chunk = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
-                        chunk_min, chunk_argmin = V_chunk.min(dim=1)
-                        improve = chunk_min < best_V
-                        best_V = torch.where(improve, chunk_min, best_V)
-                        best_u_ind = torch.where(improve, g_start + chunk_argmin, best_u_ind)
-                    best_u[:, d] = control_grid[best_u_ind]
+                        V_all[:, g_start:g_end] = best_nets[0](nexts_chunk.flatten(0, 1)).reshape(g_samples.shape[0], -1)
+                    best_u[:, d] = control_grid[V_all.argmin(dim=1)]
+                    if self.config.CONTROL_SMOOTH_TEMP > 0:
+                        V_shifted = V_all - V_all.min(dim=1, keepdim=True)[0]
+                        V_scale = V_shifted.max(dim=1, keepdim=True)[0] + 1e-8
+                        weights = torch.softmax(-(V_shifted / V_scale) / self.config.CONTROL_SMOOTH_TEMP, dim=1)
+                        best_u_soft[:, d] = (weights * control_grid.unsqueeze(0)).sum(dim=1)
+                    else:
+                        best_u_soft[:, d] = best_u[:, d]
             best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
-            track_loss = ((u1.squeeze(1) - best_u) ** 2).mean()
+            track_loss = ((u1.squeeze(1) - best_u_soft) ** 2).mean()
             if self.config.CONTROL_EFFORT_WEIGHT > 0:
                 u_mid = (u_min + u_max) / 2
                 track_loss = track_loss + self.config.CONTROL_EFFORT_WEIGHT * ((u1.squeeze(1) - u_mid) ** 2).mean()
@@ -1669,7 +1687,7 @@ class Direct_control(Certificate):
             cert_log.info("Track loss: {:.10f}".format(track_loss.item()))
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
-        
+
         loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
         
         losses = relu(losses) + loss

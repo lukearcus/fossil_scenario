@@ -136,7 +136,7 @@ def test_lnn():
                 
             }
 
-    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.TANH, fossil.ActivationType.TANH]}
+    activations = {"V":[fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID, fossil.ActivationType.SIGMOID ], "u":[fossil.ActivationType.RELU, fossil.ActivationType.RELU]}#, "u":[fossil.ActivationType.TANH, fossil.ActivationType.TANH]}
     
     n_hidden_neurons = {"V":[50,50,50], "u":[100,100]}
     

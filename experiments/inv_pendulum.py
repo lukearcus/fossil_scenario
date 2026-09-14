@@ -61,7 +61,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         LEARN_LOOPS=10000,
         N_THREADS=4,
         TRACK_WEIGHT=5.0,
-        CONTROL_GRAD_STEPS=10,
+        CONTROL_GRAD_STEPS=5,
         CONTROL_GRAD_LR=0.01,
         #CONTROL_GRID_STEP=0.0,
         #CONTROL_SMOOTH_TEMP=0.0,

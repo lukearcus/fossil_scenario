@@ -231,6 +231,7 @@ class ScenAppConfig:
     CONTROL_SMOOTH_TEMP: float = 0.0  # softmin temperature for controller tracking target (0 = hard argmin)
     CONTROL_GRAD_STEPS: int = 0  # gradient descent steps for u optimization (0 = use grid search)
     CONTROL_GRAD_LR: float = 0.01  # learning rate for u gradient descent
+    CONTROLLER_LIPSCHITZ: float = 0.0  # spectral norm bound per layer for controller NN (0 = disabled)
 
     # Checkpointing / resume. Defaults preserve existing behaviour (no checkpointing).
     # Set RESUME_PATH to continue from a prior checkpoint; set CHECKPOINT_DIR/NAME to write one.

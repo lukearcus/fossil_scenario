@@ -730,6 +730,19 @@ class DissS(LearnerNN):
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:
         return self.get_all(S, Sdot, times)[1] # Returns 1 step change
 
+class LipschitzLinear(nn.Module):
+    """Linear layer with spectral normalization, scaled to a target Lipschitz constant."""
+    def __init__(self, in_features, out_features, bias=True, lipschitz=1.0):
+        super().__init__()
+        self.linear = torch.nn.utils.parametrizations.spectral_norm(
+            nn.Linear(in_features, out_features, bias=bias)
+        )
+        self.lipschitz = lipschitz
+
+    def forward(self, x):
+        return self.linear(x) * self.lipschitz
+
+
 class Controller(LearnerNN):
     def __init__(
         self,
@@ -757,25 +770,39 @@ class Controller(LearnerNN):
         k = 1
         self.u_max = config.SYSTEM[0].u_max
         self.u_min = config.SYSTEM[0].u_min
+        _lipschitz = config.CONTROLLER_LIPSCHITZ
+        if _lipschitz > 0:
+            self.layers = nn.ModuleList()
         for n_hid in n_hidden:
-            layer = nn.Linear(n_prev, n_hid, bias=bias)
-            self.register_parameter("W" + str(k), layer.weight)
-            if bias:
-                self.register_parameter("b" + str(k), layer.bias)
+            if _lipschitz > 0:
+                layer = LipschitzLinear(n_prev, n_hid, bias=bias, lipschitz=_lipschitz)
+            else:
+                layer = nn.Linear(n_prev, n_hid, bias=bias)
+                self.register_parameter("W" + str(k), layer.weight)
+                if bias:
+                    self.register_parameter("b" + str(k), layer.bias)
             self.layers.append(layer)
             n_prev = n_hid
             k = k + 1
 
             # last layer
-        layer = nn.Linear(n_prev, output_size, bias=bias)
+        if _lipschitz > 0:
+            layer = LipschitzLinear(n_prev, output_size, bias=bias, lipschitz=_lipschitz)
+        else:
+            layer = nn.Linear(n_prev, output_size, bias=bias)
         # last layer of ones
         if config.LLO and not self._take_abs:
-            layer.weight = torch.nn.Parameter(torch.ones(layer.weight.shape))
+            if _lipschitz > 0:
+                with torch.no_grad():
+                    layer.linear.parametrizations.weight.original.fill_(1.0)
+            else:
+                layer.weight = torch.nn.Parameter(torch.ones(layer.weight.shape))
             self.layers.append(layer)
         else:  # free output layer
-            self.register_parameter("W" + str(k), layer.weight)
-            if bias:
-                self.register_parameter("b" + str(k), layer.bias)
+            if _lipschitz == 0:
+                self.register_parameter("W" + str(k), layer.weight)
+                if bias:
+                    self.register_parameter("b" + str(k), layer.bias)
             self.layers.append(layer)
         if config.LLO and not self.is_positive_definite():
             warnings.warn("LLO set but function is not positive definite")

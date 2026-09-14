@@ -388,14 +388,14 @@ class Direct_control_barr(Certificate):
                             else:
                                 best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
-                    u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32, requires_grad=True)
+                    u_opt = best_u.detach().clone().requires_grad_(True)
                     for _ in range(self.config.CONTROL_GRAD_STEPS):
                         nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u_soft = u_opt.detach()
+                    best_u = u_opt.detach()
+                    best_u_soft = best_u
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -609,14 +609,14 @@ class Direct_control_barr(Certificate):
                     else:
                         best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
-            u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32, requires_grad=True)
+            u_opt = best_u.detach().clone().requires_grad_(True)
             for _ in range(self.config.CONTROL_GRAD_STEPS):
                 nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u_soft = u_opt.detach()
+            best_u = u_opt.detach()
+            best_u_soft = best_u
         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
@@ -894,14 +894,14 @@ class Direct_control_RWA(Certificate):
                             else:
                                 best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
-                    u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32, requires_grad=True)
+                    u_opt = best_u.detach().clone().requires_grad_(True)
                     for _ in range(self.config.CONTROL_GRAD_STEPS):
                         nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u_soft = u_opt.detach()
+                    best_u = u_opt.detach()
+                    best_u_soft = best_u
 
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
                 V_next = learners[0](best_nexts.squeeze(2)).unsqueeze(1)
@@ -1121,14 +1121,14 @@ class Direct_control_RWA(Certificate):
                     else:
                         best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
-            u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32, requires_grad=True)
+            u_opt = best_u.detach().clone().requires_grad_(True)
             for _ in range(self.config.CONTROL_GRAD_STEPS):
                 nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u_soft = u_opt.detach()
+            best_u = u_opt.detach()
+            best_u_soft = best_u
         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:
@@ -1441,14 +1441,14 @@ class Direct_control(Certificate):
                             else:
                                 best_u_soft[:, d] = best_u[:, d]
                 if self.config.CONTROL_GRAD_STEPS > 0:
-                    u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                        dtype=torch.float32, requires_grad=True)
+                    u_opt = best_u.detach().clone().requires_grad_(True)
                     for _ in range(self.config.CONTROL_GRAD_STEPS):
                         nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                         V_opt = learners[0](nexts_opt.squeeze(2))
                         grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                         u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-                    best_u_soft = u_opt.detach()
+                    best_u = u_opt.detach()
+                    best_u_soft = best_u
 
                 # Single autograd forward pass on the best-control next states (n_traj, not n_traj*grid).
                 best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
@@ -1714,14 +1714,14 @@ class Direct_control(Certificate):
                     else:
                         best_u_soft[:, d] = best_u[:, d]
         if self.config.CONTROL_GRAD_STEPS > 0:
-            u_opt = torch.full((g_samples.shape[0], n_ctrl), (u_min + u_max) / 2,
-                                dtype=torch.float32, requires_grad=True)
+            u_opt = best_u.detach().clone().requires_grad_(True)
             for _ in range(self.config.CONTROL_GRAD_STEPS):
                 nexts_opt = (f_samples.mT + torch.bmm(g_samples.mT, u_opt.unsqueeze(2))).mT
                 V_opt = best_nets[0](nexts_opt.squeeze(2))
                 grad_u = torch.autograd.grad(V_opt.sum(), u_opt)[0]
                 u_opt = (u_opt - self.config.CONTROL_GRAD_LR * grad_u).clamp(u_min, u_max).detach().requires_grad_(True)
-            best_u_soft = u_opt.detach()
+            best_u = u_opt.detach()
+            best_u_soft = best_u
         best_nexts = (f_samples.mT + torch.bmm(g_samples.mT, best_u.unsqueeze(2))).mT
         V_next = best_nets[0](best_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
         if self.config.TRACK_WEIGHT > 0:

@@ -292,10 +292,12 @@ class SingleScenApp:
         
         def control(t, x):
             x = torch.tensor(x,dtype=torch.float32)
+            _u_min = certs[1].u_min
+            _u_max = certs[1].u_max
             if len(x.shape) == 1:
-                return certs[1](x.unsqueeze(1).T).detach().numpy()
+                return np.clip(certs[1](x.unsqueeze(1).T).detach().numpy(), _u_min, _u_max)
             else:
-                return certs[1](x.unsqueeze(2).mT).detach().numpy()
+                return np.clip(certs[1](x.unsqueeze(2).mT).detach().numpy(), _u_min, _u_max)
 
         new_systems = [self.config.SYSTEM[0].__new__(self.config.SYSTEM[0].__class__) for i in test_data]
         for sys in new_systems:
@@ -358,10 +360,12 @@ class SingleScenApp:
                 # (UnboundLocalError). The commented-out space-search above would have computed
                 # it; the direct-NN return below doesn't need it.
 
+                _u_min = state["best_net"][1].u_min
+                _u_max = state["best_net"][1].u_max
                 if len(x.shape) == 1:
-                    return state["best_net"][1](x.unsqueeze(1).T).detach().numpy()
+                    return np.clip(state["best_net"][1](x.unsqueeze(1).T).detach().numpy(), _u_min, _u_max)
                 else:
-                    return state["best_net"][1](x.unsqueeze(2).mT).detach().numpy()
+                    return np.clip(state["best_net"][1](x.unsqueeze(2).mT).detach().numpy(), _u_min, _u_max)
 
             for sys in self.config.SYSTEM:
                 sys.controller = control

@@ -457,6 +457,7 @@ class Direct_control_barr(Certificate):
                                     if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                         tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -512,6 +513,7 @@ class Direct_control_barr(Certificate):
                                         if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                             tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -967,6 +969,7 @@ class Direct_control_RWA(Certificate):
                                     if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                         tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -1022,6 +1025,7 @@ class Direct_control_RWA(Certificate):
                                         if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                             tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -1527,6 +1531,7 @@ class Direct_control(Certificate):
                                     if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                         tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                     tl.backward()
+                                    torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                     optimizer[1].step()
                                     if u_t % 500 == 0:
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
@@ -1586,6 +1591,7 @@ class Direct_control(Certificate):
                                         if self.config.TEMPORAL_SMOOTH_WEIGHT > 0 and _temporal_prev is not None:
                                             tl = tl + self.config.TEMPORAL_SMOOTH_WEIGHT * ((u1_pred.squeeze(1)[_temporal_next] - u1_pred.squeeze(1)[_temporal_prev]) ** 2).mean()
                                         tl.backward()
+                                        torch.nn.utils.clip_grad_norm_(learners[1].parameters(), max_norm=1.0)
                                         optimizer[1].step()
                                         if u_t % 500 == 0:
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))

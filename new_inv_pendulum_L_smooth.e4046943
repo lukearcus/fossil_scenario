@@ -1,0 +1,41 @@
+2026-09-14 14:46:18,638 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-09-14 14:46:18,639 - fossil.scenapp - INFO - Controller update on
+2026-09-14 14:46:56,912 - fossil.certificate - DEBUG - 100 - loss: 0.1452610046
+2026-09-14 14:47:35,042 - fossil.certificate - DEBUG - 200 - loss: 0.0864407197
+2026-09-14 14:47:54,296 - fossil.certificate - INFO - State sol at iteration 250
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 209, in <module>
+    test_lnn()
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 162, in test_lnn
+    res = [part_solve(data[0])]
+           ^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py", line 74, in solve
+    result = PAC.solve()
+             ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/scenapp.py", line 640, in solve
+    outputs = self.learner[0].get(**state)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/learner.py", line 110, in get
+    return self.learn(
+           ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/utils.py", line 440, in wrapper
+    x = f(*a, **kw)
+        ^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/learner.py", line 107, in learn
+    return self.learn_method(net, optimizer, S, Sdot, Sind, f, g, times, best_loss, best_net, None, discrete, parallel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/certificate.py", line 1458, in learn
+    u1 = learners[1](samples_with_nexts)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1511, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/miniforge3/envs/neural/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1520, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/rds/general/user/lbrickar/home/code/fossil_scenario/fossil/learner.py", line 860, in forward
+    y = y.clamp(u_min, u_max)
+                ^^^^^
+NameError: name 'u_min' is not defined. Did you mean: 'self.u_min'?

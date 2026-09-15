@@ -857,7 +857,7 @@ class Controller(LearnerNN):
         y = self.layers[-1](y)
         tanh = torch.nn.Tanh()
         #y = tanh(y)*(self.u_max-self.u_min)/2+(self.u_max+self.u_min)/2
-        y = y.clamp(u_min, u_max)
+        y = y.clamp(self.u_min, self.u_max)
         return y
     
     def nn_dot(self, S: torch.Tensor, Sdot: torch.Tensor, times: torch.Tensor) -> torch.Tensor:

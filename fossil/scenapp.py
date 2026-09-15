@@ -159,6 +159,9 @@ class SingleScenApp:
                bias=self.certificate.bias,
                config=self.config,
                                )
+            if self.config.CERTIFY_FROZEN:
+                V3 = self._create_V3()
+                return (V, u, V3)
             return (V, u)
          elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
             u = learner.Controller(
@@ -170,6 +173,9 @@ class SingleScenApp:
                bias=self.certificate.bias,
                config=self.config,
                                )
+            if self.config.CERTIFY_FROZEN:
+                V3 = self._create_V3()
+                return (V, u, V3)
             return (V, u)
          elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
             u = learner.Controller(
@@ -181,9 +187,24 @@ class SingleScenApp:
                bias=self.certificate.bias,
                config=self.config,
                                )
+            if self.config.CERTIFY_FROZEN:
+                V3 = self._create_V3()
+                return (V, u, V3)
             return (V, u)
          else:
             raise NotImplementedError
+
+    def _create_V3(self):
+        n_hidden = self.config.N_HIDDEN_NEURONS.get("V3", self.config.N_HIDDEN_NEURONS["V"])
+        acts = self.config.ACTIVATION.get("V3", self.config.ACTIVATION["V"])
+        return learner.DissV(
+            self.config.N_VARS,
+            self.certificate.learn,
+            n_hidden,
+            activation=acts,
+            bias=self.certificate.bias,
+            config=self.config,
+        )
 
     def _initialise_verifier(self):
         num_params = sum(sum(p.numel() for p in l.parameters() if p.requires_grad) for l in self.learner)
@@ -271,9 +292,10 @@ class SingleScenApp:
         #return torch.optim.SGD(
         optimizers = []
         for i, l in enumerate(self.learner):
+            lr = self.config.LEARNING_RATE[i] if i < len(self.config.LEARNING_RATE) else self.config.LEARNING_RATE[0]
             optimizers.append(torch.optim.AdamW(
                 [{"params": l.parameters()}], # Might need to change this to consider controller parameters
-                lr=self.config.LEARNING_RATE[i],
+                lr=lr,
                 ))
         return optimizers
         #return (torch.optim.AdamW(
@@ -612,34 +634,41 @@ class SingleScenApp:
             # Convergence gate: check whether the learned controller's trajectories
             # geometrically reach the goal (and avoid unsafe set). iters > 0 only:
             # iteration 0 uses reference-controller trajectories.
-            if iters > 0:
-                trajs = self.S_traj["states"]
-                if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
-                    xg = self.config.DOMAINS[DomainNames.XG.value]
-                    converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
-                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
-                    xu = self.config.DOMAINS[DomainNames.XU.value]
-                    converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
-                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
-                    xg = self.config.DOMAINS[DomainNames.XG.value]
-                    xu = self.config.DOMAINS[DomainNames.XU.value]
-                    converged = all(any(xg.check_containment(torch.tensor(t.T)))
-                                    and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
-                else:
-                    converged = False
-            else:
-                converged = False
-
-            if converged:
-                for param in self.learner[1].parameters():
-                    param.requires_grad=False
-                scenapp_log.info("Controller update off")
-                controller_training = False
-            else:
+            # When CERTIFY_FROZEN is enabled, skip trajectory check — V3's loss is the gate.
+            if self.config.CERTIFY_FROZEN:
+                controller_training = True
                 for param in self.learner[1].parameters():
                     param.requires_grad=True
-                scenapp_log.info("Controller update on")
-                controller_training = True
+                scenapp_log.info("Controller update on (CERTIFY_FROZEN)")
+            else:
+                if iters > 0:
+                    trajs = self.S_traj["states"]
+                    if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+                        xg = self.config.DOMAINS[DomainNames.XG.value]
+                        converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
+                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+                        xu = self.config.DOMAINS[DomainNames.XU.value]
+                        converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+                        xg = self.config.DOMAINS[DomainNames.XG.value]
+                        xu = self.config.DOMAINS[DomainNames.XU.value]
+                        converged = all(any(xg.check_containment(torch.tensor(t.T)))
+                                        and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                    else:
+                        converged = False
+                else:
+                    converged = False
+
+                if converged:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=False
+                    scenapp_log.info("Controller update off")
+                    controller_training = False
+                else:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=True
+                    scenapp_log.info("Controller update on")
+                    controller_training = True
 
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
@@ -677,7 +706,12 @@ class SingleScenApp:
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            if state["best_loss"] <= margin and controller_training:
+            if self.config.CERTIFY_FROZEN:
+                v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
+                if v1_bl <= margin and state["best_loss"] > margin:
+                    scenapp_log.info("Updating controller (V1 satisfied, V3 pending)")
+                    state = self.update_controller(state)
+            elif state["best_loss"] <= margin and controller_training:
                 # Regenerate trajectories with the improved controller and continue training.
                 # Once trajectories reach XG, controller_training flips False and the gate below
                 # can fire.
@@ -686,7 +720,14 @@ class SingleScenApp:
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if state["best_loss"] <= margin and not controller_training:
+            if self.config.CERTIFY_FROZEN:
+                if state["best_loss"] <= margin:
+                    scenapp_log.debug("\033[1m Verifier \033[0m")
+                    outputs = self.verifier.get(**state)
+                    state = {**state, **outputs}
+                    print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+                    stop = self.process_certificate(S, state, iters)
+            elif state["best_loss"] <= margin and not controller_training:
             #if True:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
@@ -809,6 +850,7 @@ class SingleScenApp:
                 ScenAppStateKeys.trajectory: None,
                 ScenAppStateKeys.ENet: self.config.ENET,
                 ScenAppStateKeys.best_loss: np.inf,
+                ScenAppStateKeys.v1_best_loss: np.inf,
                 ScenAppStateKeys.best_net: self.learner,
                 ScenAppStateKeys.discarded: set(),
                 ScenAppStateKeys.convex: self.config.CONVEX_NET,

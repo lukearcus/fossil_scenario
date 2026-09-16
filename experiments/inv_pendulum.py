@@ -65,6 +65,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         CONTROL_GRAD_LR=0.01,
         CONTROL_GRID_STEP=0.01,
         CONTROLLER_LIPSCHITZ=300.0,
+        CERTIFY_FROZEN=True,
         #CONTROL_SMOOTH_TEMP=0.0,
         #CONTROL_EFFORT_WEIGHT=0.0,
         #TEMPORAL_SMOOTH_WEIGHT=0.0,

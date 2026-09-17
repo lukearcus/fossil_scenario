@@ -1,6 +1,6 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=4:mem=8gb
-#PBS -l walltime=15:00:00
+#PBS -l select=1:ncpus=4:mem=128gb
+#PBS -l walltime=24:00:00
 #PBS -N new_inv_pendulum_nn3
 
 module load miniforge/3

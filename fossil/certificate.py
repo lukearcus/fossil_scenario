@@ -1538,8 +1538,6 @@ class Direct_control(Certificate):
                             best_loss = max_loss
                             cert_log.info("No supports, max loss is zero")
                             if self.config.TRACK_WEIGHT > 0 and any(p.requires_grad for p in learners[1].parameters()):
-                                # V converged; train u1 to match the grid-argmin control, using
-                                # only the support samples (supp_step_inds). Pure supervised learning.
                                 supp_step_inds = torch.cat([Sind["lie"][i] for i in sorted(supp_samples)])
                                 target_u = best_u_soft[supp_step_inds].detach()
                                 supp_inputs = samples_with_nexts[supp_step_inds]
@@ -1561,6 +1559,63 @@ class Direct_control(Certificate):
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
                                     if tl.item() < 1e-4:
                                         break
+                            if _certify_frozen and best_loss_v3 > self.margin:
+                                u1 = learners[1](samples_with_nexts)
+                                for v3_t in range(learn_loops):
+                                    for opt in optimizer:
+                                        opt.zero_grad()
+                                    v3_nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.detach().mT)).mT
+                                    V3_next = learners[2](v3_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                                    V3_states = learners[2](states_only)
+                                    V3_states = torch.unsqueeze(V3_states, 1)
+                                    V3_I = V3_states[i1-idot1:i1+i2-idot1-idot2]
+                                    V3_SG = V3_states[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                                    V3_D = V3_states[:i1-idot1]
+                                    V3_G = V3_states[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                                    V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                                    beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
+                                    req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
+                                    v3_losses, _ = self.compute_loss(V3_next.squeeze(1).squeeze(1), V3_next, beta_v3, Sind, req_diff_v3)
+                                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                                    if v3_state_loss > 0:
+                                        v3_losses = relu(v3_losses) + v3_state_loss
+                                    else:
+                                        v3_losses = relu(v3_losses)
+                                    v3_max_loss = torch.max(v3_losses, 0)
+                                    v3_ind_max = v3_max_loss[1].item()
+                                    v3_max_loss = v3_max_loss[0]
+                                    if len(supp_samples_v3) == 0:
+                                        supp_samples_v3.add(v3_ind_max)
+                                        v3_active = v3_max_loss
+                                    else:
+                                        v3_supps = list(supp_samples_v3)
+                                        v3_supp_loss = torch.max(v3_losses[v3_supps], 0)
+                                        v3_ind_max = v3_supps[v3_supp_loss[1]]
+                                        v3_supp_loss = v3_supp_loss[0]
+                                        if v3_supp_loss < best_loss_v3:
+                                            best_loss_v3 = v3_supp_loss.item()
+                                            best_nets_v3 = copy.deepcopy(learners[2])
+                                        if v3_supp_loss <= self.margin:
+                                            v3_true_max = torch.max(v3_losses, 0)
+                                            v3_true_max = v3_true_max[0]
+                                            if v3_true_max <= self.margin:
+                                                best_loss_v3 = v3_true_max.item()
+                                                best_nets_v3 = copy.deepcopy(learners[2])
+                                                cert_log.info("V3 converged at step {}".format(v3_t))
+                                                break
+                                            else:
+                                                v3_true_ind = torch.max(v3_losses, 0)[1].item()
+                                                supp_samples_v3 = supp_samples_v3.union(set([v3_true_ind]))
+                                                v3_active = v3_true_max
+                                        else:
+                                            v3_active = v3_supp_loss
+                                    if v3_active.item() < best_loss_v3:
+                                        best_loss_v3 = v3_active.item()
+                                        best_nets_v3 = copy.deepcopy(learners[2])
+                                    v3_active.backward()
+                                    optimizer[2].step()
+                                    if v3_t % 500 == 0:
+                                        cert_log.debug("v3 train: {:.6f} at step {} (best={:.6f})".format(v3_active.item(), v3_t, best_loss_v3))
                             best_nets = copy.deepcopy(learners)
                             break
                     # track_loss trains u1 (V was frozen during its forward, so no V grad);
@@ -1575,6 +1630,9 @@ class Direct_control(Certificate):
                         v3_ind_max = v3_max_loss[1].item()
                         v3_max_loss = v3_max_loss[0]
                         supp_samples_v3.add(v3_ind_max)
+                        if v3_max_loss.item() < best_loss_v3:
+                            best_loss_v3 = v3_max_loss.item()
+                            best_nets_v3 = copy.deepcopy(learners[2])
                         v3_max_loss.backward()
                     if parallel:
                         for opt in optimizer:
@@ -1655,6 +1713,63 @@ class Direct_control(Certificate):
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
                                         if tl.item() < 1e-4:
                                             break
+                                if _certify_frozen and best_loss_v3 > self.margin:
+                                    u1 = learners[1](samples_with_nexts)
+                                    for v3_t in range(learn_loops):
+                                        for opt in optimizer:
+                                            opt.zero_grad()
+                                        v3_nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.detach().mT)).mT
+                                        V3_next = learners[2](v3_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                                        V3_states = learners[2](states_only)
+                                        V3_states = torch.unsqueeze(V3_states, 1)
+                                        V3_I = V3_states[i1-idot1:i1+i2-idot1-idot2]
+                                        V3_SG = V3_states[i1+i2-idot1-idot2:i1+i2+i3-idot1-idot2-idot3]
+                                        V3_D = V3_states[:i1-idot1]
+                                        V3_G = V3_states[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
+                                        V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
+                                        beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
+                                        req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
+                                        v3_losses, _ = self.compute_loss(V3_next.squeeze(1).squeeze(1), V3_next, beta_v3, Sind, req_diff_v3)
+                                        v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                                        if v3_state_loss > 0:
+                                            v3_losses = relu(v3_losses) + v3_state_loss
+                                        else:
+                                            v3_losses = relu(v3_losses)
+                                        v3_max_loss = torch.max(v3_losses, 0)
+                                        v3_ind_max = v3_max_loss[1].item()
+                                        v3_max_loss = v3_max_loss[0]
+                                        if len(supp_samples_v3) == 0:
+                                            supp_samples_v3.add(v3_ind_max)
+                                            v3_active = v3_max_loss
+                                        else:
+                                            v3_supps = list(supp_samples_v3)
+                                            v3_supp_loss = torch.max(v3_losses[v3_supps], 0)
+                                            v3_ind_max = v3_supps[v3_supp_loss[1]]
+                                            v3_supp_loss = v3_supp_loss[0]
+                                            if v3_supp_loss < best_loss_v3:
+                                                best_loss_v3 = v3_supp_loss.item()
+                                                best_nets_v3 = copy.deepcopy(learners[2])
+                                            if v3_supp_loss <= self.margin:
+                                                v3_true_max = torch.max(v3_losses, 0)
+                                                v3_true_max = v3_true_max[0]
+                                                if v3_true_max <= self.margin:
+                                                    best_loss_v3 = v3_true_max.item()
+                                                    best_nets_v3 = copy.deepcopy(learners[2])
+                                                    cert_log.info("V3 converged at step {}".format(v3_t))
+                                                    break
+                                                else:
+                                                    v3_true_ind = torch.max(v3_losses, 0)[1].item()
+                                                    supp_samples_v3 = supp_samples_v3.union(set([v3_true_ind]))
+                                                    v3_active = v3_true_max
+                                            else:
+                                                v3_active = v3_supp_loss
+                                        if v3_active.item() < best_loss_v3:
+                                            best_loss_v3 = v3_active.item()
+                                            best_nets_v3 = copy.deepcopy(learners[2])
+                                        v3_active.backward()
+                                        optimizer[2].step()
+                                        if v3_t % 500 == 0:
+                                            cert_log.debug("v3 train: {:.6f} at step {} (best={:.6f})".format(v3_active.item(), v3_t, best_loss_v3))
                                 best_nets = copy.deepcopy(learners)
                                 break
                             else:
@@ -1842,7 +1957,7 @@ class Direct_control(Certificate):
         if _certify_frozen:
             all_supps = supp_samples.union(supp_samples_v3)
             all_supps.discard(-1)
-            return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss_v3, ScenAppStateKeys.v1_best_loss: best_loss, "best_net":best_nets, "new_supps": all_supps}
+            return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss_v3, ScenAppStateKeys.v1_best_loss: best_loss, "best_net":(best_nets[0], best_nets[1], best_nets_v3), "new_supps": all_supps}
         return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
     def get_violations(self, nets, S, state_data):
         violated = 0

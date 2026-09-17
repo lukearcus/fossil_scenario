@@ -1,0 +1,16 @@
+Epsilon: 0.93396
+Found a valid DIRECTCONTROL certificate
+Learner times: total=5147.8244830719195s,min=5147.8244830719195s,max=5147.8244830719195s,avg=5147.8244830719195s, N=1
+Direct Property scenario approach risk: nan
+Certificate violation rate: 0.100
+Property violation rate: 1.000
+Direct property guarantee time: 3.86419s
+
+====================================
+CPU Time used: 05:16:38
+CPU Percent: 388%
+Memory usage: 933472kb
+Approx Power usage: 0.0632
+Walltime usage: 01:29:04
+
+====================================

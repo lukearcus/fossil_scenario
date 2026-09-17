@@ -636,10 +636,16 @@ class SingleScenApp:
             # iteration 0 uses reference-controller trajectories.
             # When CERTIFY_FROZEN is enabled, skip trajectory check — V3's loss is the gate.
             if self.config.CERTIFY_FROZEN:
-                controller_training = True
-                for param in self.learner[1].parameters():
-                    param.requires_grad=True
-                scenapp_log.info("Controller update on (CERTIFY_FROZEN)")
+                if state["best_loss"] <= margin:
+                    controller_training = False
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=False
+                    scenapp_log.info("Controller update off (CERTIFY_FROZEN)")
+                else:
+                    controller_training = True
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=True
+                    scenapp_log.info("Controller update on (CERTIFY_FROZEN)")
             else:
                 if iters > 0:
                     trajs = self.S_traj["states"]
@@ -720,14 +726,14 @@ class SingleScenApp:
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if self.config.CERTIFY_FROZEN:
-                if state["best_loss"] <= margin:
-                    scenapp_log.debug("\033[1m Verifier \033[0m")
-                    outputs = self.verifier.get(**state)
-                    state = {**state, **outputs}
-                    print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
-                    stop = self.process_certificate(S, state, iters)
-            elif state["best_loss"] <= margin and not controller_training:
+            # if self.config.CERTIFY_FROZEN:
+            #     if state["best_loss"] <= margin:
+            #         scenapp_log.debug("\033[1m Verifier \033[0m")
+            #         outputs = self.verifier.get(**state)
+            #         state = {**state, **outputs}
+            #         print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
+            #         stop = self.process_certificate(S, state, iters)
+            if state["best_loss"] <= margin and not controller_training:
             #if True:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")

@@ -1486,6 +1486,7 @@ class Direct_control(Certificate):
                 if _certify_frozen:
                     v3_nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.detach().mT)).mT
                     V3_next = learners[2](v3_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                    V3_current = learners[2](samples_with_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
                     V3_states = learners[2](states_only)
                     V3_states = torch.unsqueeze(V3_states, 1)
                     V3_I = V3_states[i1-idot1:i1+i2-idot1-idot2]
@@ -1495,7 +1496,7 @@ class Direct_control(Certificate):
                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                    v3_losses, v3_acc = self.compute_loss(V3_next.squeeze(1).squeeze(1), V3_next, beta_v3, Sind, req_diff_v3)
+                    v3_losses, v3_acc = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
                     v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                     if v3_state_loss > 0:
                         v3_losses = relu(v3_losses) + v3_state_loss
@@ -1566,6 +1567,7 @@ class Direct_control(Certificate):
                                         opt.zero_grad()
                                     v3_nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.detach().mT)).mT
                                     V3_next = learners[2](v3_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                                    V3_current = learners[2](samples_with_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
                                     V3_states = learners[2](states_only)
                                     V3_states = torch.unsqueeze(V3_states, 1)
                                     V3_I = V3_states[i1-idot1:i1+i2-idot1-idot2]
@@ -1575,7 +1577,7 @@ class Direct_control(Certificate):
                                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                                    v3_losses, _ = self.compute_loss(V3_next.squeeze(1).squeeze(1), V3_next, beta_v3, Sind, req_diff_v3)
+                                    v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
                                     v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                                     if v3_state_loss > 0:
                                         v3_losses = relu(v3_losses) + v3_state_loss
@@ -1720,6 +1722,7 @@ class Direct_control(Certificate):
                                             opt.zero_grad()
                                         v3_nexts = (f_samples.mT + torch.bmm(g_samples.mT, u1.detach().mT)).mT
                                         V3_next = learners[2](v3_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
+                                        V3_current = learners[2](samples_with_nexts.squeeze(2)).unsqueeze(1).unsqueeze(1)
                                         V3_states = learners[2](states_only)
                                         V3_states = torch.unsqueeze(V3_states, 1)
                                         V3_I = V3_states[i1-idot1:i1+i2-idot1-idot2]
@@ -1729,7 +1732,7 @@ class Direct_control(Certificate):
                                         V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                         req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                                        v3_losses, _ = self.compute_loss(V3_next.squeeze(1).squeeze(1), V3_next, beta_v3, Sind, req_diff_v3)
+                                        v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
                                         v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                                         if v3_state_loss > 0:
                                             v3_losses = relu(v3_losses) + v3_state_loss

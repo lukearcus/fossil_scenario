@@ -636,7 +636,7 @@ class SingleScenApp:
             # iteration 0 uses reference-controller trajectories.
             # When CERTIFY_FROZEN is enabled, skip trajectory check — V3's loss is the gate.
             if self.config.CERTIFY_FROZEN:
-                if state["best_loss"] <= margin:
+                if state["best_loss"] <= margin and iters > 0:
                     controller_training = False
                     for param in self.learner[1].parameters():
                         param.requires_grad=False

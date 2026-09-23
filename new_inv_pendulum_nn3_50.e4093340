@@ -1,0 +1,75 @@
+2026-09-18 09:40:51,399 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-09-18 09:40:51,399 - fossil.scenapp - INFO - Controller update on (CERTIFY_FROZEN)
+2026-09-18 09:41:53,314 - fossil.certificate - DEBUG - 100 - loss: 0.2443913519
+2026-09-18 09:42:56,060 - fossil.certificate - DEBUG - 200 - loss: 0.1767868251
+2026-09-18 09:44:06,315 - fossil.certificate - DEBUG - 300 - loss: 0.0986124054
+2026-09-18 09:45:22,146 - fossil.certificate - DEBUG - 400 - loss: 0.0929850712
+2026-09-18 09:46:21,668 - fossil.certificate - DEBUG - 500 - loss: 0.0938817635
+2026-09-18 09:47:21,411 - fossil.certificate - DEBUG - 600 - loss: 0.0871596709
+2026-09-18 09:48:22,904 - fossil.certificate - DEBUG - 700 - loss: 0.0945104137
+2026-09-18 09:49:22,414 - fossil.certificate - DEBUG - 800 - loss: 0.0752280727
+2026-09-18 09:50:09,387 - fossil.certificate - INFO - State sol at iteration 880
+2026-09-18 09:50:19,516 - fossil.certificate - DEBUG - 1 - loss: 0.82117
+2026-09-18 09:50:19,516 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-09-18 09:50:19,516 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-09-18 10:21:36,314 - fossil.certificate - DEBUG - 100 - loss: 0.15105
+2026-09-18 10:21:36,315 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-09-18 10:21:36,315 - fossil.certificate - DEBUG -  - state_acc: 99.665%
+2026-09-18 10:59:41,763 - fossil.certificate - DEBUG - 200 - loss: 0.14574
+2026-09-18 10:59:41,764 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-09-18 10:59:41,764 - fossil.certificate - DEBUG -  - state_acc: 95.560%
+2026-09-18 11:05:19,868 - fossil.certificate - INFO - V3 zero loss
+2026-09-18 11:05:41,364 - fossil.certificate - INFO - V3 zero loss
+2026-09-18 11:35:56,004 - fossil.certificate - INFO - V3 zero loss
+2026-09-18 11:37:05,649 - fossil.certificate - DEBUG - 300 - loss: 0.10226
+2026-09-18 11:37:05,650 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-09-18 11:37:05,650 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-09-18 11:41:29,832 - fossil.certificate - INFO - V3 zero loss
+2026-09-18 11:55:02,809 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-09-18 11:55:02,812 - fossil.certificate - DEBUG - u1 track: 0.227524 at step 0
+2026-09-18 11:55:03,678 - fossil.certificate - DEBUG - u1 track: 0.010342 at step 500
+2026-09-18 11:55:04,551 - fossil.certificate - DEBUG - u1 track: 0.005370 at step 1000
+2026-09-18 11:55:05,379 - fossil.certificate - DEBUG - u1 track: 0.003598 at step 1500
+2026-09-18 11:55:06,205 - fossil.certificate - DEBUG - u1 track: 0.002464 at step 2000
+2026-09-18 11:55:07,049 - fossil.certificate - DEBUG - u1 track: 0.001664 at step 2500
+2026-09-18 11:55:07,869 - fossil.certificate - DEBUG - u1 track: 0.001059 at step 3000
+2026-09-18 11:55:08,719 - fossil.certificate - DEBUG - u1 track: 0.000672 at step 3500
+2026-09-18 11:55:09,576 - fossil.certificate - DEBUG - u1 track: 0.000447 at step 4000
+2026-09-18 11:55:10,428 - fossil.certificate - DEBUG - u1 track: 0.000318 at step 4500
+2026-09-18 11:55:11,289 - fossil.certificate - DEBUG - u1 track: 0.000236 at step 5000
+2026-09-18 11:55:12,149 - fossil.certificate - DEBUG - u1 track: 0.000187 at step 5500
+2026-09-18 11:55:13,009 - fossil.certificate - DEBUG - u1 track: 0.000160 at step 6000
+2026-09-18 11:55:13,870 - fossil.certificate - DEBUG - u1 track: 0.000134 at step 6500
+2026-09-18 11:55:14,739 - fossil.certificate - DEBUG - u1 track: 0.000113 at step 7000
+2026-09-18 11:55:15,602 - fossil.certificate - DEBUG - u1 track: 0.000101 at step 7500
+2026-09-18 11:55:26,941 - fossil.certificate - INFO - Track loss: 0.0001164946
+2026-09-18 11:55:27,575 - fossil.certificate - INFO - Loss is 0.0494302884
+2026-09-18 11:55:27,575 - fossil.certificate - DEBUG - 346 - loss: 0.04943
+2026-09-18 11:55:27,575 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-09-18 11:55:27,589 - fossil.scenapp - INFO - Best Loss below margin
+2026-09-18 11:55:27,589 - fossil.scenapp - INFO - Previous Best loss: 0.0474628694
+2026-09-18 11:55:27,589 - fossil.scenapp - DEBUG - Param delta (rel): 3.432189e+01 / 1.416073e-02
+2026-09-18 11:55:27,589 - fossil.scenapp - INFO - Iteration: 1
+2026-09-18 11:55:27,590 - fossil.scenapp - INFO - Current loss: 0.0494302884
+2026-09-18 11:55:27,713 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-09-18 11:55:27,713 - fossil.scenapp - INFO - Controller update off (CERTIFY_FROZEN)
+2026-09-18 11:56:31,279 - fossil.certificate - INFO - State sol at iteration 97
+2026-09-18 11:56:45,705 - fossil.certificate - DEBUG - 1 - loss: 0.56915
+2026-09-18 11:56:45,706 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-09-18 11:56:45,706 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-09-18 12:15:09,882 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-09-18 12:15:10,241 - fossil.certificate - DEBUG - v3 train: 0.140018 at step 0 (best=0.053725)
+2026-09-18 12:15:45,767 - fossil.certificate - INFO - V3 converged at step 100
+2026-09-18 12:15:57,135 - fossil.certificate - INFO - Track loss: 0.2843435705
+2026-09-18 12:15:57,733 - fossil.certificate - INFO - Loss is 0.0487891622
+2026-09-18 12:15:57,733 - fossil.certificate - DEBUG - 54 - loss: 0.04879
+2026-09-18 12:15:57,733 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-09-18 12:15:57,745 - fossil.scenapp - INFO - Best Loss below margin
+2026-09-18 12:15:57,745 - fossil.scenapp - INFO - Previous Best loss: 0.0489777587
+2026-09-18 12:15:57,746 - fossil.scenapp - DEBUG - Param delta (rel): 8.314995e+00 / 3.766251e-02
+2026-09-18 12:15:57,746 - fossil.scenapp - DEBUG - [1m Verifier [0m
+2026-09-18 12:15:57,747 - fossil.scenapp - INFO - Current loss: 0.0487891622
+2026-09-18 12:15:57,936 - fossil.scenapp - INFO - Verifier times: total=0s,min=9223372036854775808s,max=0s,avg=0s, N=0
+2026-09-18 12:16:01,092 - fossil.scenapp - INFO - a_post_verify generate_trajs: 3.091s (100 trajs)
+/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py:168: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  x = torch.tensor(x,dtype=torch.float32)

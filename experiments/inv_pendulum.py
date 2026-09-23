@@ -77,7 +77,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 10
+    n_data = 50
     system = models.InvPendulum
     
     def random_control(obj, t, x):

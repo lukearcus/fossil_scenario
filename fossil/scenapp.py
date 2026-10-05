@@ -712,11 +712,11 @@ class SingleScenApp:
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            #if self.config.CERTIFY_FROZEN:
-            #    v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
-            #    if v1_bl <= margin and state["best_loss"] > margin:
-            #        scenapp_log.info("Updating controller (V1 satisfied, V3 pending)")
-            #        state = self.update_controller(state)
+            if self.config.CERTIFY_FROZEN:
+                v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
+                if v1_bl <= margin and state["best_loss"] > margin:
+                    scenapp_log.info("Updating controller (V1 satisfied, V3 pending)")
+                    state = self.update_controller(state)
             if state["best_loss"] <= margin and controller_training:
                 # Regenerate trajectories with the improved controller and continue training.
                 # Once trajectories reach XG, controller_training flips False and the gate below

@@ -634,50 +634,43 @@ class SingleScenApp:
             # Convergence gate: check whether the learned controller's trajectories
             # geometrically reach the goal (and avoid unsafe set). iters > 0 only:
             # iteration 0 uses reference-controller trajectories.
-            # When CERTIFY_FROZEN is enabled, skip trajectory check — V3's loss is the gate.
-            if self.config.CERTIFY_FROZEN:
-                if state["best_loss"] <= margin and iters > 0:
-                    controller_training = False
-                    for param in self.learner[1].parameters():
-                        param.requires_grad=False
-                    scenapp_log.info("Controller update off (CERTIFY_FROZEN)")
-                else:
-                    controller_training = True
-                    for param in self.learner[1].parameters():
-                        param.requires_grad=True
-                    scenapp_log.info("Controller update on (CERTIFY_FROZEN)")
-            else:
-                if iters > 0:
-                    trajs = self.S_traj["states"]
-                    if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
-                        xg = self.config.DOMAINS[DomainNames.XG.value]
-                        converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
-                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
-                        xu = self.config.DOMAINS[DomainNames.XU.value]
-                        converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
-                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
-                        xg = self.config.DOMAINS[DomainNames.XG.value]
-                        xu = self.config.DOMAINS[DomainNames.XU.value]
-                        converged = all(any(xg.check_containment(torch.tensor(t.T)))
-                                        and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
-                    else:
-                        converged = False
+            # V3 (CERTIFY_FROZEN) trains alongside but does not control this gate.
+            if iters > 0:
+                trajs = self.S_traj["states"]
+                if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+                    xg = self.config.DOMAINS[DomainNames.XG.value]
+                    converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
+                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+                    xu = self.config.DOMAINS[DomainNames.XU.value]
+                    converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+                    xg = self.config.DOMAINS[DomainNames.XG.value]
+                    xu = self.config.DOMAINS[DomainNames.XU.value]
+                    converged = all(any(xg.check_containment(torch.tensor(t.T)))
+                                    and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
                 else:
                     converged = False
+            else:
+                converged = False
 
-                if converged:
-                    for param in self.learner[1].parameters():
-                        param.requires_grad=False
-                    scenapp_log.info("Controller update off")
-                    controller_training = False
-                else:
-                    for param in self.learner[1].parameters():
-                        param.requires_grad=True
-                    scenapp_log.info("Controller update on")
-                    controller_training = True
+            if converged:
+                for param in self.learner[1].parameters():
+                    param.requires_grad=False
+                scenapp_log.info("Controller update off")
+                controller_training = False
+            else:
+                for param in self.learner[1].parameters():
+                    param.requires_grad=True
+                scenapp_log.info("Controller update on")
+                controller_training = True
 
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
+            # When CERTIFY_FROZEN, state["best_loss"] is V3's loss and v1_best_loss is V1's.
+            # V1's loss is the one that reflects the actual Lyapunov decrease condition, so use
+            # it for all gates (controller update, verification, convergence). V3 trains
+            # passively alongside; its loss is logged only.
+            gate_loss = state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"]) if self.config.CERTIFY_FROZEN else state["best_loss"]
             #if old_best < state["best_loss"] and state["best_loss"]>margin:
             if False:
                 print("Increased loss, reverting")
@@ -687,61 +680,44 @@ class SingleScenApp:
                 reverted=True # check this is needed??? Seems to work without??..
                 #Also had old_best updating on reversion before when success?
             else:
-                old_best = state["best_loss"]
+                old_best = gate_loss
                 del old_nets  # free previous deepcopy before creating new one
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
-            if state["best_loss"] >margin:
-                scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
+            if gate_loss > margin:
+                scenapp_log.info("Best loss: {:.10f}".format(gate_loss))
             else:
                 scenapp_log.info("Best Loss below margin")
-                #if state["parallel"]==True:
-                #    start_switch = True
+            if self.config.CERTIFY_FROZEN:
+                v3_bl = state["best_loss"]
+                if isinstance(v3_bl, torch.Tensor):
+                    v3_bl = v3_bl.item()
+                scenapp_log.info("V3 best loss: {:.10f}".format(v3_bl))
             if isinstance(old_best, (int, float)):
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
-            # param_delta is logged for diagnostics only. The verification gate is now:
-            #   best_loss <= margin (V Lyapunov condition holds on the support subset) AND
-            #   not controller_training (trajectories geometrically reach XG).
-            # The latter is the goal-reaching check; the former is the scenario-approach
-            # certificate condition. Together: "Epsilon printed + goal reached".
             new_param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
             param_delta = (new_param_vec - param_vec).norm().item()
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            if self.config.CERTIFY_FROZEN:
-                v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
-                if v1_bl <= margin and state["best_loss"] > margin:
-                    scenapp_log.info("Updating controller (V1 satisfied, V3 pending)")
-                    state = self.update_controller(state)
-            if state["best_loss"] <= margin and controller_training:
-                # Regenerate trajectories with the improved controller and continue training.
-                # Once trajectories reach XG, controller_training flips False and the gate below
-                # can fire.
+            if gate_loss <= margin and controller_training:
                 scenapp_log.info("Updating controller")
                 state = self.update_controller(state)
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            # if self.config.CERTIFY_FROZEN:
-            #     if state["best_loss"] <= margin:
-            #         scenapp_log.debug("\033[1m Verifier \033[0m")
-            #         outputs = self.verifier.get(**state)
-            #         state = {**state, **outputs}
-            #         print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
-            #         stop = self.process_certificate(S, state, iters)
-            if state["best_loss"] <= margin and not controller_training:
+            if gate_loss <= margin and not controller_training:
             #if True:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)
-                    if state["best_loss"] > - delta:
+                    if gate_loss > - delta:
                         iters += 1
                         old_loss = state["loss"]
-                        old_best = state["best_loss"]
+                        old_best = gate_loss
                         scenapp_log.info("Required delta: {:.5f}".format(delta))
                         scenapp_log.info("Iteration: {}".format(iters))
                     else:
@@ -776,13 +752,13 @@ class SingleScenApp:
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
-            elif state["best_loss"] > margin and old_best-state["best_loss"] < converge_tol:
+            elif gate_loss > margin and old_best-gate_loss < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 #state = self.discard(state)
                 #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
                 old_loss = state["loss"]
-                old_best = state["best_loss"]
+                old_best = gate_loss
                 scenapp_log.info("Iteration: {}".format(iters))
                 for (net, best) in zip(state[ScenAppStateKeys.net], state["best_net"]):
                     net.load_state_dict(best.state_dict())
@@ -795,7 +771,7 @@ class SingleScenApp:
 
                 iters += 1
                 old_loss = state["loss"]
-                old_best = state["best_loss"]
+                old_best = gate_loss
                 scenapp_log.info("Iteration: {}".format(iters))
             if state["loss"].item() == 0:
                 scenapp_log.info("Zero Current Loss")
@@ -915,6 +891,7 @@ class SingleScenApp:
             "old_loss": float(old_loss) if hasattr(old_loss, "item") else float(old_loss),
             "old_best": float(old_best) if hasattr(old_best, "item") else float(old_best),
             "best_loss": float(state["best_loss"]) if hasattr(state["best_loss"], "item") else float(state["best_loss"]),
+            "v1_best_loss": float(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"])) if hasattr(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"]), "item") else float(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"])),
             "param_vec": param_vec.detach().cpu().clone() if torch.is_tensor(param_vec) else param_vec,
             "supps": state["supps"],
             "discarded": state["discarded"],
@@ -974,6 +951,8 @@ class SingleScenApp:
         state["supps"] = ckpt["supps"]
         state["discarded"] = ckpt["discarded"]
         state["best_loss"] = ckpt["best_loss"]
+        if "v1_best_loss" in ckpt:
+            state[ScenAppStateKeys.v1_best_loss] = ckpt["v1_best_loss"]
         # Trajectory dataset: restore self.S / self.S_traj / self.init_S, then re-derive
         # the state dict's S/Sdot/S_inds/times/f/g views exactly as solve() does at entry.
         self.S = ckpt["S"]

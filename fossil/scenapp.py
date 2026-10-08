@@ -634,7 +634,6 @@ class SingleScenApp:
             # Convergence gate: check whether the learned controller's trajectories
             # geometrically reach the goal (and avoid unsafe set). iters > 0 only:
             # iteration 0 uses reference-controller trajectories.
-            # V3 (CERTIFY_FROZEN) trains alongside but does not control this gate.
             if iters > 0:
                 trajs = self.S_traj["states"]
                 if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
@@ -666,11 +665,6 @@ class SingleScenApp:
 
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
-            # When CERTIFY_FROZEN, state["best_loss"] is V3's loss and v1_best_loss is V1's.
-            # V1's loss is the one that reflects the actual Lyapunov decrease condition, so use
-            # it for all gates (controller update, verification, convergence). V3 trains
-            # passively alongside; its loss is logged only.
-            gate_loss = state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"]) if self.config.CERTIFY_FROZEN else state["best_loss"]
             #if old_best < state["best_loss"] and state["best_loss"]>margin:
             if False:
                 print("Increased loss, reverting")
@@ -680,20 +674,20 @@ class SingleScenApp:
                 reverted=True # check this is needed??? Seems to work without??..
                 #Also had old_best updating on reversion before when success?
             else:
-                old_best = gate_loss
+                old_best = state["best_loss"]
                 del old_nets  # free previous deepcopy before creating new one
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
-            if gate_loss > margin:
-                scenapp_log.info("Best loss: {:.10f}".format(gate_loss))
+            if state["best_loss"] > margin:
+                scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
             else:
                 scenapp_log.info("Best Loss below margin")
             if self.config.CERTIFY_FROZEN:
-                v3_bl = state["best_loss"]
-                if isinstance(v3_bl, torch.Tensor):
-                    v3_bl = v3_bl.item()
-                scenapp_log.info("V3 best loss: {:.10f}".format(v3_bl))
+                v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
+                if isinstance(v1_bl, torch.Tensor):
+                    v1_bl = v1_bl.item()
+                scenapp_log.info("V1 best loss: {:.10f}".format(v1_bl))
             if isinstance(old_best, (int, float)):
                 scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
             else:
@@ -703,21 +697,21 @@ class SingleScenApp:
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            if gate_loss <= margin and controller_training:
+            if state["best_loss"] <= margin and controller_training:
                 scenapp_log.info("Updating controller")
                 state = self.update_controller(state)
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if gate_loss <= margin and not controller_training:
+            if state["best_loss"] <= margin and not controller_training:
             #if True:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)
-                    if gate_loss > - delta:
+                    if state["best_loss"] > - delta:
                         iters += 1
                         old_loss = state["loss"]
-                        old_best = gate_loss
+                        old_best = state["best_loss"]
                         scenapp_log.info("Required delta: {:.5f}".format(delta))
                         scenapp_log.info("Iteration: {}".format(iters))
                     else:
@@ -752,13 +746,13 @@ class SingleScenApp:
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
             #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
-            elif gate_loss > margin and old_best-gate_loss < converge_tol:
+            elif state["best_loss"] > margin and old_best-state["best_loss"] < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
                 #state = self.discard(state)
                 #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
                 old_loss = state["loss"]
-                old_best = gate_loss
+                old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
                 for (net, best) in zip(state[ScenAppStateKeys.net], state["best_net"]):
                     net.load_state_dict(best.state_dict())
@@ -771,7 +765,7 @@ class SingleScenApp:
 
                 iters += 1
                 old_loss = state["loss"]
-                old_best = gate_loss
+                old_best = state["best_loss"]
                 scenapp_log.info("Iteration: {}".format(iters))
             if state["loss"].item() == 0:
                 scenapp_log.info("Zero Current Loss")

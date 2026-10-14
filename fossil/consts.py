@@ -217,6 +217,7 @@ class ScenAppConfig:
     SEED: int = 0
     CUSTOM_CERTIFICATE: Any = None
     MARGIN: float = 1e-5
+    V3_ZERO_TOL: float = 1e-6  # V3 loss threshold for controller freeze (CERTIFY_FROZEN)
     PARALLEL: bool = True
     N_THREADS: int = 4  # torch CPU threads; raises utilization across cores (malloc_trim handles fragmentation)
     # Min-controller (controlled-Lyapunov) settings for Direct_control / Direct_control_RWA.

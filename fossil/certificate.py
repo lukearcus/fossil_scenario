@@ -1231,7 +1231,7 @@ class Direct_control(Certificate):
         self.margin = config.MARGIN
         self.config = config
 
-    def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta, V_SG=None):
+    def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
         relu = torch.nn.ReLU()
         
         margin = self.margin
@@ -1252,11 +1252,6 @@ class Direct_control(Certificate):
         init_loss = V_I
         acc = (acc*N_data+ sum(init_loss < 0))/(2*N_data)
         loss = loss + relu(init_loss+margin).max()
-
-        if V_SG is not None:
-            goal_border_loss = V_SG - V_I.min()
-            acc = (acc*N_data+ sum(goal_border_loss < 0))/(2*N_data)
-            loss = loss + relu(goal_border_loss + margin).max()
         
         return loss, {"state_acc":acc.item()*100}
 
@@ -1496,7 +1491,7 @@ class Direct_control(Certificate):
                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
                     v3_losses, v3_acc = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, V3_SG)
+                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                     if v3_state_loss > 0:
                         v3_losses = relu(v3_losses) + v3_state_loss
                     else:
@@ -1514,7 +1509,7 @@ class Direct_control(Certificate):
                 # NOTE: reg_loss = torch.norm(nexts) used to be computed here every inner step
                 # but was never used (only referenced in the commented line `#supp_loss = supp_loss + reg_loss`).
                 losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
-                loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta, V_SG)
+                loss, state_acc = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                 acc = learn_accuracy|state_acc
                 #losses = losses+loss
                 #if losses.max() > 0:
@@ -1577,7 +1572,7 @@ class Direct_control(Certificate):
                                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
                                     v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, V3_SG)
+                                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                                     if v3_state_loss > 0:
                                         v3_losses = relu(v3_losses) + v3_state_loss
                                     else:
@@ -1732,7 +1727,7 @@ class Direct_control(Certificate):
                                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                         req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
                                         v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                                        v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, V3_SG)
+                                        v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                                         if v3_state_loss > 0:
                                             v3_losses = relu(v3_losses) + v3_state_loss
                                         else:
@@ -1825,7 +1820,7 @@ class Direct_control(Certificate):
                     V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     #beta = (V_SG.min()*9+V_G.min())/10
                     beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
-                    loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta, V_SG)
+                    loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
                     if _certify_frozen:
                         V3_s = learners[2](states_only)
                         V3_s = torch.unsqueeze(V3_s, 1)
@@ -1835,7 +1830,7 @@ class Direct_control(Certificate):
                         V3_G = V3_s[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                         V3_SD = V3_s[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
-                        v3_state_loss,_ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, V3_SG)
+                        v3_state_loss,_ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
                         loss = loss + v3_state_loss
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
@@ -1938,7 +1933,7 @@ class Direct_control(Certificate):
 
         losses, learn_accuracy = self.compute_loss(V1, V_next, beta,Sind, req_diff)
 
-        loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta, V_SG)
+        loss,_ = self.compute_state_loss(V_D, V_G, V_I, V_SD, beta)
         
         losses = relu(losses) + loss
         max_loss = torch.max(losses, 0)

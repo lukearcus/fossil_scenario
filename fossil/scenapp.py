@@ -631,93 +631,107 @@ class SingleScenApp:
             #        param.requires_grad=False
             #    for param in self.learner[0].parameters():
             #        param.requires_grad=True
-            # Convergence gate: check whether the learned controller's trajectories
-            # geometrically reach the goal (and avoid unsafe set). iters > 0 only:
-            # iteration 0 uses reference-controller trajectories.
-            if iters > 0:
-                trajs = self.S_traj["states"]
-                if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
-                    xg = self.config.DOMAINS[DomainNames.XG.value]
-                    converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
-                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
-                    xu = self.config.DOMAINS[DomainNames.XU.value]
-                    converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
-                elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
-                    xg = self.config.DOMAINS[DomainNames.XG.value]
-                    xu = self.config.DOMAINS[DomainNames.XU.value]
-                    converged = all(any(xg.check_containment(torch.tensor(t.T)))
-                                    and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+            # Controller freeze gate:
+            # - CERTIFY_FROZEN: freeze when V3 loss < V3_ZERO_TOL (genuine Lyapunov decrease with u1)
+            # - Otherwise: freeze when trajectories reach goal
+            if self.config.CERTIFY_FROZEN:
+                v3_bl = state.get("best_loss", float('inf'))
+                v3_val = v3_bl.item() if isinstance(v3_bl, torch.Tensor) else v3_bl
+                if iters > 0 and v3_val < self.config.V3_ZERO_TOL:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad = False
+                    scenapp_log.info("Controller update off (V3 zero)")
+                    controller_training = False
+                else:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad = True
+                    scenapp_log.info("Controller update on")
+                    controller_training = True
+            else:
+                if iters > 0:
+                    trajs = self.S_traj["states"]
+                    if self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROL:
+                        xg = self.config.DOMAINS[DomainNames.XG.value]
+                        converged = all(any(xg.check_containment(torch.tensor(t.T))) for t in trajs)
+                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLBARR:
+                        xu = self.config.DOMAINS[DomainNames.XU.value]
+                        converged = all(not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                    elif self.config.CERTIFICATE == certificate.CertificateType.DIRECTCONTROLRWA:
+                        xg = self.config.DOMAINS[DomainNames.XG.value]
+                        xu = self.config.DOMAINS[DomainNames.XU.value]
+                        converged = all(any(xg.check_containment(torch.tensor(t.T)))
+                                        and not any(xu.check_containment(torch.tensor(t.T))) for t in trajs)
+                    else:
+                        converged = False
                 else:
                     converged = False
-            else:
-                converged = False
 
-            if converged:
-                for param in self.learner[1].parameters():
-                    param.requires_grad=False
-                scenapp_log.info("Controller update off")
-                controller_training = False
-            else:
-                for param in self.learner[1].parameters():
-                    param.requires_grad=True
-                scenapp_log.info("Controller update on")
-                controller_training = True
+                if converged:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=False
+                    scenapp_log.info("Controller update off")
+                    controller_training = False
+                else:
+                    for param in self.learner[1].parameters():
+                        param.requires_grad=True
+                    scenapp_log.info("Controller update on")
+                    controller_training = True
 
             outputs = self.learner[0].get(**state)
             state = {**state, **outputs}
+            # When CERTIFY_FROZEN, state["best_loss"] is V3's loss and v1_best_loss is V1's.
+            # V1's loss gates controller updates and convergence; V3 gates controller freeze.
+            v1_loss = state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"]) if self.config.CERTIFY_FROZEN else state["best_loss"]
             #if old_best < state["best_loss"] and state["best_loss"]>margin:
             if False:
                 print("Increased loss, reverting")
                 state["best_loss"] = old_best
                 self.learner = copy.deepcopy(old_nets)
                 state["best_net"] = copy.deepcopy(old_nets)
-                reverted=True # check this is needed??? Seems to work without??..
-                #Also had old_best updating on reversion before when success?
+                reverted=True
             else:
-                old_best = state["best_loss"]
+                old_best = v1_loss
                 del old_nets  # free previous deepcopy before creating new one
                 old_nets = copy.deepcopy(state["best_net"])
                 reverted=False
 
-            if state["best_loss"] > margin:
-                scenapp_log.info("Best loss: {:.10f}".format(state["best_loss"]))
+            if v1_loss > margin:
+                scenapp_log.info("V1 best loss: {:.10f}".format(v1_loss if not isinstance(v1_loss, torch.Tensor) else v1_loss.item()))
             else:
-                scenapp_log.info("Best Loss below margin")
+                scenapp_log.info("V1 best loss below margin")
             if self.config.CERTIFY_FROZEN:
-                v1_bl = state.get(ScenAppStateKeys.v1_best_loss, float('inf'))
-                if isinstance(v1_bl, torch.Tensor):
-                    v1_bl = v1_bl.item()
-                scenapp_log.info("V1 best loss: {:.10f}".format(v1_bl))
+                v3_bl = state["best_loss"]
+                v3_val = v3_bl.item() if isinstance(v3_bl, torch.Tensor) else v3_bl
+                scenapp_log.info("V3 best loss: {:.10f}".format(v3_val))
             if isinstance(old_best, (int, float)):
-                scenapp_log.info("Previous Best loss: {:.10f}".format(old_best))
+                scenapp_log.info("Previous V1 best: {:.10f}".format(old_best))
             else:
-                scenapp_log.info("Previous Best loss: {:.10f}".format(old_best.item()))
+                scenapp_log.info("Previous V1 best: {:.10f}".format(old_best.item()))
             new_param_vec = torch.cat([p.detach().flatten() for l in state["best_net"] for p in l.parameters()])
             param_delta = (new_param_vec - param_vec).norm().item()
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
 
-            if state["best_loss"] <= margin and controller_training:
+            if v1_loss <= margin and controller_training:
                 scenapp_log.info("Updating controller")
                 state = self.update_controller(state)
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if state["best_loss"] <= margin and not controller_training:
-            #if True:
+            if not controller_training:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)
-                    if state["best_loss"] > - delta:
+                    if v1_loss > - delta:
                         iters += 1
                         old_loss = state["loss"]
-                        old_best = state["best_loss"]
+                        old_best = v1_loss
                         scenapp_log.info("Required delta: {:.5f}".format(delta))
                         scenapp_log.info("Iteration: {}".format(iters))
                     else:
                         scenapp_log.info("Required delta: {:.5f}".format(delta))
                         scenapp_log.debug("\033[1m Verifier \033[0m")
-                        
+
 
                         outputs = self.verifier.get(**state)
                         state = {**state, **outputs}
@@ -727,14 +741,14 @@ class SingleScenApp:
 
                 else:
                     scenapp_log.debug("\033[1m Verifier \033[0m")
-                    
+
 
                     outputs = self.verifier.get(**state)
                     state = {**state, **outputs}
 
                     print("Epsilon: {:.5f}".format(state[ScenAppStateKeys.bounds]))
                     stop = self.process_certificate(S, state, iters)
-            
+
             elif state[ScenAppStateKeys.verification_timed_out]:
                 scenapp_log.warning("Verification timed out")
                 stop = True
@@ -745,18 +759,14 @@ class SingleScenApp:
                 scenapp_log.warning("Out of iterations")
                 stop = True
                 state[ScenAppStateKeys.bounds] = None
-            #elif torch.abs(old_best-state["best_loss"]) < converge_tol:
-            elif state["best_loss"] > margin and old_best-state["best_loss"] < converge_tol:
+            elif v1_loss > margin and old_best - v1_loss < converge_tol:
                 scenapp_log.info("Convergence reached, but failed to find valid certificate, discarding samples")
-                #state = self.discard(state)
-                #scenapp_log.debug("Discarded {} samples so far".format(len(state["discarded"])))
                 iters += 1
                 old_loss = state["loss"]
-                old_best = state["best_loss"]
+                old_best = v1_loss
                 scenapp_log.info("Iteration: {}".format(iters))
                 for (net, best) in zip(state[ScenAppStateKeys.net], state["best_net"]):
                     net.load_state_dict(best.state_dict())
-                #= copy.deepcopy(state["best_net"])
 
             elif not (
                     state[ScenAppStateKeys.found]
@@ -765,7 +775,7 @@ class SingleScenApp:
 
                 iters += 1
                 old_loss = state["loss"]
-                old_best = state["best_loss"]
+                old_best = v1_loss
                 scenapp_log.info("Iteration: {}".format(iters))
             if state["loss"].item() == 0:
                 scenapp_log.info("Zero Current Loss")

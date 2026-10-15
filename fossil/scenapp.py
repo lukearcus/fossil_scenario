@@ -718,7 +718,7 @@ class SingleScenApp:
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if not controller_training:
+            if not controller_training and v3_val < self.config.V3_ZERO_TOL:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)

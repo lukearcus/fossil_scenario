@@ -1,0 +1,2419 @@
+2026-10-14 21:41:18,261 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-10-14 21:41:18,262 - fossil.scenapp - INFO - Controller update on
+2026-10-14 21:42:26,594 - fossil.certificate - DEBUG - 100 - loss: 0.2905220091
+2026-10-14 21:43:31,577 - fossil.certificate - DEBUG - 200 - loss: 0.1728814393
+2026-10-14 21:44:41,600 - fossil.certificate - DEBUG - 300 - loss: 0.0925065055
+2026-10-14 21:45:53,487 - fossil.certificate - DEBUG - 400 - loss: 0.0895678774
+2026-10-14 21:47:00,843 - fossil.certificate - DEBUG - 500 - loss: 0.0936356559
+2026-10-14 21:48:09,052 - fossil.certificate - DEBUG - 600 - loss: 0.0854750648
+2026-10-14 21:49:14,243 - fossil.certificate - DEBUG - 700 - loss: 0.0521946922
+2026-10-14 21:49:16,447 - fossil.certificate - INFO - State sol at iteration 703
+2026-10-14 21:49:19,796 - fossil.certificate - DEBUG - 1 - loss: 0.72165
+2026-10-14 21:49:19,796 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 21:49:19,796 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 21:53:42,488 - fossil.certificate - DEBUG - 100 - loss: 0.12504
+2026-10-14 21:53:42,488 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-10-14 21:53:42,488 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 21:58:15,961 - fossil.certificate - DEBUG - 200 - loss: 0.09883
+2026-10-14 21:58:15,961 - fossil.certificate - DEBUG -  - traj_acc: 10.000%
+2026-10-14 21:58:15,961 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:03:42,955 - fossil.certificate - DEBUG - 300 - loss: 0.10877
+2026-10-14 22:03:42,955 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:03:42,955 - fossil.certificate - DEBUG -  - state_acc: 99.998%
+2026-10-14 22:08:55,871 - fossil.certificate - DEBUG - 400 - loss: 0.10701
+2026-10-14 22:08:55,871 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:08:55,871 - fossil.certificate - DEBUG -  - state_acc: 99.998%
+2026-10-14 22:14:02,732 - fossil.certificate - DEBUG - 500 - loss: 0.10219
+2026-10-14 22:14:02,732 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:14:02,732 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:19:31,238 - fossil.certificate - DEBUG - 600 - loss: 0.09810
+2026-10-14 22:19:31,239 - fossil.certificate - DEBUG -  - traj_acc: 90.000%
+2026-10-14 22:19:31,239 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:20:11,820 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:24:45,649 - fossil.certificate - DEBUG - 700 - loss: 0.10218
+2026-10-14 22:24:45,650 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:24:45,650 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:25:19,697 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-10-14 22:25:19,701 - fossil.certificate - DEBUG - u1 track: 0.024286 at step 0
+2026-10-14 22:25:20,578 - fossil.certificate - DEBUG - u1 track: 0.007149 at step 500
+2026-10-14 22:25:21,457 - fossil.certificate - DEBUG - u1 track: 0.006197 at step 1000
+2026-10-14 22:25:22,329 - fossil.certificate - DEBUG - u1 track: 0.005410 at step 1500
+2026-10-14 22:25:23,220 - fossil.certificate - DEBUG - u1 track: 0.004641 at step 2000
+2026-10-14 22:25:24,111 - fossil.certificate - DEBUG - u1 track: 0.003997 at step 2500
+2026-10-14 22:25:24,940 - fossil.certificate - DEBUG - u1 track: 0.003415 at step 3000
+2026-10-14 22:25:25,824 - fossil.certificate - DEBUG - u1 track: 0.002917 at step 3500
+2026-10-14 22:25:26,715 - fossil.certificate - DEBUG - u1 track: 0.002482 at step 4000
+2026-10-14 22:25:27,591 - fossil.certificate - DEBUG - u1 track: 0.002043 at step 4500
+2026-10-14 22:25:28,490 - fossil.certificate - DEBUG - u1 track: 0.001568 at step 5000
+2026-10-14 22:25:29,375 - fossil.certificate - DEBUG - u1 track: 0.001138 at step 5500
+2026-10-14 22:25:30,222 - fossil.certificate - DEBUG - u1 track: 0.000808 at step 6000
+2026-10-14 22:25:31,091 - fossil.certificate - DEBUG - u1 track: 0.000593 at step 6500
+2026-10-14 22:25:31,977 - fossil.certificate - DEBUG - u1 track: 0.000469 at step 7000
+2026-10-14 22:25:32,850 - fossil.certificate - DEBUG - u1 track: 0.000383 at step 7500
+2026-10-14 22:25:33,737 - fossil.certificate - DEBUG - u1 track: 0.000320 at step 8000
+2026-10-14 22:25:34,634 - fossil.certificate - DEBUG - u1 track: 0.000281 at step 8500
+2026-10-14 22:25:35,464 - fossil.certificate - DEBUG - u1 track: 0.000809 at step 9000
+2026-10-14 22:25:36,305 - fossil.certificate - DEBUG - v3 train: 0.056325 at step 0 (best=0.050124)
+2026-10-14 22:26:00,462 - fossil.certificate - INFO - V3 converged at step 70
+2026-10-14 22:26:02,706 - fossil.certificate - INFO - Track loss: 0.0005286585
+2026-10-14 22:26:02,955 - fossil.certificate - INFO - Loss is 0.0495869406
+2026-10-14 22:26:02,955 - fossil.certificate - DEBUG - 711 - loss: 0.04959
+2026-10-14 22:26:02,955 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-14 22:26:02,962 - fossil.scenapp - INFO - V1 best loss below margin
+2026-10-14 22:26:02,962 - fossil.scenapp - INFO - V3 best loss: 0.0492996462
+2026-10-14 22:26:02,962 - fossil.scenapp - INFO - Previous V1 best: 0.0495869406
+2026-10-14 22:26:02,962 - fossil.scenapp - DEBUG - Param delta (rel): 4.015741e+01 / 1.419215e-02
+2026-10-14 22:26:02,962 - fossil.scenapp - INFO - Updating controller
+2026-10-14 22:26:03,325 - fossil.scenapp - INFO - update_controller generate_trajs: 0.362s (10 trajs)
+2026-10-14 22:26:03,567 - fossil.scenapp - INFO - Controller accuracy: 0.00000%
+2026-10-14 22:26:03,568 - fossil.scenapp - INFO - [[ 0.49008337 -0.00128857]
+ [ 0.49007048 -0.21973429]
+ [ 0.48787314 -0.20406288]
+ [ 0.48583251 -0.20582251]
+ [ 0.48377428 -0.2044662 ]
+ [ 0.48172962 -0.2036546 ]
+ [ 0.47969308 -0.20275233]
+ [ 0.47766555 -0.20187062]
+ [ 0.47564685 -0.20098999]
+ [ 0.47363695 -0.20011387]
+ [ 0.47163581 -0.19924157]
+ [ 0.46964339 -0.19837321]
+ [ 0.46765966 -0.19750874]
+ [ 0.46568457 -0.19664819]
+ [ 0.46371809 -0.19579148]
+ [ 0.46176018 -0.19493863]
+ [ 0.45981079 -0.19408959]
+ [ 0.45786989 -0.19324439]
+ [ 0.45593745 -0.19240296]
+ [ 0.45401342 -0.19156533]
+ [ 0.45209777 -0.19073142]
+ [ 0.45019045 -0.18990127]
+ [ 0.44829144 -0.18907482]
+ [ 0.44640069 -0.18825212]
+ [ 0.44451817 -0.18743302]
+ [ 0.44264384 -0.18661764]
+ [ 0.44077766 -0.1858059 ]
+ [ 0.4389196  -0.18499777]
+ [ 0.43706963 -0.18419328]
+ [ 0.43522769 -0.18339235]
+ [ 0.43339377 -0.18259503]
+ [ 0.43156782 -0.18179852]
+ [ 0.42974984 -0.18100213]
+ [ 0.42793981 -0.18020998]
+ [ 0.42613771 -0.17942123]
+ [ 0.4243435  -0.17863609]
+ [ 0.42255714 -0.17785443]
+ [ 0.4207786  -0.17707629]
+ [ 0.41900783 -0.17630164]
+ [ 0.41724482 -0.17553046]
+ [ 0.41548951 -0.17476276]
+ [ 0.41374189 -0.17399846]
+ [ 0.4120019  -0.1732376 ]
+ [ 0.41026952 -0.17248015]
+ [ 0.40854472 -0.17172607]
+ [ 0.40682746 -0.17097539]
+ [ 0.40511771 -0.17022806]
+ [ 0.40341543 -0.16948409]
+ [ 0.40172059 -0.16874342]
+ [ 0.40003315 -0.16800607]
+ [ 0.39835309 -0.16727202]
+ [ 0.39668037 -0.16654124]
+ [ 0.39501496 -0.16581372]
+ [ 0.39335682 -0.16508438]
+ [ 0.39170598 -0.16435836]
+ [ 0.39006239 -0.16363559]
+ [ 0.38842604 -0.16291606]
+ [ 0.38679688 -0.16219974]
+ [ 0.38517488 -0.16148669]
+ [ 0.38356001 -0.1607768 ]
+ [ 0.38195225 -0.16007007]
+ [ 0.38035155 -0.15936655]
+ [ 0.37875788 -0.15866616]
+ [ 0.37717122 -0.15796892]
+ [ 0.37559153 -0.1572748 ]
+ [ 0.37401878 -0.15658379]
+ [ 0.37245294 -0.15589588]
+ [ 0.37089398 -0.15521104]
+ [ 0.36934187 -0.15452926]
+ [ 0.36779658 -0.15385055]
+ [ 0.36625808 -0.15317486]
+ [ 0.36472633 -0.15250218]
+ [ 0.36320131 -0.15183255]
+ [ 0.36168298 -0.15116587]
+ [ 0.36017132 -0.15050219]
+ [ 0.3586663  -0.14984145]
+ [ 0.35716788 -0.14918371]
+ [ 0.35567605 -0.14852888]
+ [ 0.35419076 -0.14787695]
+ [ 0.35271199 -0.14722798]
+ [ 0.35123971 -0.14658186]
+ [ 0.34977389 -0.14593866]
+ [ 0.3483145  -0.14529829]
+ [ 0.34686152 -0.14466081]
+ [ 0.34541491 -0.14402615]
+ [ 0.34397465 -0.14339433]
+ [ 0.34254071 -0.1427649 ]
+ [ 0.34111306 -0.14213823]
+ [ 0.33969168 -0.14151432]
+ [ 0.33827653 -0.14089319]
+ [ 0.3368676  -0.14027487]
+ [ 0.33546485 -0.13965926]
+ [ 0.33406826 -0.13904643]
+ [ 0.3326778  -0.1384363 ]
+ [ 0.33129343 -0.13782548]
+ [ 0.32991518 -0.1372177 ]
+ [ 0.328543   -0.13661258]
+ [ 0.32717688 -0.13601019]
+ [ 0.32581677 -0.13541048]
+ [ 0.32446267 -0.13481343]
+ [ 0.32311454 -0.13421911]
+ [ 0.32177234 -0.1336274 ]
+ [ 0.32043607 -0.13303835]
+ [ 0.31910569 -0.13245192]
+ [ 0.31778117 -0.13186813]
+ [ 0.31646249 -0.13128694]
+ [ 0.31514962 -0.13070833]
+ [ 0.31384253 -0.13013231]
+ [ 0.31254121 -0.12955887]
+ [ 0.31124562 -0.12898799]
+ [ 0.30995574 -0.12841964]
+ [ 0.30867155 -0.12785388]
+ [ 0.30739301 -0.12729057]
+ [ 0.3061201  -0.12672983]
+ [ 0.3048528  -0.12617157]
+ [ 0.30359109 -0.12561581]
+ [ 0.30233493 -0.1250625 ]
+ [ 0.3010843  -0.1245117 ]
+ [ 0.29983919 -0.12396331]
+ [ 0.29859955 -0.1234174 ]
+ [ 0.29736538 -0.12287205]
+ [ 0.29613666 -0.12232935]
+ [ 0.29491337 -0.12178902]
+ [ 0.29369548 -0.12125113]
+ [ 0.29248296 -0.12071563]
+ [ 0.29127581 -0.12018252]
+ [ 0.29007398 -0.11965179]
+ [ 0.28887746 -0.11912345]
+ [ 0.28768623 -0.11859744]
+ [ 0.28650026 -0.11807379]
+ [ 0.28531952 -0.11755246]
+ [ 0.28414399 -0.11703348]
+ [ 0.28297366 -0.1165168 ]
+ [ 0.28180849 -0.11600244]
+ [ 0.28064847 -0.11549037]
+ [ 0.27949356 -0.11498058]
+ [ 0.27834376 -0.11447306]
+ [ 0.27719903 -0.11396781]
+ [ 0.27605935 -0.11346481]
+ [ 0.2749247  -0.11296405]
+ [ 0.27379506 -0.11246551]
+ [ 0.2726704  -0.11196921]
+ [ 0.27155071 -0.11147511]
+ [ 0.27043596 -0.11098322]
+ [ 0.26932613 -0.11049351]
+ [ 0.26822119 -0.11000599]
+ [ 0.26712113 -0.10952064]
+ [ 0.26602593 -0.10903745]
+ [ 0.26493555 -0.10855641]
+ [ 0.26384999 -0.10807752]
+ [ 0.26276921 -0.10760077]
+ [ 0.26169321 -0.10712612]
+ [ 0.26062194 -0.10665359]
+ [ 0.25955541 -0.10618314]
+ [ 0.25849358 -0.10571482]
+ [ 0.25743643 -0.10524857]
+ [ 0.25638394 -0.1047844 ]
+ [ 0.2553361  -0.10432228]
+ [ 0.25429288 -0.10386222]
+ [ 0.25325425 -0.10340421]
+ [ 0.25222021 -0.10294824]
+ [ 0.25119073 -0.10249428]
+ [ 0.25016579 -0.10204235]
+ [ 0.24914536 -0.10159244]
+ [ 0.24812944 -0.10114451]
+ [ 0.24711799 -0.10069858]
+ [ 0.24611101 -0.10025464]
+ [ 0.24510846 -0.09981265]
+ [ 0.24411034 -0.09937264]
+ [ 0.24311661 -0.09893458]
+ [ 0.24212726 -0.09849847]
+ [ 0.24114228 -0.0980643 ]
+ [ 0.24016164 -0.09763205]
+ [ 0.23918532 -0.09720173]
+ [ 0.2382133  -0.0967733 ]
+ [ 0.23724556 -0.09634679]
+ [ 0.2362821  -0.09592216]
+ [ 0.23532288 -0.09549943]
+ [ 0.23436788 -0.09507856]
+ [ 0.2334171  -0.09465958]
+ [ 0.2324705  -0.09424244]
+ [ 0.23152808 -0.09382715]
+ [ 0.2305898  -0.09341372]
+ [ 0.22965567 -0.0930021 ]
+ [ 0.22872565 -0.09259234]
+ [ 0.22779972 -0.09218436]
+ [ 0.22687788 -0.09177821]
+ [ 0.2259601  -0.09137387]
+ [ 0.22504636 -0.09097129]
+ [ 0.22413664 -0.09057052]
+ [ 0.22323094 -0.09017153]
+ [ 0.22232922 -0.08977431]
+ [ 0.22143148 -0.08937884]
+ [ 0.22053769 -0.08898512]
+ [ 0.21964784 -0.08859316]
+ [ 0.21876191 -0.08820292]
+ [ 0.21787988 -0.08781441]
+ [ 0.21700174 -0.08742763]
+ [ 0.21612746 -0.08704256]
+ [ 0.21525703 -0.0866592 ]]
+2026-10-14 22:26:03,570 - fossil.scenapp - INFO - Iteration: 1
+2026-10-14 22:26:03,570 - fossil.scenapp - INFO - Current loss: 0.0495869406
+2026-10-14 22:26:03,775 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-10-14 22:26:03,776 - fossil.scenapp - INFO - Controller update on
+2026-10-14 22:27:10,717 - fossil.certificate - DEBUG - 100 - loss: 0.0693659559
+2026-10-14 22:27:26,609 - fossil.certificate - INFO - State sol at iteration 124
+2026-10-14 22:27:29,422 - fossil.certificate - DEBUG - 1 - loss: 0.29245
+2026-10-14 22:27:29,422 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:27:29,422 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:31:43,148 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:31:46,316 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:31:49,349 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:31:52,462 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:31:55,555 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:31:58,655 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:01,980 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:04,987 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:08,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:11,196 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:14,387 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:17,465 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:20,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:23,781 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:26,838 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:29,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:32:57,753 - fossil.certificate - DEBUG - 100 - loss: 0.11772
+2026-10-14 22:32:57,753 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:32:57,753 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:33:07,138 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:33:10,187 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:33:13,142 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:34:48,875 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:34:58,321 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:01,375 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:04,370 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:19,888 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:23,010 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:26,096 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:29,544 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:32,489 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:35,599 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:38,540 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:41,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:44,892 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:48,026 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:50,932 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:53,964 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:56,860 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:35:59,983 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:02,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:06,086 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:09,135 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:12,347 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:15,502 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:18,626 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:21,986 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:24,930 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:30,730 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:33,453 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:36,075 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:38,694 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:41,352 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:36:47,232 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:15,383 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:18,531 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:21,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:34,177 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:37,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:40,303 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:43,332 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:46,604 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:49,689 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:52,875 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:55,821 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:37:58,833 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:02,015 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:05,439 - fossil.certificate - DEBUG - 200 - loss: 0.11915
+2026-10-14 22:38:05,439 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:38:05,439 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:38:08,820 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:11,940 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:15,235 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:18,327 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:21,381 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:24,428 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:27,709 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:30,647 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:33,791 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:36,794 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:40,008 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:43,160 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:46,272 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:49,385 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:52,529 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:55,831 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:38:59,087 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:39:26,864 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:39:51,832 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:39:54,937 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:39:58,055 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:01,215 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:04,288 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:07,439 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:10,486 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:13,641 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:16,789 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:19,969 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:23,017 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:26,252 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:29,428 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:39,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:42,232 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:45,234 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:48,405 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:51,543 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:54,667 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:40:57,668 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:00,813 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:04,105 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:07,408 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:10,468 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:13,660 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:16,840 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:20,089 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:23,161 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:26,083 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:29,187 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:32,431 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:35,570 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:38,601 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:41,748 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:44,805 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:47,962 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:51,116 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:54,279 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:41:57,277 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:00,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:03,312 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:06,545 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:09,674 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:12,798 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:15,907 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:18,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:22,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:25,217 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:28,324 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:31,366 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:34,561 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:37,674 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:41,370 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:45,046 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:42:48,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:43:10,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:43:13,602 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:43:25,597 - fossil.certificate - DEBUG - 300 - loss: 0.10245
+2026-10-14 22:43:25,597 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:43:25,597 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:43:48,093 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:43:51,934 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:32,961 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:36,041 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:39,240 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:48,858 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:51,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:55,055 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:44:57,995 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:01,057 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:03,938 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:07,023 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:10,173 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:26,016 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:29,133 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:32,386 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:35,488 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:38,421 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:41,467 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:44,580 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:45:56,957 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:00,108 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:03,185 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:06,338 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:09,522 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:12,776 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:15,904 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:28,571 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:31,528 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:34,661 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:37,616 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:40,791 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:43,786 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:46:46,990 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:02,628 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:05,726 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:08,979 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:11,939 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:14,952 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:17,845 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:20,868 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:36,268 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:39,523 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:42,588 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:45,714 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:48,651 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:51,805 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:55,367 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:47:58,707 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:02,052 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:05,219 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:08,503 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:11,572 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:14,753 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:17,860 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:20,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:24,041 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:27,311 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:30,455 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:33,573 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:49,587 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:49,587 - fossil.certificate - DEBUG - 400 - loss: 0.10135
+2026-10-14 22:48:49,587 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:48:49,587 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:48:52,567 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:55,712 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:48:58,694 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:01,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:04,940 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:08,057 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:11,259 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:14,371 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:17,304 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:20,540 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:23,590 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:26,307 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:28,970 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:31,746 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:46,703 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:49,783 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:52,919 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:56,076 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:49:59,239 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:02,566 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:05,998 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:09,230 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:12,443 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:15,567 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:18,782 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:37,865 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:41,030 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:44,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:47,212 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:50,376 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:53,619 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:56,991 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:50:59,957 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:03,206 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:06,522 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:09,736 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:12,655 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:15,741 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:18,994 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:22,157 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:25,388 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:28,454 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:31,575 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:51:56,891 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:00,175 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:03,228 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:06,548 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:09,558 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:38,008 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:41,059 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:44,140 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:47,451 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:50,344 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:53,473 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:56,414 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:52:59,612 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:02,654 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:18,373 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:21,517 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:24,518 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:27,671 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:30,819 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:34,139 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:37,131 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:40,269 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:43,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:46,338 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:49,374 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:52,495 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:55,709 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:53:59,177 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:02,611 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:02,611 - fossil.certificate - DEBUG - 500 - loss: 0.09885
+2026-10-14 22:54:02,611 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:54:02,611 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 22:54:05,730 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:08,944 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:12,131 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:15,279 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:18,526 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:21,787 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:25,049 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:28,108 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:31,178 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:34,158 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:37,477 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:40,688 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:44,006 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:47,073 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:50,323 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:54:53,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:12,553 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:15,594 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:18,705 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:21,737 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:24,883 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:28,019 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:31,117 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:34,271 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:37,573 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:40,803 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:43,823 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:46,982 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:55:49,604 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:07,162 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:10,289 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:13,539 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:16,678 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:19,660 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:22,761 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:25,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:28,908 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:32,285 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:35,953 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:39,323 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:42,578 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:56:45,915 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:02,501 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:05,898 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:09,001 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:12,391 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:16,312 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:20,382 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:24,328 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:28,274 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:32,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:36,721 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:57:40,661 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:19,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:22,466 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:25,709 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:29,220 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:32,519 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:35,961 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:39,335 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 22:59:46,166 - fossil.certificate - DEBUG - 600 - loss: 0.09757
+2026-10-14 22:59:46,166 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 22:59:46,166 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:00:21,620 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:00:24,880 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:00:28,362 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:00:31,447 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:00:34,852 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:00:38,101 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:25,811 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:28,653 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:31,555 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:34,448 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:37,579 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:40,670 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:43,906 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:02:47,089 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:39,478 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:42,788 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:46,026 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:49,071 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:52,282 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:55,548 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:03:58,811 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:11,126 - fossil.certificate - DEBUG - 700 - loss: 0.10049
+2026-10-14 23:05:11,127 - fossil.certificate - DEBUG -  - traj_acc: 30.000%
+2026-10-14 23:05:11,127 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:05:17,628 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:20,842 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:24,141 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:27,338 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:30,598 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:33,804 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:37,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:40,336 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:43,512 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:46,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:49,956 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:53,332 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:56,726 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:05:59,960 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:03,241 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:06,505 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:09,909 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:13,153 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:16,581 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:19,868 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:23,292 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:26,462 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:29,693 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:32,855 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:36,308 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:39,441 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:42,856 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:46,135 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:49,597 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:06:52,788 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:20,904 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:24,151 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:27,432 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:30,700 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:33,984 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:37,552 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:40,734 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:43,993 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:47,261 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:50,550 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:53,698 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:08:56,922 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:00,083 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:03,313 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:06,520 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:09,743 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:12,787 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:15,648 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:18,582 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:21,635 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:24,830 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:28,313 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:31,547 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:34,829 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:38,127 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:41,539 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:44,772 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:47,982 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:51,439 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:54,732 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:09:58,102 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:01,406 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:04,699 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:07,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:11,255 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:14,607 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:17,783 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:21,161 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:24,378 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:27,807 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:30,933 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:34,341 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:37,836 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:37,837 - fossil.certificate - DEBUG - 800 - loss: 0.09665
+2026-10-14 23:10:37,837 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-14 23:10:37,837 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:10:41,191 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:44,620 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:48,115 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:51,473 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:54,839 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:10:58,304 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:01,476 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:04,884 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:07,968 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:11,351 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:14,496 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:17,867 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:20,887 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:24,296 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:27,590 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:31,095 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:34,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:37,671 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:41,005 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:44,112 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:47,470 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:50,730 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:54,203 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:11:57,406 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:00,669 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:03,751 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:06,973 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:10,129 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:13,366 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:16,771 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:20,012 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:23,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:26,602 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:29,874 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:32,928 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:36,538 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:39,613 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:42,791 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:45,745 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:48,867 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:51,868 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:55,127 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:12:58,314 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:01,426 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:04,383 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:08,128 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:11,916 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:15,788 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:19,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:23,774 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:27,620 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:31,612 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:35,436 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:39,098 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:42,912 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:46,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:50,773 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:54,736 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:13:58,474 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:02,435 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:06,268 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:10,188 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:14,013 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:17,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:21,749 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:25,887 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:29,642 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:33,511 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:37,725 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:41,405 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:45,111 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:49,054 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:52,895 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:56,142 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:14:59,267 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:02,433 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:05,562 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:08,821 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:12,048 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:15,120 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:18,337 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:21,587 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:25,073 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:28,132 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:31,226 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:34,135 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:37,449 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:40,475 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:43,714 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:46,760 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:49,799 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:52,568 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:55,367 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:15:58,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:01,007 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:03,663 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:06,689 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:10,062 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:13,154 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:16,443 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:16,443 - fossil.certificate - DEBUG - 900 - loss: 0.09102
+2026-10-14 23:16:16,443 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-14 23:16:16,443 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:16:19,429 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:22,726 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:25,784 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:28,880 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:31,901 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:35,105 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:38,263 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:41,486 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:44,612 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:47,767 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:50,835 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:54,384 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:16:57,671 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:00,868 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:04,167 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:07,431 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:10,541 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:13,513 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:16,370 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:19,590 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:22,858 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:26,098 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:17:29,286 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:40,693 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:43,874 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:46,826 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:50,215 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:53,330 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:56,700 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:18:59,832 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:02,952 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:05,983 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:09,335 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:12,421 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:15,629 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:18,652 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:21,871 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:24,992 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:28,142 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:31,267 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:34,428 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:37,588 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:40,840 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:44,132 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:19:47,138 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:31,440 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:34,597 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:38,056 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:41,262 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:44,294 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:47,462 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:50,572 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:53,704 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:56,729 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:20:59,904 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:03,017 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:06,317 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:09,451 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:12,657 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:15,664 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:18,841 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:21,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:25,033 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:31,761 - fossil.certificate - DEBUG - 1000 - loss: 0.10260
+2026-10-14 23:21:31,761 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 23:21:31,762 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:21:46,967 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:50,100 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:53,111 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:56,325 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:21:59,402 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:02,518 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:05,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:08,700 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:11,834 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:15,044 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:17,976 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:21,290 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:24,279 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:27,413 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:30,425 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:33,604 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:36,633 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:39,617 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:42,580 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:45,344 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:48,039 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:50,669 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:53,345 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:56,622 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:22:59,916 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:02,924 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:06,299 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:09,576 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:13,060 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:16,030 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:19,170 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:22,202 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:25,407 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:28,496 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:31,630 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:34,592 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:37,682 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:40,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:44,040 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:46,949 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:50,058 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:53,005 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:56,183 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:23:59,148 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:02,473 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:05,542 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:08,703 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:11,793 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:15,020 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:17,990 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:21,133 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:24,226 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:27,559 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:30,511 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:33,661 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:36,584 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:39,733 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:42,669 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:45,833 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:48,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:51,988 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:55,301 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:24:58,568 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:01,551 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:04,652 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:07,684 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:10,995 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:14,013 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:17,172 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:20,217 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:23,323 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:26,296 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:29,430 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:32,422 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:35,611 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:38,635 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:41,938 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:44,969 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:48,346 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:51,347 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:54,524 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:25:57,528 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:00,913 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:03,920 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:07,047 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:09,986 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:13,163 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:16,211 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:19,339 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:22,286 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:25,471 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:28,495 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:31,807 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:34,858 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:38,147 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:41,299 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:41,299 - fossil.certificate - DEBUG - 1100 - loss: 0.09698
+2026-10-14 23:26:41,299 - fossil.certificate - DEBUG -  - traj_acc: 30.000%
+2026-10-14 23:26:41,299 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:26:44,599 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:47,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:50,919 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:53,861 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:56,922 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:26:59,948 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:03,107 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:06,121 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:09,248 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:12,274 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:15,595 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:18,841 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:22,059 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:25,041 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:28,228 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:31,604 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:34,791 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:37,777 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:40,944 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:43,877 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:47,017 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:50,148 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:53,298 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:56,498 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:27:59,701 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:02,873 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:06,040 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:08,970 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:12,711 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:16,637 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:20,510 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:24,326 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:28,274 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:32,007 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:35,692 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:39,521 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:43,291 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:47,217 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:51,117 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:55,121 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:28:58,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:02,571 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:06,679 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:10,612 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:14,633 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:18,540 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:22,288 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:26,229 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:30,297 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:33,848 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:37,440 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:40,979 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:44,485 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:47,999 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:51,790 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:55,618 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:29:59,678 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:02,794 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:05,751 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:08,895 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:11,816 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:14,967 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:18,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:21,231 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:24,349 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:27,777 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:30,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:34,086 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:37,040 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:40,275 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:43,290 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:46,492 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:49,658 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:53,032 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:56,038 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:30:59,173 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:02,148 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:05,340 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:08,406 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:11,567 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:14,576 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:17,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:21,135 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:24,370 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:27,241 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:30,319 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:33,387 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:36,769 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:39,731 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:42,846 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:45,753 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:48,988 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:51,964 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:55,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:31:58,243 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:01,477 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:04,613 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:07,858 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:11,070 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:14,352 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:14,352 - fossil.certificate - DEBUG - 1200 - loss: 0.09137
+2026-10-14 23:32:14,353 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-14 23:32:14,353 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:32:17,402 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:20,803 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:23,754 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:26,931 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:29,850 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:32,992 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:36,007 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:39,172 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:42,196 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:45,435 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:48,544 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:51,848 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:54,865 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:32:57,968 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:00,970 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:04,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:07,636 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:10,829 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:13,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:16,989 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:20,010 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:23,175 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:26,198 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:29,384 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:32,461 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:35,725 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:38,824 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:41,977 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:44,951 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:48,136 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:51,353 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:54,539 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:33:57,670 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:00,719 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:03,691 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:06,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:09,844 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:13,022 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:16,109 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:19,300 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:22,455 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:25,587 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:28,459 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:31,681 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:34,786 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:38,227 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:41,192 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:44,332 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:47,537 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:50,716 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:53,606 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:56,781 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:34:59,699 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:02,810 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:05,772 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:08,977 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:12,125 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:15,355 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:18,577 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:21,769 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:24,763 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:27,835 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:30,773 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:33,891 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:36,989 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:40,555 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:43,562 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:46,681 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:49,450 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:52,170 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:54,656 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:35:57,403 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:00,114 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:02,567 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:05,171 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:07,717 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:10,488 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:13,206 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:15,764 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:18,335 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:20,770 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:23,437 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:26,055 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:28,306 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:30,493 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:32,653 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:34,822 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:37,009 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:39,231 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:41,815 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:44,456 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:46,869 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:49,474 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:52,014 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:54,791 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:36:57,543 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:00,123 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:02,665 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:05,238 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:08,056 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:08,057 - fossil.certificate - DEBUG - 1300 - loss: 0.08974
+2026-10-14 23:37:08,057 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-14 23:37:08,057 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:37:10,759 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:13,422 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:16,096 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:18,600 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:21,103 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:23,537 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:26,084 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:28,704 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:31,339 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:33,932 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:36,429 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:39,100 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:41,648 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:44,389 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:47,003 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:49,647 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:52,187 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:54,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:57,296 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:37:59,719 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:02,424 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:04,968 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:07,441 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:10,040 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:12,498 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:15,077 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:17,727 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:20,333 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:22,954 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:25,534 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:28,210 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:30,654 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:33,410 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:36,189 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:38,951 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:41,760 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:44,176 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:46,797 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:49,422 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:52,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:54,740 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:38:57,193 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:00,002 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:02,587 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:05,115 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:07,698 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:10,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:12,729 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:15,471 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:18,238 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:21,062 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:23,624 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:26,335 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:28,756 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:31,419 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:34,076 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:36,581 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:39,155 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:41,580 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:44,205 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:46,859 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:49,762 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:52,494 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:54,979 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:39:57,534 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:00,183 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:02,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:05,509 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:08,242 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:10,853 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:13,361 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:16,208 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:18,919 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:21,711 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:24,561 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:26,990 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:29,598 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:32,161 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:35,068 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:37,738 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:40,254 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:42,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:45,502 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:48,246 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:50,948 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:53,704 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:56,339 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:40:58,835 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:01,531 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:04,194 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:06,947 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:09,737 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:31,086 - fossil.certificate - DEBUG - 1400 - loss: 0.12138
+2026-10-14 23:41:31,086 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-14 23:41:31,086 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:41:49,175 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:51,958 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:54,455 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:57,009 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:41:59,498 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:02,123 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:04,928 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:07,715 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:10,353 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:12,919 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:15,550 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:18,215 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:20,843 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:23,395 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:25,792 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:28,447 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:31,134 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:33,745 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:36,107 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:38,752 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:41,437 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:44,152 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:46,644 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:49,418 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:52,088 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:54,677 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:57,306 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:42:59,990 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:02,672 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:05,209 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:07,806 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:10,201 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:12,848 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:15,547 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:18,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:20,794 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:23,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:25,404 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:27,611 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:29,788 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:32,013 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:34,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:36,731 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:39,449 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:42,080 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:45,166 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:48,243 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:51,388 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:54,530 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:43:57,637 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:00,599 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:03,770 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:06,985 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:10,325 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:13,690 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:16,992 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:20,080 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:23,223 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:26,339 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:29,960 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:33,313 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:36,499 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:39,682 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:42,709 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:45,864 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:48,907 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:52,154 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:55,502 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:44:58,790 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:02,016 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:05,515 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:08,741 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:11,921 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:15,124 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:18,453 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:21,923 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:25,276 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:28,477 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:31,587 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:34,728 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:37,847 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:40,711 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:43,017 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:45,004 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:47,339 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:49,662 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:51,823 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:54,013 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:56,188 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:45:58,306 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:00,493 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:02,726 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:05,282 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:07,535 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:07,536 - fossil.certificate - DEBUG - 1500 - loss: 0.09299
+2026-10-14 23:46:07,536 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-14 23:46:07,536 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:46:09,509 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:11,782 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:13,947 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:15,968 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:18,251 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:20,501 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:22,446 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:24,712 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:26,965 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:28,901 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:31,212 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:33,496 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:35,624 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:37,805 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:39,963 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:42,274 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:44,417 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:46,677 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:49,129 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:51,371 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:53,289 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:55,498 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:57,729 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:46:59,734 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:01,822 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:04,032 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:06,048 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:08,233 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:10,492 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:12,650 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:14,918 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:17,086 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:19,524 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:21,894 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:23,787 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:26,003 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:28,367 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:30,490 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:32,639 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:34,846 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:37,064 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:39,154 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:41,330 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:43,523 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:45,682 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:47,786 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:49,964 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:52,128 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:54,379 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:56,684 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:47:58,982 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:00,966 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:03,119 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:05,402 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:07,429 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:09,648 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:11,917 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:14,236 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:16,349 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:18,453 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:20,678 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:22,771 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:24,825 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:27,065 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:29,310 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:31,418 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:33,578 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:35,854 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:37,830 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:40,054 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:42,472 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:44,621 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:46,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:48,852 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:51,039 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:53,282 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:55,580 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:48:57,865 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:00,095 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:02,284 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:04,582 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:06,788 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:08,920 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:11,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:13,450 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:15,438 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:17,784 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:20,020 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:22,131 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:24,402 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:26,675 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:28,595 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:30,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:33,099 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:35,136 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:37,389 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:39,602 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:41,707 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:43,992 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:46,304 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:46,304 - fossil.certificate - DEBUG - 1600 - loss: 0.10129
+2026-10-14 23:49:46,304 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-14 23:49:46,304 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:49:48,522 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:50,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:52,631 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:54,898 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:57,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:49:59,014 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:01,322 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:03,643 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:05,735 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:07,990 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:10,001 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:11,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:13,634 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:15,477 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:17,332 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:19,354 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:21,397 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:23,226 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:25,137 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:27,341 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:29,611 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:31,564 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:33,768 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:36,046 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:38,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:40,250 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:42,525 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:44,568 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:46,753 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:49,068 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:51,244 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:53,660 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:55,930 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:50:58,122 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:00,228 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:02,261 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:04,497 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:06,799 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:08,874 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:11,135 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:13,289 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:15,228 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:17,487 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:19,822 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:21,776 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:23,960 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:26,198 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:28,210 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:30,600 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:32,961 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:35,161 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:37,378 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:39,512 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:41,659 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:43,810 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:46,000 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:48,315 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:50,594 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:52,549 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:54,771 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:56,954 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:51:58,867 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:01,149 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:03,393 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:05,403 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:07,848 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:10,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:12,090 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:14,316 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:16,571 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:18,808 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:21,047 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:23,192 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:25,354 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:27,541 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:29,768 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:32,293 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:34,402 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:36,388 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:38,631 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:40,862 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:42,853 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:45,212 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:47,484 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:49,468 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:51,681 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:53,985 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:56,067 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:52:58,328 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:00,566 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:02,880 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:05,074 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:07,273 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:09,469 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:11,631 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:13,755 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:16,141 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:18,594 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:20,699 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:23,134 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:23,134 - fossil.certificate - DEBUG - 1700 - loss: 0.08225
+2026-10-14 23:53:23,134 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-14 23:53:23,134 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-14 23:53:25,433 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:27,368 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:29,538 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:31,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:33,903 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:36,007 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:38,296 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:40,574 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:42,803 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:45,044 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:47,482 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:49,677 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:51,667 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:53,905 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:56,240 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:53:58,382 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:00,711 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:02,985 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:05,165 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:07,351 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:09,476 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:11,620 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:13,753 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:15,941 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:18,198 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:20,400 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:22,368 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:24,591 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:26,784 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:28,906 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:31,282 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:33,640 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:35,871 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:38,125 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:40,376 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:42,356 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:44,554 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:46,870 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:49,002 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:51,294 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:53,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:55,715 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:54:57,896 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:00,084 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:02,184 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:04,436 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:06,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:08,741 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:11,038 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:13,064 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:15,375 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:17,704 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:19,785 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:22,032 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:24,300 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:26,293 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:28,560 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:30,893 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:33,255 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:35,423 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:37,460 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:39,652 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:41,799 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:43,815 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:46,029 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:48,313 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:50,282 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:52,570 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:54,821 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:56,815 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:55:59,059 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:01,363 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:03,588 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:05,811 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:07,983 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:10,107 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:12,284 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:14,448 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:17,015 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:19,276 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:21,303 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:23,552 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:25,858 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:27,920 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:30,155 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:32,296 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:34,284 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:36,540 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:38,822 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:40,845 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:43,157 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:45,563 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:47,627 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:49,835 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:52,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:54,113 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:56,297 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:56:58,631 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:01,018 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:03,244 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:03,244 - fossil.certificate - DEBUG - 1800 - loss: 0.45010
+2026-10-14 23:57:03,244 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-14 23:57:03,244 - fossil.certificate - DEBUG -  - state_acc: 98.822%
+2026-10-14 23:57:05,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:06,918 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:08,724 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:10,595 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:12,466 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:14,348 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:16,181 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:17,994 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:57:20,144 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:48,598 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:50,880 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:52,861 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:55,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:57,537 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:58:59,630 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:59:01,764 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:59:08,655 - fossil.certificate - INFO - V3 zero loss
+2026-10-14 23:59:59,425 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:01,545 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:03,790 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:05,954 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:08,105 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:10,333 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:12,474 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:14,683 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:16,900 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:18,947 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:21,255 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:24,005 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:26,505 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:29,055 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:31,619 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:34,259 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:36,957 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:39,599 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:42,281 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:44,841 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:00:44,842 - fossil.certificate - DEBUG - 1900 - loss: 0.10093
+2026-10-15 00:00:44,842 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-15 00:00:44,842 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:00:47,349 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:05,626 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:08,358 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:11,008 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:13,698 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:16,072 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:18,634 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:23,952 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:31,863 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:34,231 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:39,474 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:42,056 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:01:55,162 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:00,640 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:28,721 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:31,335 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:33,944 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:36,603 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:39,257 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:41,868 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:02:47,422 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:03:00,542 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:04:02,030 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:04:04,250 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:04:21,917 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:04:24,365 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:05:04,866 - fossil.certificate - DEBUG - 2000 - loss: 0.09997
+2026-10-15 00:05:04,867 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-15 00:05:04,867 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:06:12,836 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:15,158 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:17,141 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:19,567 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:21,925 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:23,979 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:26,450 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:28,853 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:30,907 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:33,311 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:35,744 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:37,879 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:40,407 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:42,763 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:44,867 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:47,219 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:49,689 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:51,909 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:54,178 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:56,469 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:06:58,489 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:00,896 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:03,316 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:05,485 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:07,861 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:10,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:12,291 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:14,665 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:17,245 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:19,635 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:22,139 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:24,529 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:26,687 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:28,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:31,354 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:33,439 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:35,869 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:07:38,425 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:15,198 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:17,548 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:19,854 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:22,432 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:25,091 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:27,375 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:29,733 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:31,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:34,140 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:36,495 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:38,637 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:40,951 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:43,289 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:45,371 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:47,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:50,263 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:52,417 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:54,814 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:57,159 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:08:59,196 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:09:01,657 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:09:04,145 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:09:04,145 - fossil.certificate - DEBUG - 2100 - loss: 0.09687
+2026-10-15 00:09:04,145 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-15 00:09:04,145 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:10:01,815 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:04,127 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:06,427 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:08,471 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:10,825 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:13,174 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:15,213 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:17,593 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:20,065 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:22,164 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:24,662 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:27,045 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:28,993 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:31,289 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:33,581 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:35,690 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:38,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:40,709 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:42,773 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:45,208 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:47,655 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:49,748 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:52,089 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:54,311 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:56,691 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:10:59,169 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:01,518 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:03,899 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:06,355 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:08,678 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:11,067 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:13,370 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:15,610 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:17,945 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:22,555 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:11:24,609 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:12,023 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:14,219 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:16,476 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:18,730 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:20,975 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:23,217 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:25,525 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:27,854 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:30,139 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:32,398 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:34,806 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:37,066 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:39,387 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:41,662 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:43,849 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:46,142 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:48,706 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:51,183 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:51,184 - fossil.certificate - DEBUG - 2200 - loss: 0.09619
+2026-10-15 00:12:51,184 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-15 00:12:51,184 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:12:53,428 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:55,664 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:12:57,821 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:13:00,099 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:13:02,410 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:13:04,723 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:13:06,991 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:13:09,384 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:09,768 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:12,108 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:14,338 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:16,529 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:18,873 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:21,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:23,616 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:25,910 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:28,199 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:30,500 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:32,820 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:42,072 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:44,348 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:46,625 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:48,832 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:51,077 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:53,281 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:55,678 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:15:57,963 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:00,193 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:02,549 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:04,842 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:07,058 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:09,436 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:11,796 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:14,175 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:16,394 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:18,700 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:20,909 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:23,292 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:25,863 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:28,043 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:30,347 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:32,732 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:34,727 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:37,248 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:39,840 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:42,038 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:42,038 - fossil.certificate - DEBUG - 2300 - loss: 0.08571
+2026-10-15 00:16:42,038 - fossil.certificate - DEBUG -  - traj_acc: 80.000%
+2026-10-15 00:16:42,038 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:16:44,409 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:46,729 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:48,840 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:51,281 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:53,843 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:55,936 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:16:58,311 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:00,546 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:02,664 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:05,082 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:07,542 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:09,609 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:11,913 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:14,113 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:16,242 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:18,672 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:20,881 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:22,973 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:25,278 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:27,491 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:29,670 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:32,079 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:34,394 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:36,595 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:39,016 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:41,349 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:43,590 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:45,943 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:48,237 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:50,388 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:52,780 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:55,150 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:57,488 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:17:59,809 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:02,035 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:04,211 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:06,509 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:08,770 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:10,980 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:13,288 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:15,536 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:17,748 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:20,063 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:22,345 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:24,671 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:27,259 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:29,475 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:31,654 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:34,110 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:36,436 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:38,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:41,109 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:43,449 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:45,639 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:48,119 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:50,338 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:52,698 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:54,965 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:57,286 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:18:59,671 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:01,848 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:04,131 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:06,125 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:08,150 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:10,128 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:12,231 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:14,105 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:15,959 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:17,840 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:19,810 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:21,833 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:24,206 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:26,573 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:28,577 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:30,899 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:33,041 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:35,161 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:37,498 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:39,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:41,844 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:44,149 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:46,450 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:48,801 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:51,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:53,516 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:55,625 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:19:57,963 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:00,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:02,386 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:04,916 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:07,265 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:09,417 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:11,794 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:13,966 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:16,180 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:18,461 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:20,693 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:22,922 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:25,371 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:27,768 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:27,768 - fossil.certificate - DEBUG - 2400 - loss: 0.08239
+2026-10-15 00:20:27,768 - fossil.certificate - DEBUG -  - traj_acc: 70.000%
+2026-10-15 00:20:27,768 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:20:29,933 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:32,458 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:34,841 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:36,904 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:39,178 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:41,352 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:43,571 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:46,054 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:48,278 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:50,386 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:52,660 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:54,793 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:56,969 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:20:59,145 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:01,363 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:03,705 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:05,950 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:08,208 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:10,458 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:12,802 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:15,062 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:17,334 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:19,581 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:21,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:24,000 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:26,492 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:28,851 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:30,978 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:33,181 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:35,363 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:37,594 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:39,775 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:44,436 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:46,639 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:48,924 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:51,176 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:53,359 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:55,601 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:21:57,983 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:00,130 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:02,400 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:04,724 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:06,843 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:09,060 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:11,466 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:13,712 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:15,919 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:18,362 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:20,430 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:22,672 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:24,961 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:27,007 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:29,306 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:29,306 - fossil.certificate - INFO - zero supp_loss, jumping
+2026-10-15 00:22:31,593 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:33,592 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:35,921 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:38,371 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:40,416 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:42,766 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:45,213 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:47,278 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:49,738 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:52,078 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:54,056 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:56,798 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:22:59,196 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:01,269 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:03,505 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:05,822 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:07,913 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:10,307 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:12,676 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:14,695 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:17,125 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:19,657 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:21,853 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:24,146 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:26,817 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:28,914 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:31,266 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:33,695 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:36,050 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:38,475 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:41,012 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:43,278 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:45,629 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:48,220 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:50,415 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:52,721 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:55,249 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:57,411 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:23:59,662 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:02,076 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:04,116 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:06,457 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:08,815 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:10,861 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:13,386 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:15,979 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:15,980 - fossil.certificate - DEBUG - 2500 - loss: 0.08028
+2026-10-15 00:24:15,980 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-15 00:24:15,980 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:24:18,101 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:20,443 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:22,861 - fossil.certificate - INFO - V3 zero loss
+2026-10-15 00:24:22,861 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-10-15 00:24:22,865 - fossil.certificate - DEBUG - u1 track: 0.416162 at step 0
+2026-10-15 00:24:23,763 - fossil.certificate - DEBUG - u1 track: 0.005436 at step 500
+2026-10-15 00:24:24,760 - fossil.certificate - DEBUG - u1 track: 0.003309 at step 1000
+2026-10-15 00:24:25,788 - fossil.certificate - DEBUG - u1 track: 0.002253 at step 1500
+2026-10-15 00:24:26,692 - fossil.certificate - DEBUG - u1 track: 0.001635 at step 2000
+2026-10-15 00:24:27,592 - fossil.certificate - DEBUG - u1 track: 0.001218 at step 2500
+2026-10-15 00:24:28,521 - fossil.certificate - DEBUG - u1 track: 0.000915 at step 3000
+2026-10-15 00:24:29,459 - fossil.certificate - DEBUG - u1 track: 0.000687 at step 3500
+2026-10-15 00:24:30,338 - fossil.certificate - DEBUG - u1 track: 0.000514 at step 4000
+2026-10-15 00:24:31,250 - fossil.certificate - DEBUG - u1 track: 0.000387 at step 4500
+2026-10-15 00:24:32,168 - fossil.certificate - DEBUG - u1 track: 0.000332 at step 5000
+2026-10-15 00:24:33,193 - fossil.certificate - DEBUG - u1 track: 0.000313 at step 5500
+2026-10-15 00:24:34,193 - fossil.certificate - DEBUG - u1 track: 0.000535 at step 6000
+2026-10-15 00:24:35,080 - fossil.certificate - DEBUG - u1 track: 0.000548 at step 6500
+2026-10-15 00:24:35,951 - fossil.certificate - DEBUG - u1 track: 0.000278 at step 7000
+2026-10-15 00:24:38,491 - fossil.certificate - INFO - Track loss: 0.0030695645
+2026-10-15 00:24:38,721 - fossil.certificate - INFO - Loss is 0.0498554409
+2026-10-15 00:24:38,721 - fossil.certificate - DEBUG - 2503 - loss: 0.04986
+2026-10-15 00:24:38,721 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-15 00:24:38,727 - fossil.scenapp - INFO - V1 best loss below margin
+2026-10-15 00:24:38,727 - fossil.scenapp - INFO - V3 best loss: 0.0000000000
+2026-10-15 00:24:38,727 - fossil.scenapp - INFO - Previous V1 best: 0.0498554409
+2026-10-15 00:24:38,727 - fossil.scenapp - DEBUG - Param delta (rel): 2.331812e+01 / 4.051214e-02
+2026-10-15 00:24:38,727 - fossil.scenapp - INFO - Updating controller
+2026-10-15 00:24:39,081 - fossil.scenapp - INFO - update_controller generate_trajs: 0.354s (10 trajs)
+2026-10-15 00:24:39,257 - fossil.scenapp - INFO - Controller accuracy: 0.00000%
+2026-10-15 00:24:39,257 - fossil.scenapp - INFO - [[ 4.90083367e-01 -1.28857233e-03]
+ [ 4.90070481e-01 -2.13065397e-01]
+ [ 4.87939827e-01 -2.85985022e-01]
+ [ 4.85079977e-01 -2.74864529e-01]
+ [ 4.82331331e-01 -2.64097733e-01]
+ [ 4.79690354e-01 -2.58974210e-01]
+ [ 4.77100612e-01 -2.60099686e-01]
+ [ 4.74499615e-01 -2.57808624e-01]
+ [ 4.71921529e-01 -2.57394101e-01]
+ [ 4.69347588e-01 -2.55957954e-01]
+ [ 4.66788008e-01 -2.55089159e-01]
+ [ 4.64237117e-01 -2.53916049e-01]
+ [ 4.61697956e-01 -2.52917238e-01]
+ [ 4.59168784e-01 -2.51829685e-01]
+ [ 4.56650487e-01 -2.50797973e-01]
+ [ 4.54142507e-01 -2.49742523e-01]
+ [ 4.51645082e-01 -2.48707173e-01]
+ [ 4.49158010e-01 -2.47667686e-01]
+ [ 4.46681334e-01 -2.46637414e-01]
+ [ 4.44214959e-01 -2.45608917e-01]
+ [ 4.41758870e-01 -2.44586351e-01]
+ [ 4.39313007e-01 -2.43567289e-01]
+ [ 4.36877334e-01 -2.42553100e-01]
+ [ 4.34451803e-01 -2.41542991e-01]
+ [ 4.32036373e-01 -2.40537335e-01]
+ [ 4.29631000e-01 -2.39535981e-01]
+ [ 4.27235640e-01 -2.38538859e-01]
+ [ 4.24850251e-01 -2.37546074e-01]
+ [ 4.22474790e-01 -2.36557517e-01]
+ [ 4.20109215e-01 -2.35573170e-01]
+ [ 4.17753484e-01 -2.34593024e-01]
+ [ 4.15407553e-01 -2.33617107e-01]
+ [ 4.13071382e-01 -2.32645309e-01]
+ [ 4.10744929e-01 -2.31677755e-01]
+ [ 4.08428152e-01 -2.30714218e-01]
+ [ 4.06121009e-01 -2.29754876e-01]
+ [ 4.03823461e-01 -2.28799573e-01]
+ [ 4.01535465e-01 -2.27848406e-01]
+ [ 3.99256981e-01 -2.26901211e-01]
+ [ 3.96987969e-01 -2.25958127e-01]
+ [ 3.94728387e-01 -2.25019046e-01]
+ [ 3.92478197e-01 -2.24083941e-01]
+ [ 3.90237358e-01 -2.23152838e-01]
+ [ 3.88005829e-01 -2.22225717e-01]
+ [ 3.85783572e-01 -2.21326241e-01]
+ [ 3.83570310e-01 -2.20507613e-01]
+ [ 3.81365234e-01 -2.19670553e-01]
+ [ 3.79168528e-01 -2.18842807e-01]
+ [ 3.76980100e-01 -2.18016611e-01]
+ [ 3.74799934e-01 -2.17194087e-01]
+ [ 3.72627993e-01 -2.16491453e-01]
+ [ 3.70463078e-01 -2.15942010e-01]
+ [ 3.68303658e-01 -2.15586431e-01]
+ [ 3.66147794e-01 -2.15421616e-01]
+ [ 3.63993578e-01 -2.15444671e-01]
+ [ 3.61839131e-01 -2.15652911e-01]
+ [ 3.59682602e-01 -2.16043833e-01]
+ [ 3.57522164e-01 -2.16615146e-01]
+ [ 3.55356012e-01 -2.17364745e-01]
+ [ 3.53182365e-01 -2.18290715e-01]
+ [ 3.50999458e-01 -2.19391316e-01]
+ [ 3.48805544e-01 -2.20664984e-01]
+ [ 3.46598895e-01 -2.22110343e-01]
+ [ 3.44377791e-01 -2.23726176e-01]
+ [ 3.42140529e-01 -2.25512648e-01]
+ [ 3.39885403e-01 -2.27479042e-01]
+ [ 3.37610613e-01 -2.29642371e-01]
+ [ 3.35314189e-01 -2.32003782e-01]
+ [ 3.32994151e-01 -2.34564615e-01]
+ [ 3.30648505e-01 -2.37326379e-01]
+ [ 3.28275241e-01 -2.40290769e-01]
+ [ 3.25872333e-01 -2.43459651e-01]
+ [ 3.23437737e-01 -2.46835083e-01]
+ [ 3.20969386e-01 -2.50419273e-01]
+ [ 3.18465193e-01 -2.54215527e-01]
+ [ 3.15923038e-01 -2.58229863e-01]
+ [ 3.13340739e-01 -2.62465281e-01]
+ [ 3.10716087e-01 -2.66924989e-01]
+ [ 3.08046837e-01 -2.71618891e-01]
+ [ 3.05330648e-01 -2.76559059e-01]
+ [ 3.02565057e-01 -2.81749927e-01]
+ [ 2.99747558e-01 -2.87196156e-01]
+ [ 2.96875596e-01 -2.92902658e-01]
+ [ 2.93946570e-01 -2.98874591e-01]
+ [ 2.90957824e-01 -3.05117362e-01]
+ [ 2.87906650e-01 -3.11636638e-01]
+ [ 2.84790284e-01 -3.18438349e-01]
+ [ 2.81605900e-01 -3.25528692e-01]
+ [ 2.78350613e-01 -3.32914140e-01]
+ [ 2.75021472e-01 -3.40601458e-01]
+ [ 2.71615457e-01 -3.48599056e-01]
+ [ 2.68129467e-01 -3.56915283e-01]
+ [ 2.64560314e-01 -3.65557876e-01]
+ [ 2.60904735e-01 -3.74534882e-01]
+ [ 2.57159387e-01 -3.83855643e-01]
+ [ 2.53320830e-01 -3.93531566e-01]
+ [ 2.49385514e-01 -4.03571851e-01]
+ [ 2.45349796e-01 -4.13986059e-01]
+ [ 2.41209935e-01 -4.24784119e-01]
+ [ 2.36962094e-01 -4.35976341e-01]
+ [ 2.32602331e-01 -4.47573422e-01]
+ [ 2.28126597e-01 -4.59587484e-01]
+ [ 2.23530722e-01 -4.72030295e-01]
+ [ 2.18810419e-01 -4.84913809e-01]
+ [ 2.13961281e-01 -4.98250497e-01]
+ [ 2.08978776e-01 -5.12053259e-01]
+ [ 2.03858243e-01 -5.26335412e-01]
+ [ 1.98594889e-01 -5.41114225e-01]
+ [ 1.93183747e-01 -5.56404093e-01]
+ [ 1.87619706e-01 -5.72219887e-01]
+ [ 1.81897507e-01 -5.88588086e-01]
+ [ 1.76011626e-01 -6.05470283e-01]
+ [ 1.69956923e-01 -6.22841401e-01]
+ [ 1.63728509e-01 -6.40692198e-01]
+ [ 1.57321587e-01 -6.59030317e-01]
+ [ 1.50731284e-01 -6.77796311e-01]
+ [ 1.43953321e-01 -6.96988986e-01]
+ [ 1.36983431e-01 -7.15894946e-01]
+ [ 1.29824482e-01 -7.34506297e-01]
+ [ 1.22479419e-01 -7.52840613e-01]
+ [ 1.14951013e-01 -7.70842030e-01]
+ [ 1.07242592e-01 -7.88542315e-01]
+ [ 9.93571691e-02 -8.05971368e-01]
+ [ 9.12974554e-02 -8.23065148e-01]
+ [ 8.30668039e-02 -8.39849477e-01]
+ [ 7.46683091e-02 -8.56354941e-01]
+ [ 6.61047597e-02 -8.72610229e-01]
+ [ 5.73786574e-02 -8.88641953e-01]
+ [ 4.84922379e-02 -9.04424692e-01]
+ [ 3.94479910e-02 -9.19913885e-01]
+ [ 3.02488521e-02 -9.35139425e-01]
+ [ 2.08974579e-02 -9.50129613e-01]
+ [ 1.13961617e-02 -9.64910766e-01]
+ [ 1.74705409e-03 -9.79507351e-01]
+ [-8.04801942e-03 -9.93942156e-01]
+ [-1.79874410e-02 -1.00821788e+00]
+ [-2.80696198e-02 -1.02234559e+00]
+ [-3.82930758e-02 -1.03632608e+00]
+ [-4.86563366e-02 -1.05016902e+00]
+ [-5.91580268e-02 -1.06389314e+00]
+ [-6.97969582e-02 -1.07751519e+00]
+ [-8.05721102e-02 -1.09105098e+00]
+ [-9.14826200e-02 -1.10443667e+00]
+ [-1.02526987e-01 -1.11762712e+00]
+ [-1.13703258e-01 -1.13064350e+00]
+ [-1.25009693e-01 -1.14347695e+00]
+ [-1.36444462e-01 -1.15614219e+00]
+ [-1.48005884e-01 -1.16865734e+00]
+ [-1.59692458e-01 -1.18103923e+00]
+ [-1.71502850e-01 -1.19330330e+00]
+ [-1.83435883e-01 -1.20546366e+00]
+ [-1.95490520e-01 -1.21753318e+00]
+ [-2.07665851e-01 -1.22952358e+00]
+ [-2.19961087e-01 -1.24144550e+00]
+ [-2.32375542e-01 -1.25330797e+00]
+ [-2.44908622e-01 -1.26511972e+00]
+ [-2.57559819e-01 -1.27688998e+00]
+ [-2.70328719e-01 -1.28862613e+00]
+ [-2.83214980e-01 -1.30033438e+00]
+ [-2.96218324e-01 -1.31202019e+00]
+ [-3.09338526e-01 -1.32368838e+00]
+ [-3.22575410e-01 -1.33534314e+00]
+ [-3.35928841e-01 -1.34696447e+00]
+ [-3.49398486e-01 -1.35855130e+00]
+ [-3.62983999e-01 -1.37010981e+00]
+ [-3.76685097e-01 -1.38164250e+00]
+ [-3.90501522e-01 -1.39315257e+00]
+ [-4.04433048e-01 -1.40464231e+00]
+ [-4.18479471e-01 -1.41611373e+00]
+ [-4.32640608e-01 -1.42754188e+00]
+ [-4.46916027e-01 -1.43892263e+00]
+ [-4.61305253e-01 -1.45025873e+00]
+ [-4.75807841e-01 -1.46155229e+00]
+ [-4.90423364e-01 -1.47280486e+00]
+ [-5.05151412e-01 -1.48401742e+00]
+ [-5.19991586e-01 -1.49519043e+00]
+ [-5.34943491e-01 -1.50632384e+00]
+ [-5.50006729e-01 -1.51741716e+00]
+ [-5.65180901e-01 -1.52846941e+00]
+ [-5.80465595e-01 -1.53947922e+00]
+ [-5.95860387e-01 -1.55044478e+00]
+ [-6.11364835e-01 -1.56136389e+00]
+ [-6.26978474e-01 -1.57223398e+00]
+ [-6.42700813e-01 -1.58305213e+00]
+ [-6.58531335e-01 -1.59381504e+00]
+ [-6.74469485e-01 -1.60449439e+00]
+ [-6.90514429e-01 -1.61506636e+00]
+ [-7.06665093e-01 -1.62553006e+00]
+ [-7.22920393e-01 -1.63587674e+00]
+ [-7.39279161e-01 -1.64608618e+00]
+ [-7.55740022e-01 -1.65615785e+00]
+ [-7.72301601e-01 -1.66609063e+00]
+ [-7.88962507e-01 -1.67588278e+00]
+ [-8.05721335e-01 -1.68553194e+00]
+ [-8.22576654e-01 -1.69503529e+00]
+ [-8.39527007e-01 -1.70438946e+00]
+ [-8.56570902e-01 -1.71359065e+00]
+ [-8.73706808e-01 -1.72263459e+00]
+ [-8.90933154e-01 -1.73151661e+00]
+ [-9.08248320e-01 -1.74023163e+00]]
+2026-10-15 00:24:39,260 - fossil.scenapp - INFO - Iteration: 2
+2026-10-15 00:24:39,260 - fossil.scenapp - INFO - Current loss: 0.0498554409
+2026-10-15 00:24:39,401 - fossil.scenapp - DEBUG - [1m Learner [0m
+2026-10-15 00:24:39,401 - fossil.scenapp - INFO - Controller update off (V3 zero)
+2026-10-15 00:24:39,895 - fossil.certificate - INFO - State sol at iteration 1
+2026-10-15 00:24:42,109 - fossil.certificate - DEBUG - 1 - loss: 0.61090
+2026-10-15 00:24:42,109 - fossil.certificate - DEBUG -  - traj_acc: 0.000%
+2026-10-15 00:24:42,109 - fossil.certificate - DEBUG -  - state_acc: 100.000%
+2026-10-15 00:24:51,199 - fossil.certificate - INFO - Zero loss, breaking loop
+2026-10-15 00:24:51,486 - fossil.certificate - DEBUG - v3 train: 0.326866 at step 0 (best=0.206345)
+2026-10-15 00:27:16,182 - fossil.certificate - DEBUG - v3 train: 0.129673 at step 500 (best=0.064091)
+2026-10-15 00:29:41,952 - fossil.certificate - DEBUG - v3 train: 0.069605 at step 1000 (best=0.062018)
+2026-10-15 00:32:07,025 - fossil.certificate - DEBUG - v3 train: 0.068112 at step 1500 (best=0.057563)
+2026-10-15 00:34:45,009 - fossil.certificate - DEBUG - v3 train: 0.059624 at step 2000 (best=0.057194)
+2026-10-15 00:37:33,301 - fossil.certificate - DEBUG - v3 train: 0.058171 at step 2500 (best=0.055197)
+2026-10-15 00:40:18,876 - fossil.certificate - DEBUG - v3 train: 0.056074 at step 3000 (best=0.053634)
+2026-10-15 00:43:06,307 - fossil.certificate - DEBUG - v3 train: 0.053331 at step 3500 (best=0.052232)
+2026-10-15 00:45:53,682 - fossil.certificate - DEBUG - v3 train: 0.069178 at step 4000 (best=0.051576)
+2026-10-15 00:48:39,490 - fossil.certificate - DEBUG - v3 train: 0.068944 at step 4500 (best=0.051391)
+2026-10-15 00:51:25,909 - fossil.certificate - DEBUG - v3 train: 0.051640 at step 5000 (best=0.051074)
+2026-10-15 00:54:11,455 - fossil.certificate - DEBUG - v3 train: 0.051889 at step 5500 (best=0.051028)
+2026-10-15 00:56:58,525 - fossil.certificate - DEBUG - v3 train: 0.051881 at step 6000 (best=0.050927)
+2026-10-15 00:59:45,938 - fossil.certificate - DEBUG - v3 train: 0.053196 at step 6500 (best=0.050927)
+2026-10-15 01:02:31,680 - fossil.certificate - DEBUG - v3 train: 0.051683 at step 7000 (best=0.050927)
+2026-10-15 01:05:18,183 - fossil.certificate - DEBUG - v3 train: 0.051550 at step 7500 (best=0.050927)
+2026-10-15 01:08:03,828 - fossil.certificate - DEBUG - v3 train: 0.052260 at step 8000 (best=0.050925)
+2026-10-15 01:10:49,874 - fossil.certificate - DEBUG - v3 train: 0.051317 at step 8500 (best=0.050758)
+2026-10-15 01:13:35,725 - fossil.certificate - DEBUG - v3 train: 0.051549 at step 9000 (best=0.050758)
+2026-10-15 01:16:20,814 - fossil.certificate - DEBUG - v3 train: 0.052400 at step 9500 (best=0.050758)
+2026-10-15 01:19:08,774 - fossil.certificate - INFO - Track loss: 22.3947601318
+2026-10-15 01:19:09,029 - fossil.certificate - INFO - Loss is 0.0411396995
+2026-10-15 01:19:09,030 - fossil.certificate - DEBUG - 5 - loss: 0.04114
+2026-10-15 01:19:09,030 - fossil.certificate - DEBUG -  - traj_acc: 100.000%
+2026-10-15 01:19:09,037 - fossil.scenapp - INFO - V1 best loss below margin
+2026-10-15 01:19:09,037 - fossil.scenapp - INFO - V3 best loss: 0.0507584326
+2026-10-15 01:19:09,037 - fossil.scenapp - INFO - Previous V1 best: 0.0411396995
+2026-10-15 01:19:09,037 - fossil.scenapp - DEBUG - Param delta (rel): 2.602213e+01 / 4.606113e-02
+2026-10-15 01:19:09,038 - fossil.scenapp - DEBUG - [1m Verifier [0m
+2026-10-15 01:19:09,038 - fossil.scenapp - INFO - Current loss: 0.0411396995
+2026-10-15 01:19:09,262 - fossil.scenapp - INFO - Verifier times: total=0s,min=9223372036854775808s,max=0s,avg=0s, N=0
+2026-10-15 01:19:12,505 - fossil.scenapp - INFO - a_post_verify generate_trajs: 3.187s (100 trajs)
+/rds/general/user/lbrickar/home/code/fossil_scenario/experiments/inv_pendulum.py:168: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  x = torch.tensor(x,dtype=torch.float32)

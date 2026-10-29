@@ -1364,7 +1364,7 @@ class Direct_control(Certificate):
             supp_samples_v3 = set()
             best_loss_v3 = 999
             best_nets_v3 = copy.deepcopy(learners[2])
-            learners[2].load_state_dict(learners[0].state_dict())
+            #learners[2].load_state_dict(learners[0].state_dict())
         state_sol = not all([p.requires_grad for p in learners[0].parameters()])
         #state_sol = False
         best_supp_defd = False

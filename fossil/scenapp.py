@@ -569,7 +569,7 @@ class SingleScenApp:
         state["supp_len"] = self.a_priori_supps
         start_switch = False
         margin = self.config.MARGIN
-        j = 0
+        j = 5
         old_nets = copy.deepcopy(self.learner)
         reverted=False
         # NOTE: do NOT call update_controller here — it would replace the initial (reference)
@@ -635,14 +635,16 @@ class SingleScenApp:
             # - CERTIFY_FROZEN: freeze when V3 loss < V3_ZERO_TOL (genuine Lyapunov decrease with u1)
             # - Otherwise: freeze when trajectories reach goal
             if self.config.CERTIFY_FROZEN:
+                j+=1
                 v3_bl = state.get("best_loss", float('inf'))
                 v3_val = v3_bl.item() if isinstance(v3_bl, torch.Tensor) else v3_bl
                 if iters > 0 and v3_val < self.config.V3_ZERO_TOL:
+                    j=0
                     for param in self.learner[1].parameters():
                         param.requires_grad = False
                     scenapp_log.info("Controller update off (V3 zero)")
                     controller_training = False
-                else:
+                elif iters == 0: #j >= 5:
                     for param in self.learner[1].parameters():
                         param.requires_grad = True
                     scenapp_log.info("Controller update on")

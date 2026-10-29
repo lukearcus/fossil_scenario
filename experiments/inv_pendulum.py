@@ -56,7 +56,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         SCENAPP_MAX_TIME_S=60*60*60,
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
-        MARGIN=5e-2,
+        MARGIN=6e-2,
         PARALLEL=True,
         LEARN_LOOPS=10000,
         N_THREADS=4,

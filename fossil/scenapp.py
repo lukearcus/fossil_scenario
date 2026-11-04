@@ -569,6 +569,8 @@ class SingleScenApp:
         state["supp_len"] = self.a_priori_supps
         start_switch = False
         margin = self.config.MARGIN
+        # V3's verification margin: must match the margin baked into V3's loss (certificate.py).
+        margin_v3 = self.config.V3_MARGIN if self.config.V3_MARGIN is not None else self.config.MARGIN
         j = 5
         old_nets = copy.deepcopy(self.learner)
         reverted=False
@@ -720,7 +722,7 @@ class SingleScenApp:
 
             state["supps"] = state["supps"].union(outputs["new_supps"])
 
-            if not controller_training and v3_val < self.config.MARGIN:
+            if not controller_training and v3_val < margin_v3:
                 if self.config.CALC_DISC_GAP:
                     scenapp_log.debug("negative best loss")
                     delta = self.est_disc_gap(state)

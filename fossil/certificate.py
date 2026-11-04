@@ -1229,12 +1229,17 @@ class Direct_control(Certificate):
         self.beta = None
         self.T = config.SYSTEM[0].time_horizon
         self.margin = config.MARGIN
+        # V3 (frozen-controller certificate) trains/verifies with its own margin so V1 can
+        # drive the controller harder (larger margin) than V3 requires, letting V3 genuinely
+        # reach 0 loss (relu floor) via over-satisfaction.
+        self.margin_v3 = config.V3_MARGIN if config.V3_MARGIN is not None else config.MARGIN
+        cert_log.info("Direct control margins: V1={}, V3={}".format(self.margin, self.margin_v3))
         self.config = config
 
-    def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta):
+    def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta, margin=None):
         relu = torch.nn.ReLU()
         
-        margin = self.margin
+        margin = self.margin if margin is None else margin
 
         state_loss = -V_D+beta
         N_data = len(state_loss)
@@ -1262,6 +1267,7 @@ class Direct_control(Certificate):
             beta,
             indices: list,
             req_diff: torch.tensor,
+            margin: float = None,
     ) -> tuple[torch.Tensor, dict]:
         """_summary_
 
@@ -1276,7 +1282,7 @@ class Direct_control(Certificate):
 
         relu = torch.nn.ReLU()
          
-        margin = self.margin
+        margin = self.margin if margin is None else margin
         
         
         loss = V_next-V+relu(req_diff)+margin
@@ -1490,8 +1496,8 @@ class Direct_control(Certificate):
                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                    v3_losses, v3_acc = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                    v3_losses, v3_acc = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
+                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                     if v3_state_loss > 0:
                         v3_losses = relu(v3_losses) + v3_state_loss
                     else:
@@ -1554,7 +1560,7 @@ class Direct_control(Certificate):
                                         cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
                                     if tl.item() < 1e-4:
                                         break
-                            if _certify_frozen and best_loss_v3 > self.margin:
+                            if _certify_frozen and best_loss_v3 > self.margin_v3:
                                 u1 = learners[1](samples_with_nexts)
                                 for v3_t in range(learn_loops):
                                     for opt in optimizer:
@@ -1571,8 +1577,8 @@ class Direct_control(Certificate):
                                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                     req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                                    v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                                    v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
+                                    v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                                     if v3_state_loss > 0:
                                         v3_losses = relu(v3_losses) + v3_state_loss
                                     else:
@@ -1591,10 +1597,10 @@ class Direct_control(Certificate):
                                         if v3_supp_loss < best_loss_v3:
                                             best_loss_v3 = v3_supp_loss.item()
                                             best_nets_v3 = copy.deepcopy(learners[2])
-                                        if v3_supp_loss <= self.margin:
+                                        if v3_supp_loss <= self.margin_v3:
                                             v3_true_max = torch.max(v3_losses, 0)
                                             v3_true_max = v3_true_max[0]
-                                            if v3_true_max <= self.margin:
+                                            if v3_true_max <= self.margin_v3:
                                                 best_loss_v3 = v3_true_max.item()
                                                 best_nets_v3 = copy.deepcopy(learners[2])
                                                 cert_log.info("V3 converged at step {}".format(v3_t))
@@ -1667,11 +1673,11 @@ class Direct_control(Certificate):
                             if v3_supp_loss < best_loss_v3:
                                 best_loss_v3 = v3_supp_loss
                                 best_nets_v3 = copy.deepcopy(learners[2])
-                            if discrete and v3_supp_loss <= self.margin:
+                            if discrete and v3_supp_loss <= self.margin_v3:
                                 v3_true_max = torch.max(v3_losses, 0)
                                 v3_true_ind = v3_true_max[1].item()
                                 v3_true_max = v3_true_max[0]
-                                if v3_true_max <= self.margin:
+                                if v3_true_max <= self.margin_v3:
                                     best_loss_v3 = v3_true_max
                                     cert_log.info("V3 zero loss")
                                 else:
@@ -1709,7 +1715,7 @@ class Direct_control(Certificate):
                                             cert_log.debug("u1 track: {:.6f} at step {}".format(tl.item(), u_t))
                                         if tl.item() < 1e-4:
                                             break
-                                if _certify_frozen and best_loss_v3 > self.margin:
+                                if _certify_frozen and best_loss_v3 > self.margin_v3:
                                     u1 = learners[1](samples_with_nexts)
                                     for v3_t in range(learn_loops):
                                         for opt in optimizer:
@@ -1726,8 +1732,8 @@ class Direct_control(Certificate):
                                         V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
                                         req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
-                                        v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3)
-                                        v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                                        v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
+                                        v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                                         if v3_state_loss > 0:
                                             v3_losses = relu(v3_losses) + v3_state_loss
                                         else:
@@ -1746,10 +1752,10 @@ class Direct_control(Certificate):
                                             if v3_supp_loss < best_loss_v3:
                                                 best_loss_v3 = v3_supp_loss.item()
                                                 best_nets_v3 = copy.deepcopy(learners[2])
-                                            if v3_supp_loss <= self.margin:
+                                            if v3_supp_loss <= self.margin_v3:
                                                 v3_true_max = torch.max(v3_losses, 0)
                                                 v3_true_max = v3_true_max[0]
-                                                if v3_true_max <= self.margin:
+                                                if v3_true_max <= self.margin_v3:
                                                     best_loss_v3 = v3_true_max.item()
                                                     best_nets_v3 = copy.deepcopy(learners[2])
                                                     cert_log.info("V3 converged at step {}".format(v3_t))
@@ -1830,7 +1836,7 @@ class Direct_control(Certificate):
                         V3_G = V3_s[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                         V3_SD = V3_s[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
-                        v3_state_loss,_ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3)
+                        v3_state_loss,_ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                         loss = loss + v3_state_loss
                     #if state_itt % 100 == 0:
                     #    import pdb; pdb.set_trace()
@@ -1961,6 +1967,8 @@ class Direct_control(Certificate):
         true_violated = 0
         
         cert_net = nets[2] if (self.config.CERTIFY_FROZEN and len(nets) > 2) else nets[0]
+        # V3's loss bakes in V3's margin; the violation count must use the same margin.
+        cert_margin = self.margin_v3 if (self.config.CERTIFY_FROZEN and len(nets) > 2) else self.margin
         req_diff = (cert_net(state_data["init"]).max()-cert_net(state_data["goal_border"]).min())/self.T
         beta = cert_net(state_data["goal_border"]).min()
         for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
@@ -1997,7 +2005,7 @@ class Direct_control(Certificate):
             
             
             
-            losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff)
+            losses, learn_accuracy = self.compute_loss(V1, V_next, beta, Sind, req_diff, margin=cert_margin)
             
             if len(traj.shape) == 3:
                 traj = torch.squeeze(traj,1)
@@ -2005,7 +2013,7 @@ class Direct_control(Certificate):
             if len(goal_inds[0]) == 0:
                 true_violated += 1
             # We should check for value violations, but currently don't
-            if any(losses >= self.margin):
+            if any(losses >= cert_margin):
                 violated += 1
         return violated, true_violated
 

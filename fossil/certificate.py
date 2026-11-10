@@ -1233,7 +1233,6 @@ class Direct_control(Certificate):
         # drive the controller harder (larger margin) than V3 requires, letting V3 genuinely
         # reach 0 loss (relu floor) via over-satisfaction.
         self.margin_v3 = config.V3_MARGIN if config.V3_MARGIN is not None else config.MARGIN
-        cert_log.info("Direct control margins: V1={}, V3={}".format(self.margin, self.margin_v3))
         self.config = config
 
     def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta, margin=None):
@@ -1366,6 +1365,7 @@ class Direct_control(Certificate):
         n_ctrl = g_samples.shape[1]
         supp_samples = set()
         _certify_frozen = self.config.CERTIFY_FROZEN and len(learners) > 2
+        cert_log.info("Direct control margins: V1={}, V3={}".format(self.margin, self.margin_v3))
         if _certify_frozen:
             supp_samples_v3 = set()
             best_loss_v3 = 999

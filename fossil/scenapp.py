@@ -634,19 +634,25 @@ class SingleScenApp:
             #    for param in self.learner[0].parameters():
             #        param.requires_grad=True
             # Controller freeze gate:
-            # - CERTIFY_FROZEN: freeze when V3 loss < V3_ZERO_TOL (genuine Lyapunov decrease with u1)
+            # - CERTIFY_FROZEN: freeze when all support trajectories reach the goal
+            #   (compression-set-only property signal) AND V3 certifies the current
+            #   NN controller (V3 best loss below its margin). Both signals come from
+            #   the previous learner call on the same data snapshot.
             # - Otherwise: freeze when trajectories reach goal
             if self.config.CERTIFY_FROZEN:
                 j+=1
                 v3_bl = state.get("best_loss", float('inf'))
                 v3_val = v3_bl.item() if isinstance(v3_bl, torch.Tensor) else v3_bl
-                if iters > 0 and v3_val < self.config.V3_ZERO_TOL:
+                supp_acc = state.get("supp_acc", 0.0)
+                if iters > 0 and supp_acc >= 100.0 and v3_val < margin_v3:
                     j=0
                     for param in self.learner[1].parameters():
                         param.requires_grad = False
-                    scenapp_log.info("Controller update off (V3 zero)")
+                    scenapp_log.info("Controller update off (supp-acc={:.1f}%, V3={:.6f} < {:.6f})".format(supp_acc, v3_val, margin_v3))
                     controller_training = False
-                elif iters == 0: #j >= 5:
+                elif iters == 0 or (not controller_training and v3_val >= margin_v3):
+                    # start of run, or frozen controller failed to keep V3 below its
+                    # margin -> resume controller training
                     for param in self.learner[1].parameters():
                         param.requires_grad = True
                     scenapp_log.info("Controller update on")
@@ -715,6 +721,25 @@ class SingleScenApp:
             param_delta = (new_param_vec - param_vec).norm().item()
             scenapp_log.debug("Param delta (rel): {:.6e} / {:.6e}".format(param_delta, self.config.CONVERGE_TOL * (param_vec.norm().item() + 1e-12)))
             param_vec = new_param_vec
+
+            if self.config.CERTIFY_FROZEN and not self.config.CONVEX_NET:
+                # Compression-set-only freeze signal: goal-reach of support trajectories.
+                # Supports are trajectory indices; computed BEFORE update_controller so
+                # supports and trajectories come from the same data snapshot. Union with
+                # new_supps here because the merge below happens after the data refresh.
+                # Consults only compression-set data, so no extra epsilon is due.
+                supp_trajs = set(state["supps"]) | set(outputs["new_supps"])
+                trajs = state[ScenAppStateKeys.S_traj]
+                xg = self.config.DOMAINS[DomainNames.XG.value]
+                if supp_trajs:
+                    supp_acc = 100.0 * sum(
+                        1 for tj in supp_trajs
+                        if 0 <= tj < len(trajs) and any(xg.check_containment(torch.tensor(trajs[tj].T)))
+                    ) / len(supp_trajs)
+                else:
+                    supp_acc = 0.0
+                state["supp_acc"] = supp_acc
+                scenapp_log.info("Support-traj accuracy: {:.5f}% ({} supps)".format(supp_acc, len(supp_trajs)))
 
             if v1_loss <= margin and controller_training:
                 scenapp_log.info("Updating controller")
@@ -902,6 +927,7 @@ class SingleScenApp:
             "v1_best_loss": float(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"])) if hasattr(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"]), "item") else float(state.get(ScenAppStateKeys.v1_best_loss, state["best_loss"])),
             "param_vec": param_vec.detach().cpu().clone() if torch.is_tensor(param_vec) else param_vec,
             "supps": state["supps"],
+            "supp_acc": state.get("supp_acc", 0.0),
             "discarded": state["discarded"],
             "elapsed": elapsed,
             "learner_states": [l.state_dict() for l in self.learner],
@@ -957,6 +983,8 @@ class SingleScenApp:
         state["best_net"] = best_nets
         # Scenario-approach bookkeeping.
         state["supps"] = ckpt["supps"]
+        if "supp_acc" in ckpt:
+            state["supp_acc"] = ckpt["supp_acc"]
         state["discarded"] = ckpt["discarded"]
         state["best_loss"] = ckpt["best_loss"]
         if "v1_best_loss" in ckpt:

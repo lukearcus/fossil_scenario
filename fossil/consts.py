@@ -219,7 +219,7 @@ class ScenAppConfig:
     MARGIN: float = 1e-5
     V3_ZERO_TOL: float = 1e-6  # V3 loss threshold for controller freeze (CERTIFY_FROZEN)
     V3_MARGIN: float = None  # V3 (frozen-controller certificate) margin; defaults to MARGIN when unset
-    REQ_DIFF_SCALE: float = 1.0  # multiplier on the per-step required Lyapunov decrease (>1 = faster-than-minimal pace)
+    REQ_DIFF_SCALE: float = 1.0  # multiplier on V1's required decrease (>1 trains a faster controller); V3 certifies the unscaled rate
     PARALLEL: bool = True
     N_THREADS: int = 4  # torch CPU threads; raises utilization across cores (malloc_trim handles fragmentation)
     # Min-controller (controlled-Lyapunov) settings for Direct_control / Direct_control_RWA.

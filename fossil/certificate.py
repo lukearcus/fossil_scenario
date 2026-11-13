@@ -1233,6 +1233,10 @@ class Direct_control(Certificate):
         # drive the controller harder (larger margin) than V3 requires, letting V3 genuinely
         # reach 0 loss (relu floor) via over-satisfaction.
         self.margin_v3 = config.V3_MARGIN if config.V3_MARGIN is not None else config.MARGIN
+        # Scale on the per-step required decrease: >1 demands a faster pace than the
+        # minimal one that exactly reaches beta within the horizon, so trained
+        # controllers comfortably reach the goal (reach-by-T is still implied).
+        self.req_diff_scale = config.REQ_DIFF_SCALE
         self.config = config
 
     def compute_state_loss(self, V_D, V_G, V_I, V_SD, beta, margin=None):
@@ -1365,7 +1369,7 @@ class Direct_control(Certificate):
         n_ctrl = g_samples.shape[1]
         supp_samples = set()
         _certify_frozen = self.config.CERTIFY_FROZEN and len(learners) > 2
-        cert_log.info("Direct control margins: V1={}, V3={}".format(self.margin, self.margin_v3))
+        cert_log.info("Direct control margins: V1={}, V3={}, req_diff_scale={}".format(self.margin, self.margin_v3, self.req_diff_scale))
         if _certify_frozen:
             supp_samples_v3 = set()
             best_loss_v3 = 999
@@ -1495,7 +1499,7 @@ class Direct_control(Certificate):
                     V3_G = V3_states[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
-                    req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
+                    req_diff_v3 = self.req_diff_scale*((V3_I.max()-beta_v3)/self.T)
                     v3_losses, v3_acc = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
                     v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                     if v3_state_loss > 0:
@@ -1510,7 +1514,7 @@ class Direct_control(Certificate):
                 V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                 #beta = (V_SG.min()*9+V_G.min())/10
                 beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
-                req_diff = ((V_I.max()-beta)/self.T)
+                req_diff = self.req_diff_scale*((V_I.max()-beta)/self.T)
                 
                 # NOTE: reg_loss = torch.norm(nexts) used to be computed here every inner step
                 # but was never used (only referenced in the commented line `#supp_loss = supp_loss + reg_loss`).
@@ -1576,7 +1580,7 @@ class Direct_control(Certificate):
                                     V3_G = V3_states[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                                     V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                     beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
-                                    req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
+                                    req_diff_v3 = self.req_diff_scale*((V3_I.max()-beta_v3)/self.T)
                                     v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
                                     v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                                     if v3_state_loss > 0:
@@ -1731,7 +1735,7 @@ class Direct_control(Certificate):
                                         V3_G = V3_states[i1+i2+i3-idot1-idot2-idot3:i1+i2+i3+i4-idot1-idot2-idot3-idot4]
                                         V3_SD = V3_states[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
                                         beta_v3 = border_mix*V3_SG.min()+(1-border_mix)*V3_G.min()
-                                        req_diff_v3 = ((V3_I.max()-beta_v3)/self.T)
+                                        req_diff_v3 = self.req_diff_scale*((V3_I.max()-beta_v3)/self.T)
                                         v3_losses, _ = self.compute_loss(V3_current, V3_next, beta_v3, Sind, req_diff_v3, margin=self.margin_v3)
                                         v3_state_loss, _ = self.compute_state_loss(V3_D, V3_G, V3_I, V3_SD, beta_v3, margin=self.margin_v3)
                                         if v3_state_loss > 0:
@@ -1879,7 +1883,7 @@ class Direct_control(Certificate):
         V_SD = V2[i1+i2+i3+i4-idot1-idot2-idot3-idot4:]
         beta = border_mix*V_SG.min()+(1-border_mix)*V_G.min()
         
-        req_diff = ((V_I.max()-beta)/self.T)
+        req_diff = self.req_diff_scale*((V_I.max()-beta)/self.T)
 
 
         nexts = (f_samples.mT+torch.bmm(g_samples.mT,u1.mT)).mT
@@ -1969,7 +1973,7 @@ class Direct_control(Certificate):
         cert_net = nets[2] if (self.config.CERTIFY_FROZEN and len(nets) > 2) else nets[0]
         # V3's loss bakes in V3's margin; the violation count must use the same margin.
         cert_margin = self.margin_v3 if (self.config.CERTIFY_FROZEN and len(nets) > 2) else self.margin
-        req_diff = (cert_net(state_data["init"]).max()-cert_net(state_data["goal_border"]).min())/self.T
+        req_diff = self.req_diff_scale*(cert_net(state_data["init"]).max()-cert_net(state_data["goal_border"]).min())/self.T
         beta = cert_net(state_data["goal_border"]).min()
         for i, (traj, traj_deriv, time, f, g) in enumerate(zip(S["states"], S["derivs"], S["times"], S["f_vals"], S["g_vals"])):
             

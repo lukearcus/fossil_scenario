@@ -58,6 +58,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         #CONVEX_NET=True,
         MARGIN=5e-2,
         V3_MARGIN=1e-2,
+        REQ_DIFF_SCALE=2.0,
         PARALLEL=True,
         LEARN_LOOPS=10000,
         N_THREADS=4,

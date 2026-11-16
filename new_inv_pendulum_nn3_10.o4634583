@@ -1,0 +1,14 @@
+Learner times: total=216274.25761412643s,min=157.15848810970783s,max=7769.530615055934s,avg=3488.2944776472004s, N=62
+Direct Property scenario approach risk: nan
+Certificate violation rate: 1.000
+Property violation rate: 1.000
+Direct property guarantee time: 4.41416s
+
+====================================
+CPU Time used: 203:33:09
+CPU Percent: 387%
+Memory usage: 3793252kb
+Approx Power usage: 2.4426000000000005
+Walltime usage: 60:09:20
+
+====================================

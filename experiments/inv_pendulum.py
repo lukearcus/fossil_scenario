@@ -57,7 +57,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
         VERIFIER=VerifierType.SCENAPPNONCONVEX,
         #CONVEX_NET=True,
         MARGIN=5e-2,
-        REQ_DIFF_SCALE=2.0,
+        REQ_DIFF_SCALE=1.0,
         PARALLEL=True,
         LEARN_LOOPS=10000,
         N_THREADS=4,
@@ -78,7 +78,7 @@ def solve(systems, sets, n_data, activations, hidden_neurons, data):
 
 
 def test_lnn():
-    n_data = 10
+    n_data = 50
     system = models.InvPendulum
     
     def random_control(obj, t, x):

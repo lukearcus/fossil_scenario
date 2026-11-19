@@ -720,7 +720,11 @@ class SingleScenApp:
             if self.config.CERTIFY_FROZEN:
                 v3_bl = state["best_loss"]
                 v3_val = v3_bl.item() if isinstance(v3_bl, torch.Tensor) else v3_bl
-                scenapp_log.info("V3 best loss: {:.10f}".format(v3_val))
+                # Pre-freeze, state["best_loss"] is V1's (via the v1_best_loss fallback
+                # in the certificate's return dict); log accordingly so the value isn't
+                # misread as V3's.
+                label = "V3" if not controller_training else "V1 (V3 passive)"
+                scenapp_log.info("{} best loss: {:.10f}".format(label, v3_val))
             if isinstance(old_best, (int, float)):
                 scenapp_log.info("Previous V1 best: {:.10f}".format(old_best))
             else:

@@ -1369,8 +1369,14 @@ class Direct_control(Certificate):
         #g_samples = torch.unsqueeze(g_samples[:idot1], 1)
         n_ctrl = g_samples.shape[1]
         supp_samples = set()
-        _certify_frozen = self.config.CERTIFY_FROZEN and len(learners) > 2
-        cert_log.info("Direct control margins: V1={}, V3={}, V1 req_diff_scale={}".format(self.margin, self.margin_v3, self.req_diff_scale))
+        # V3 trains ONLY when the NN controller is frozen (post-freeze). Pre-freeze,
+        # the code path is byte-identical to the V1+u1 search that produced the
+        # verified-success run (4273751): same losses, same RNG stream, same V1
+        # state-only loop. u1.requires_grad is the freeze gate's lever, visible here.
+        _certify_frozen = (self.config.CERTIFY_FROZEN and len(learners) > 2
+                           and not any(p.requires_grad for p in learners[1].parameters()))
+        cert_log.info("Direct control margins: V1={}, V3={}, V1 req_diff_scale={} (V3 {})".format(
+            self.margin, self.margin_v3, self.req_diff_scale, "active (frozen u1)" if _certify_frozen else "passive (u1 training)"))
         if _certify_frozen:
             supp_samples_v3 = set()
             best_loss_v3 = 999

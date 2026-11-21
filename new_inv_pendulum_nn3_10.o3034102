@@ -1,0 +1,5 @@
+Learner times: total=97613.2342002336s,min=8.971072101034224s,max=1312.7284120880067s,avg=9.760347385284831s, N=10001
+Direct Property scenario approach risk: nan
+Certificate violation rate: 0.000
+Property violation rate: 1.000
+Direct property guarantee time: 3.03814s

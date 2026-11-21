@@ -1972,7 +1972,7 @@ class Direct_control(Certificate):
             all_supps = supp_samples.union(supp_samples_v3)
             all_supps.discard(-1)
             return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss_v3, ScenAppStateKeys.v1_best_loss: best_loss, "best_net":(best_nets[0], best_nets[1], best_nets_v3), "new_supps": all_supps}
-        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, "best_net":best_nets, "new_supps": supp_samples}
+        return {ScenAppStateKeys.loss: max_loss.detach(), "best_loss":best_loss, ScenAppStateKeys.v1_best_loss: best_loss, "best_net":best_nets, "new_supps": supp_samples}
     def get_violations(self, nets, S, state_data):
         violated = 0
         true_violated = 0
